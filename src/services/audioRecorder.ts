@@ -1,0 +1,116 @@
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Crypto from 'expo-crypto';
+
+export interface RecordingResult {
+  uri: string;
+  duration: number; // ms
+  fileName: string;
+}
+
+let recording: Audio.Recording | null = null;
+
+// 오디오 권한 요청
+export async function requestAudioPermission(): Promise<boolean> {
+  const { granted } = await Audio.requestPermissionsAsync();
+  return granted;
+}
+
+// 녹음 시작
+export async function startRecording(): Promise<void> {
+  const hasPermission = await requestAudioPermission();
+  if (!hasPermission) {
+    throw new Error('마이크 권한이 필요합니다');
+  }
+
+  // 오디오 모드 설정 (백그라운드 녹음 지원)
+  await Audio.setAudioModeAsync({
+    allowsRecordingIOS: true,
+    playsInSilentModeIOS: true,
+    staysActiveInBackground: true,
+  });
+
+  const { recording: newRecording } = await Audio.Recording.createAsync(
+    Audio.RecordingOptionsPresets.HIGH_QUALITY
+  );
+
+  recording = newRecording;
+}
+
+// 녹음 정지 및 파일 저장
+export async function stopRecording(): Promise<RecordingResult> {
+  if (!recording) {
+    throw new Error('진행 중인 녹음이 없습니다');
+  }
+
+  await recording.stopAndUnloadAsync();
+
+  // 오디오 모드 복원
+  await Audio.setAudioModeAsync({
+    allowsRecordingIOS: false,
+    staysActiveInBackground: false,
+  });
+
+  const uri = recording.getURI();
+  const status = await recording.getStatusAsync();
+  recording = null;
+
+  if (!uri) {
+    throw new Error('녹음 파일을 찾을 수 없습니다');
+  }
+
+  // 앱 전용 디렉토리에 파일 이동
+  const fileName = `recording_${Crypto.randomUUID()}.m4a`;
+  const destDir = `${FileSystem.documentDirectory}recordings/`;
+  const destUri = `${destDir}${fileName}`;
+
+  // 디렉토리 확인 및 생성
+  const dirInfo = await FileSystem.getInfoAsync(destDir);
+  if (!dirInfo.exists) {
+    await FileSystem.makeDirectoryAsync(destDir, { intermediates: true });
+  }
+
+  await FileSystem.moveAsync({ from: uri, to: destUri });
+
+  return {
+    uri: destUri,
+    duration: status.durationMillis ?? 0,
+    fileName,
+  };
+}
+
+// 녹음 일시중지
+export async function pauseRecording(): Promise<void> {
+  if (!recording) return;
+  await recording.pauseAsync();
+}
+
+// 녹음 재개
+export async function resumeRecording(): Promise<void> {
+  if (!recording) return;
+  await recording.startAsync();
+}
+
+// 녹음 상태 확인
+export function isRecording(): boolean {
+  return recording !== null;
+}
+
+// 음성 파일 삭제
+export async function deleteAudioFile(uri: string): Promise<void> {
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists) {
+      await FileSystem.deleteAsync(uri);
+    }
+  } catch {
+    // 파일이 이미 삭제된 경우 무시
+  }
+}
+
+// 음성 파일 재생
+export async function playAudio(uri: string): Promise<Audio.Sound> {
+  const { sound } = await Audio.Sound.createAsync({ uri });
+  await sound.playAsync();
+  return sound;
+}
