@@ -28,8 +28,10 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.INTERNET"
-      ]
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.aiseossi.vibediary"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -41,7 +43,19 @@
         {
           "microphonePermission": "음성 녹음을 위해 마이크 접근이 필요합니다."
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "음성 녹음을 위해 마이크 접근이 필요합니다.",
+          "speechRecognitionPermission": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다."
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c43c1e17-f436-44d9-95ee-ed1cdad398b3"
+      }
+    }
   }
 }
