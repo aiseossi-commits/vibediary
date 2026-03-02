@@ -27,9 +27,9 @@ export async function processRecording(audioUri: string): Promise<string> {
       aiPending = true;
     }
   } else {
-    // STT 실패 → 음성 인식 대기 상태로 저장
-    aiResult = { ...createFallbackResult(''), summary: '음성 인식 대기 중...' };
-    aiPending = true;
+    // STT 실패 → 텍스트 없음, AI 처리 불가 → aiPending=false
+    aiResult = { ...createFallbackResult(''), summary: '음성 저장됨 (텍스트 변환 실패)' };
+    aiPending = false;
   }
 
   // 3. DB에 기록 저장
@@ -45,8 +45,8 @@ export async function processRecording(audioUri: string): Promise<string> {
   // 4. 태그 연결
   await setTagsForRecord(recordId, aiResult.tags);
 
-  // 5. AI 실패 시 오프라인 큐에 추가
-  if (aiPending) {
+  // 5. AI 실패 시 오프라인 큐에 추가 (rawText가 있을 때만)
+  if (aiPending && sttResult.text.trim().length > 0) {
     await addToOfflineQueue(recordId, sttResult.text);
   }
 

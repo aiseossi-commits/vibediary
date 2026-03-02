@@ -23,6 +23,7 @@ import {
 import type { RecordWithTags } from '../types/record';
 import { getAllRecords, isDatabaseReady } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
+import { processOfflineQueue } from '../services/offlineQueue';
 import RecordCard from '../components/RecordCard';
 
 interface HomeScreenProps {
@@ -75,11 +76,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   }, [records.length]);
 
-  // Reload records when screen gains focus
+  // Reload records when screen gains focus + AI 대기 항목 자동 처리
   useFocusEffect(
     useCallback(() => {
       setIsLoading(true);
       loadRecords(true);
+
+      // 오프라인 큐 자동 처리 (AI 처리 중인 항목)
+      processOfflineQueue()
+        .then((count) => {
+          if (count > 0) loadRecords(true); // AI 처리 완료 시 리스트 새로고침
+        })
+        .catch(() => {}); // 실패 시 무시 (오프라인 등)
     }, [])
   );
 
