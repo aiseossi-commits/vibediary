@@ -4,13 +4,16 @@ import {
   stopRecording,
   pauseRecording,
   resumeRecording,
+  setMeteringCallback,
   type RecordingResult,
 } from '../services/audioRecorder';
 
 interface UseRecordingReturn {
   isRecording: boolean;
   isPaused: boolean;
+  isStarting: boolean;
   duration: number; // seconds
+  audioLevel: number; // 0~1
   start: () => Promise<void>;
   stop: () => Promise<RecordingResult>;
   pause: () => Promise<void>;
@@ -20,19 +23,19 @@ interface UseRecordingReturn {
 
 export function useRecording(): UseRecordingReturn {
   const [isActive, setIsActive] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 타이머 시작
   const startTimer = useCallback(() => {
     timerRef.current = setInterval(() => {
       setDuration((prev) => prev + 1);
     }, 1000);
   }, []);
 
-  // 타이머 정지
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -40,27 +43,38 @@ export function useRecording(): UseRecordingReturn {
     }
   }, []);
 
-  // 컴포넌트 언마운트 시 타이머 정리
   useEffect(() => {
-    return () => stopTimer();
+    return () => {
+      stopTimer();
+      setMeteringCallback(null);
+    };
   }, [stopTimer]);
 
   const start = useCallback(async () => {
+    if (isActive || isStarting) return; // 중복 시작 방지
     try {
       setError(null);
       setDuration(0);
+      setAudioLevel(0);
+      setIsStarting(true);
+      setMeteringCallback((level) => setAudioLevel(level));
       await startRecording();
       setIsActive(true);
       setIsPaused(false);
       startTimer();
     } catch (e) {
+      setMeteringCallback(null);
       setError(e instanceof Error ? e.message : '녹음 시작에 실패했습니다');
+    } finally {
+      setIsStarting(false);
     }
-  }, [startTimer]);
+  }, [isActive, isStarting, startTimer]);
 
   const stop = useCallback(async (): Promise<RecordingResult> => {
     try {
       stopTimer();
+      setMeteringCallback(null);
+      setAudioLevel(0);
       const result = await stopRecording();
       setIsActive(false);
       setIsPaused(false);
@@ -76,6 +90,7 @@ export function useRecording(): UseRecordingReturn {
     try {
       await pauseRecording();
       setIsPaused(true);
+      setAudioLevel(0);
       stopTimer();
     } catch (e) {
       setError(e instanceof Error ? e.message : '일시중지에 실패했습니다');
@@ -84,6 +99,7 @@ export function useRecording(): UseRecordingReturn {
 
   const resume_ = useCallback(async () => {
     try {
+      setMeteringCallback((level) => setAudioLevel(level));
       await resumeRecording();
       setIsPaused(false);
       startTimer();
@@ -95,7 +111,9 @@ export function useRecording(): UseRecordingReturn {
   return {
     isRecording: isActive,
     isPaused,
+    isStarting,
     duration,
+    audioLevel,
     start,
     stop,
     pause,

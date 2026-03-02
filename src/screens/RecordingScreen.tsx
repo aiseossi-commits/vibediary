@@ -10,7 +10,12 @@ interface RecordingScreenProps {
 }
 
 export default function RecordingScreen({ onRecordingComplete, onCancel }: RecordingScreenProps) {
-  const { isRecording, isPaused, duration, start, stop, pause, resume, error } = useRecording();
+  const { isRecording, isPaused, isStarting, duration, audioLevel, start, stop, pause, resume, error } = useRecording();
+
+  // 화면 진입 시 자동 녹음 시작
+  React.useEffect(() => {
+    start();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -19,6 +24,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }: Recor
   };
 
   const handleToggleRecording = useCallback(async () => {
+    if (isStarting) return; // 시작 중이면 무시
     if (!isRecording) {
       await start();
     } else if (isPaused) {
@@ -26,7 +32,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }: Recor
     } else {
       await pause();
     }
-  }, [isRecording, isPaused, start, pause, resume]);
+  }, [isRecording, isPaused, isStarting, start, pause, resume]);
 
   const handleStop = useCallback(async () => {
     try {
@@ -75,16 +81,16 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }: Recor
         )}
         {isRecording && (
           <>
-            {/* 파형 애니메이션 영역 (플레이스홀더) */}
+            {/* 실시간 파형 애니메이션 */}
             <View style={styles.waveform}>
-              {[...Array(5)].map((_, i) => (
+              {[0.5, 0.75, 1.0, 0.75, 0.5, 0.85, 0.6].map((factor, i) => (
                 <View
                   key={i}
                   style={[
                     styles.waveBar,
                     {
-                      height: isPaused ? 8 : 8 + Math.random() * 40,
-                      opacity: isPaused ? 0.3 : 1,
+                      height: isPaused ? 4 : Math.max(4, audioLevel * factor * 56),
+                      opacity: isPaused ? 0.3 : 0.7 + factor * 0.3,
                     },
                   ]}
                 />
@@ -113,9 +119,11 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }: Recor
           {/* 녹음 시작/일시중지 버튼 */}
           <TouchableOpacity
             onPress={handleToggleRecording}
+            disabled={isStarting}
             style={[
               styles.recordButton,
               isRecording && !isPaused && styles.recordButtonActive,
+              isStarting && { opacity: 0.5 },
             ]}
             activeOpacity={0.7}
           >

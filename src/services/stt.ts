@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import {
   ExpoSpeechRecognitionModule,
   type ExpoSpeechRecognitionResultEvent,
@@ -9,14 +10,21 @@ import { getNetworkState } from '../utils/network';
 // STT 설정
 const STT_CONFIDENCE_THRESHOLD = 0.7;
 const STT_MIN_TEXT_LENGTH = 5;
+// Android는 파일 기반 STT 미지원 → 즉시 스킵
+const DEVICE_STT_TIMEOUT = Platform.OS === 'ios' ? 15000 : 0;
 
 interface DeviceSTTResult {
   text: string;
   confidence: number;
 }
 
-// 기기 내장 STT (expo-speech-recognition)
+// 기기 내장 STT (expo-speech-recognition, iOS 전용)
 async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
+  // Android는 파일 기반 STT 미지원 → 즉시 반환
+  if (DEVICE_STT_TIMEOUT === 0) {
+    return { text: '', confidence: 0 };
+  }
+
   const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
   if (!granted) {
     return { text: '', confidence: 0 };
@@ -26,7 +34,7 @@ async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
     const timeout = setTimeout(() => {
       try { ExpoSpeechRecognitionModule.abort(); } catch {}
       resolve({ text: '', confidence: 0 });
-    }, 30000);
+    }, DEVICE_STT_TIMEOUT);
 
     let finalText = '';
     let finalConfidence = 0;

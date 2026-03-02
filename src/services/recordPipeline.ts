@@ -7,18 +7,28 @@ import type { RecordWithTags } from '../types/record';
 
 // 전체 녹음 → 기록 생성 파이프라인
 export async function processRecording(audioUri: string): Promise<string> {
-  // 1. STT 변환
-  const sttResult = await processSTT(audioUri);
+  // 1. STT 변환 (실패해도 기록은 저장)
+  let sttResult;
+  try {
+    sttResult = await processSTT(audioUri);
+  } catch {
+    sttResult = { text: '', confidence: 0, source: 'device' as const };
+  }
 
-  // 2. AI 처리 시도
+  // 2. AI 처리 시도 (STT 텍스트가 있을 때만)
   let aiResult;
   let aiPending = false;
 
-  try {
-    aiResult = await processWithAI(sttResult.text);
-  } catch (error) {
-    // AI 실패 (오프라인 포함) → fallback
-    aiResult = createFallbackResult(sttResult.text);
+  if (sttResult.text.trim().length > 0) {
+    try {
+      aiResult = await processWithAI(sttResult.text);
+    } catch {
+      aiResult = createFallbackResult(sttResult.text);
+      aiPending = true;
+    }
+  } else {
+    // STT 실패 → 음성 인식 대기 상태로 저장
+    aiResult = { ...createFallbackResult(''), summary: '음성 인식 대기 중...' };
     aiPending = true;
   }
 

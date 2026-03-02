@@ -9,6 +9,12 @@ export interface RecordingResult {
 }
 
 let recording: Audio.Recording | null = null;
+let onMeteringUpdate: ((level: number) => void) | null = null;
+
+// metering 콜백 등록 (0~1 범위로 정규화된 음량)
+export function setMeteringCallback(cb: ((level: number) => void) | null) {
+  onMeteringUpdate = cb;
+}
 
 // 오디오 권한 요청
 export async function requestAudioPermission(): Promise<boolean> {
@@ -31,7 +37,15 @@ export async function startRecording(): Promise<void> {
   });
 
   const { recording: newRecording } = await Audio.Recording.createAsync(
-    Audio.RecordingOptionsPresets.HIGH_QUALITY
+    { ...Audio.RecordingOptionsPresets.HIGH_QUALITY, isMeteringEnabled: true },
+    (status) => {
+      if (status.isRecording && status.metering !== undefined && onMeteringUpdate) {
+        // dBFS(-60~0) → 0~1 정규화
+        const level = Math.max(0, Math.min(1, (status.metering + 60) / 60));
+        onMeteringUpdate(level);
+      }
+    },
+    80 // 80ms마다 업데이트
   );
 
   recording = newRecording;

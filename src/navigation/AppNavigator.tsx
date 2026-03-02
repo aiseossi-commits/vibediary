@@ -102,10 +102,11 @@ function RecordingScreenWrapper({ navigation }: any) {
     async (uri: string, duration: number) => {
       try {
         await processRecording(uri);
-        navigation.goBack();
       } catch (error) {
         console.warn('기록 처리 실패:', error);
-        navigation.goBack();
+      } finally {
+        // 항상 홈 탭으로 이동 (뒤로 가기 대신)
+        navigation.navigate('Main', { screen: 'Home' });
       }
     },
     [navigation]
