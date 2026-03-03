@@ -29,6 +29,7 @@ export function useRecording(): UseRecordingReturn {
   const [audioLevel, setAudioLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const avgLevelRef = useRef({ sum: 0, count: 0 });
 
   const startTimer = useCallback(() => {
     timerRef.current = setInterval(() => {
@@ -57,7 +58,12 @@ export function useRecording(): UseRecordingReturn {
       setDuration(0);
       setAudioLevel(0);
       setIsStarting(true);
-      setMeteringCallback((level) => setAudioLevel(level));
+      avgLevelRef.current = { sum: 0, count: 0 }; // 시작 시 리셋
+      setMeteringCallback((level) => {
+        setAudioLevel(level);
+        avgLevelRef.current.sum += level;
+        avgLevelRef.current.count++;
+      });
       await startRecording();
       setIsActive(true);
       setIsPaused(false);
@@ -97,9 +103,18 @@ export function useRecording(): UseRecordingReturn {
     }
   }, [stopTimer]);
 
+  const getAverageAudioLevel = useCallback(() => {
+    const { sum, count } = avgLevelRef.current;
+    return count > 0 ? sum / count : 0;
+  }, []);
+
   const resume_ = useCallback(async () => {
     try {
-      setMeteringCallback((level) => setAudioLevel(level));
+      setMeteringCallback((level) => {
+        setAudioLevel(level);
+        avgLevelRef.current.sum += level;
+        avgLevelRef.current.count++;
+      });
       await resumeRecording();
       setIsPaused(false);
       startTimer();
@@ -114,6 +129,7 @@ export function useRecording(): UseRecordingReturn {
     isStarting,
     duration,
     audioLevel,
+    getAverageAudioLevel,
     start,
     stop,
     pause,

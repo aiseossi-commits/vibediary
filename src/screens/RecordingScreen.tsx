@@ -10,7 +10,7 @@ interface RecordingScreenProps {
 }
 
 export default function RecordingScreen({ onRecordingComplete, onCancel }: RecordingScreenProps) {
-  const { isRecording, isPaused, isStarting, duration, audioLevel, start, stop, pause, resume, error } = useRecording();
+  const { isRecording, isPaused, isStarting, duration, audioLevel, getAverageAudioLevel, start, stop, pause, resume, error } = useRecording();
 
   // 화면 진입 시 자동 녹음 시작
   React.useEffect(() => {
@@ -34,14 +34,38 @@ export default function RecordingScreen({ onRecordingComplete, onCancel }: Recor
     }
   }, [isRecording, isPaused, isStarting, start, pause, resume]);
 
+  const MIN_DURATION = 3; // 최소 녹음 시간 (초)
+  const LOW_AUDIO_THRESHOLD = 0.15; // 평균 오디오 레벨 임계값 (0~1)
+
   const handleStop = useCallback(async () => {
     try {
+      // 3초 이하: 저장하지 않고 취소
+      if (duration <= MIN_DURATION) {
+        await stop();
+        onCancel();
+        return;
+      }
+
+      const avgLevel = getAverageAudioLevel();
       const result = await stop();
-      onRecordingComplete(result.uri, result.duration);
+
+      // 평균 레벨이 낮으면 확인 팝업
+      if (avgLevel <= LOW_AUDIO_THRESHOLD) {
+        Alert.alert(
+          '녹음이 되지 않았습니다',
+          '내용을 저장할까요?',
+          [
+            { text: '취소', style: 'cancel', onPress: onCancel },
+            { text: '저장', onPress: () => onRecordingComplete(result.uri, result.duration) },
+          ]
+        );
+      } else {
+        onRecordingComplete(result.uri, result.duration);
+      }
     } catch {
       Alert.alert('오류', '녹음 저장에 실패했습니다');
     }
-  }, [stop, onRecordingComplete]);
+  }, [duration, stop, getAverageAudioLevel, onRecordingComplete, onCancel]);
 
   const handleCancel = useCallback(() => {
     if (isRecording) {
