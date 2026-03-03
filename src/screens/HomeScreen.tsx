@@ -39,6 +39,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [hasMore, setHasMore] = useState(true);
   const [textInput, setTextInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  // 로딩 완료 후 진짜 빈 상태임이 확인됐을 때만 슬로건 표시
+  const [showEmptyState, setShowEmptyState] = useState(false);
 
   const loadRecords = useCallback(async (reset = false) => {
     try {
@@ -61,6 +63,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
       if (reset) {
         setRecords(data);
+        setShowEmptyState(data.length === 0); // 로딩 완료 후에만 빈 상태 표시
       } else {
         setRecords((prev) => [...prev, ...data]);
       }
@@ -68,7 +71,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       setHasMore(data.length === PAGE_SIZE);
     } catch (error) {
       console.warn('Failed to load records:', error);
-      if (reset) setRecords([]);
+      if (reset) {
+        setRecords([]);
+        setShowEmptyState(true);
+      }
       setHasMore(false);
     } finally {
       setIsLoading(false);
@@ -79,6 +85,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Reload records when screen gains focus + AI 대기 항목 자동 처리
   useFocusEffect(
     useCallback(() => {
+      setShowEmptyState(false); // 포커스 시 슬로건 숨기고 로딩 상태로
       setIsLoading(true);
       loadRecords(true);
 
@@ -146,8 +153,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   }, [hasMore, records.length]);
 
   const renderEmpty = useCallback(() => {
-    if (isLoading) return null;
+    // 로딩 중이거나 아직 빈 상태 확인 전 → 로딩 인디케이터
+    if (!showEmptyState) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      );
+    }
 
+    // 로딩 완료 후 진짜 빈 상태 → 슬로건
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconWrapper}>
@@ -168,7 +183,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </TouchableOpacity>
       </View>
     );
-  }, [isLoading, handleNewRecord]);
+  }, [showEmptyState, handleNewRecord]);
 
   const keyExtractor = useCallback((item: RecordWithTags) => item.id, []);
 
@@ -219,35 +234,28 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
       </View>
 
-      {/* Initial loading state */}
-      {isLoading && records.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={records}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={[
-            styles.listContent,
-            records.length === 0 && styles.listContentEmpty,
-          ]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderFooter}
-        />
-      )}
+      <FlatList
+        data={records}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        contentContainerStyle={[
+          styles.listContent,
+          records.length === 0 && styles.listContentEmpty,
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.3}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+      />
 
       {/* FAB - new recording button (only when records exist) */}
       {records.length > 0 && (
