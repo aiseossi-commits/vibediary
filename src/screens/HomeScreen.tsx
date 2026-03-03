@@ -85,7 +85,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   // Reload records when screen gains focus + AI 대기 항목 자동 처리
   useFocusEffect(
     useCallback(() => {
-      setShowEmptyState(false); // 포커스 시 슬로건 숨기고 로딩 상태로
       setIsLoading(true);
       loadRecords(true);
 
@@ -95,6 +94,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           if (count > 0) loadRecords(true); // AI 처리 완료 시 리스트 새로고침
         })
         .catch(() => {}); // 실패 시 무시 (오프라인 등)
+
+      // 화면 떠날 때 슬로건 리셋 → 돌아올 때 슬로건 플래시 방지
+      return () => {
+        setShowEmptyState(false);
+      };
     }, [])
   );
 
