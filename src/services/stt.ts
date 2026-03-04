@@ -80,9 +80,10 @@ async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
 
 // Whisper API fallback
 async function whisperSTT(audioUri: string): Promise<string> {
-  const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OpenAI API 키가 설정되지 않았습니다');
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) {
+    throw new Error('Worker URL 또는 Secret이 설정되지 않았습니다');
   }
 
   const fileInfo = await FileSystem.getInfoAsync(audioUri);
@@ -99,10 +100,10 @@ async function whisperSTT(audioUri: string): Promise<string> {
   formData.append('model', 'whisper-1');
   formData.append('language', 'ko');
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const response = await fetch(`${workerUrl}/stt`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      'X-App-Secret': workerSecret,
     },
     body: formData,
   });

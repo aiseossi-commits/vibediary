@@ -22,19 +22,21 @@ JSON 형식으로 응답:
 
 // Gemini API 호출
 async function callGeminiAPI(text: string): Promise<AIProcessingResult> {
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_AI_API_KEY;
-  if (!apiKey) {
-    throw new Error('Google AI API 키가 설정되지 않았습니다');
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) {
+    throw new Error('Worker URL 또는 Secret이 설정되지 않았습니다');
   }
 
   const userMessage = USER_PROMPT_TEMPLATE.replace('{text}', text);
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+    `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-App-Secret': workerSecret,
       },
       body: JSON.stringify({
         systemInstruction: {
