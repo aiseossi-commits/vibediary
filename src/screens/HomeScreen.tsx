@@ -19,7 +19,9 @@ import {
   BORDER_RADIUS,
   SHADOW,
   TOUCH_TARGET,
+  TYPOGRAPHY,
 } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import type { RecordWithTags } from '../types/record';
 import { getAllRecords, isDatabaseReady } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
@@ -166,22 +168,32 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       );
     }
 
-    // 로딩 완료 후 진짜 빈 상태 → 슬로건
+    // 로딩 완료 후 진짜 빈 상태 → 온보딩 스타일
     return (
       <View style={styles.emptyContainer}>
-        <View style={styles.emptyIconWrapper}>
-          <Text style={styles.emptyIcon}>{'{ }'}</Text>
+        {/* 상단 일러스트 영역 (SVG 에셋 준비 전 플레이스홀더) */}
+        <View style={styles.illustrationArea}>
+          {/* TODO: 실제 SVG 일러스트 교체 — 바다/파도를 연상시키는 부드러운 곡선 */}
+          <View style={styles.illustrationCircle}>
+            <Text style={styles.illustrationEmoji}>🌊</Text>
+          </View>
+          <View style={styles.illustrationOrb1} />
+          <View style={styles.illustrationOrb2} />
         </View>
+
+        {/* 메인 카피 */}
         <Text style={styles.emptySlogan}>
-          기록에 치이지 말고,{'\n'}그냥 말하세요
+          오늘, 당신의 바다에{'\n'}목소리를 들려주세요
         </Text>
         <Text style={styles.emptySubtext}>
-          첫 번째 음성 기록을 시작해보세요
+          말하는 것만으로 기록이 완성돼요
         </Text>
+
+        {/* CTA 버튼 */}
         <TouchableOpacity
           onPress={handleNewRecord}
           style={[styles.emptyButton, SHADOW.md]}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           <Text style={styles.emptyButtonText}>녹음 시작하기</Text>
         </TouchableOpacity>
@@ -232,7 +244,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               style={styles.micButton}
               activeOpacity={0.7}
             >
-              <Text style={styles.micIcon}>🎤</Text>
+              <Ionicons name="create-outline" size={22} color={COLORS.secondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -268,7 +280,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           style={[styles.fab, SHADOW.lg]}
           activeOpacity={0.8}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <Ionicons name="mic" size={26} color={COLORS.textOnPrimary} />
         </TouchableOpacity>
       )}
     </SafeAreaView>
@@ -281,35 +293,35 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.lg,
   },
   title: {
-    fontSize: FONT_SIZE.title,
-    fontWeight: FONT_WEIGHT.bold,
-    color: COLORS.primary,
+    ...TYPOGRAPHY.h1,
+    color: COLORS.secondary,
   },
   subtitle: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textTertiary,
-    marginTop: SPACING.xs - 2,
+    marginTop: SPACING.xs,
+    letterSpacing: 0.3,
   },
   // 텍스트 입력바
   inputBar: {
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.extraLarge,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingLeft: SPACING.md,
+    paddingLeft: SPACING.lg,
     paddingRight: SPACING.xs,
-    height: 48,
+    height: 52,
   },
   textInput: {
     flex: 1,
@@ -318,10 +330,10 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   sendButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + 2,
+    backgroundColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
     marginLeft: SPACING.xs,
   },
   sendButtonText: {
@@ -330,14 +342,14 @@ const styles = StyleSheet.create({
     color: COLORS.textOnPrimary,
   },
   micButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: SPACING.xs,
   },
   micIcon: {
-    fontSize: 20,
+    fontSize: 22,
   },
   loadingContainer: {
     flex: 1,
@@ -345,78 +357,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    paddingTop: SPACING.sm,
+    paddingTop: SPACING.md,
     paddingBottom: SPACING.xxl + TOUCH_TARGET.fab,
   },
   listContentEmpty: {
     flexGrow: 1,
   },
   footer: {
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.xl,
     alignItems: 'center',
   },
-  // Empty state
+  // Empty state — 온보딩 스타일
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
+    paddingBottom: SPACING.xxl,
   },
-  emptyIconWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primaryLight + '30',
+  // 상단 60% 일러스트 영역
+  illustrationArea: {
+    width: '100%',
+    height: 260,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
-  emptyIcon: {
-    fontSize: FONT_SIZE.xxl,
-    color: COLORS.primary,
-    fontWeight: FONT_WEIGHT.bold,
+  illustrationCircle: {
+    width: 160,
+    height: 160,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  illustrationEmoji: {
+    fontSize: 64,
+  },
+  // 장식용 보조 원형
+  illustrationOrb1: {
+    position: 'absolute',
+    top: 20,
+    right: '15%',
+    width: 48,
+    height: 48,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.accent,
+    opacity: 0.35,
+  },
+  illustrationOrb2: {
+    position: 'absolute',
+    bottom: 24,
+    left: '10%',
+    width: 32,
+    height: 32,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.primary,
+    opacity: 0.5,
   },
   emptySlogan: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: FONT_WEIGHT.medium,
+    ...TYPOGRAPHY.h2,
     color: COLORS.textPrimary,
     textAlign: 'center',
-    lineHeight: FONT_SIZE.xl * 1.6,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   emptySubtext: {
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: SPACING.xl,
+    lineHeight: FONT_SIZE.md * 1.7,
+    marginBottom: SPACING.xxl,
   },
   emptyButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md - 2,
-    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: SPACING.xxl,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.full,
+    minWidth: 220,
+    alignItems: 'center',
   },
   emptyButtonText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: FONT_WEIGHT.semibold,
     color: COLORS.textOnPrimary,
+    letterSpacing: 0.3,
   },
   // FAB
   fab: {
     position: 'absolute',
-    right: SPACING.lg,
+    right: SPACING.xl,
     bottom: SPACING.xl,
     width: TOUCH_TARGET.fab,
     height: TOUCH_TARGET.fab,
-    borderRadius: TOUCH_TARGET.fab / 2,
-    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  fabIcon: {
-    fontSize: FONT_SIZE.xxl + 4,
-    color: COLORS.textOnPrimary,
-    lineHeight: FONT_SIZE.xxl + 6,
-    fontWeight: FONT_WEIGHT.regular,
   },
 });

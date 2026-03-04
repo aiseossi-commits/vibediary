@@ -53,6 +53,51 @@ export async function processRecording(audioUri: string): Promise<string> {
   return recordId;
 }
 
+// STT만 실행, 실패 시 빈 문자열 반환
+export async function runSTTOnly(audioUri: string): Promise<string> {
+  try {
+    const sttResult = await processSTT(audioUri);
+    return sttResult.text;
+  } catch {
+    return '';
+  }
+}
+
+// 텍스트 받아서 AI 처리 + DB 저장
+export async function processFromText(audioUri: string, text: string): Promise<string> {
+  let aiResult;
+  let aiPending = false;
+
+  if (text.trim().length > 0) {
+    try {
+      aiResult = await processWithAI(text);
+    } catch {
+      aiResult = createFallbackResult(text);
+      aiPending = true;
+    }
+  } else {
+    aiResult = { ...createFallbackResult(''), summary: '음성 저장됨 (텍스트 변환 실패)' };
+    aiPending = false;
+  }
+
+  const recordId = await createRecord({
+    audioPath: audioUri,
+    rawText: text,
+    summary: aiResult.summary,
+    structuredData: aiResult.structuredData,
+    mood: aiResult.mood,
+    aiPending,
+  });
+
+  await setTagsForRecord(recordId, aiResult.tags);
+
+  if (aiPending && text.trim().length > 0) {
+    await addToOfflineQueue(recordId, text);
+  }
+
+  return recordId;
+}
+
 // 텍스트 직접 입력 → 기록 생성 파이프라인 (STT 건너뜀)
 export async function processTextRecord(text: string): Promise<string> {
   // 1. AI 처리 시도

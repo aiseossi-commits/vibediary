@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -16,12 +17,13 @@ import { COLORS, SPACING, TOUCH_TARGET, FONT_SIZE, FONT_WEIGHT, SHADOW } from '.
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// 탭 아이콘 (이모지 기반, 아이콘 라이브러리 없이)
-const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-  Home: { active: '🏠', inactive: '🏠' },
-  Calendar: { active: '📅', inactive: '📅' },
-  Search: { active: '🔍', inactive: '🔍' },
-  Settings: { active: '⚙️', inactive: '⚙️' },
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> = {
+  Home:     { active: 'home',          inactive: 'home-outline' },
+  Calendar: { active: 'calendar',      inactive: 'calendar-outline' },
+  Search:   { active: 'search',        inactive: 'search-outline' },
+  Settings: { active: 'settings',      inactive: 'settings-outline' },
 };
 
 function TabNavigator() {
@@ -33,9 +35,11 @@ function TabNavigator() {
         tabBarIcon: ({ focused }) => {
           const icons = TAB_ICONS[route.name];
           return (
-            <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>
-              {focused ? icons?.active : icons?.inactive}
-            </Text>
+            <Ionicons
+              name={focused ? icons?.active : icons?.inactive}
+              size={24}
+              color={focused ? COLORS.secondary : COLORS.textTertiary}
+            />
           );
         },
         tabBarLabel: () => null,
@@ -100,19 +104,18 @@ export default function AppNavigator() {
 
 // RecordingScreen 래퍼 (네비게이션 연결)
 function RecordingScreenWrapper({ navigation }: any) {
-  const handleRecordingComplete = useCallback(
-    async (uri: string, duration: number) => {
-      try {
-        await processRecording(uri);
-      } catch (error) {
-        console.warn('기록 처리 실패:', error);
-      } finally {
-        // 항상 홈 탭으로 이동 (뒤로 가기 대신)
-        navigation.navigate('Main', { screen: 'Home' });
-      }
-    },
-    [navigation]
-  );
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleRecordingComplete = useCallback(async (uri: string) => {
+    setIsProcessing(true);
+    try {
+      await processRecording(uri);
+    } catch (error) {
+      console.warn('기록 처리 실패:', error);
+    } finally {
+      navigation.navigate('Main', { screen: 'Home' });
+    }
+  }, [navigation]);
 
   const handleCancel = useCallback(() => {
     navigation.goBack();
@@ -122,6 +125,7 @@ function RecordingScreenWrapper({ navigation }: any) {
     <RecordingScreen
       onRecordingComplete={handleRecordingComplete}
       onCancel={handleCancel}
+      isProcessing={isProcessing}
     />
   );
 }

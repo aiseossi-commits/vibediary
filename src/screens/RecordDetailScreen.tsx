@@ -23,6 +23,8 @@ import {
 import type { RecordWithTags, StructuredData } from '../types/record';
 import { getRecordById, updateRecord, deleteRecord } from '../db';
 import { playAudio, deleteAudioFile } from '../services/audioRecorder';
+import { processWithAI, createFallbackResult } from '../services/aiProcessor';
+import { setTagsForRecord } from '../db/tagsDao';
 import TagChip from '../components/TagChip';
 
 interface RecordDetailScreenProps {
@@ -57,8 +59,9 @@ export default function RecordDetailScreen({
 
   const [record, setRecord] = useState<RecordWithTags | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedSummary, setEditedSummary] = useState('');
+  const [isEditingRawText, setIsEditingRawText] = useState(false);
+  const [editedRawText, setEditedRawText] = useState('');
+  const [isReprocessing, setIsReprocessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -67,7 +70,7 @@ export default function RecordDetailScreen({
       const data = await getRecordById(recordId);
       if (data) {
         setRecord(data);
-        setEditedSummary(data.summary);
+        setEditedRawText(data.rawText);
       }
     } catch (error) {
       console.error('Failed to load record:', error);
@@ -87,26 +90,51 @@ export default function RecordDetailScreen({
     };
   }, [loadRecord]);
 
-  const handleEditSummary = useCallback(() => {
-    if (isEditing && record) {
-      // Save the edit
-      const trimmed = editedSummary.trim();
-      if (trimmed && trimmed !== record.summary) {
-        updateRecord(record.id, { summary: trimmed })
-          .then(() => {
-            setRecord((prev) => (prev ? { ...prev, summary: trimmed } : prev));
-          })
-          .catch((error) => {
-            console.error('Failed to update summary:', error);
-            Alert.alert('오류', '요약 수정에 실패했습니다');
-            setEditedSummary(record.summary);
-          });
-      } else {
-        setEditedSummary(record.summary);
-      }
+
+  const handleEditRawText = useCallback(async () => {
+    if (!record) return;
+
+    if (!isEditingRawText) {
+      setIsEditingRawText(true);
+      return;
     }
-    setIsEditing((prev) => !prev);
-  }, [isEditing, record, editedSummary]);
+
+    // 저장: 변경 없으면 그냥 닫기
+    const trimmed = editedRawText.trim();
+    if (!trimmed || trimmed === record.rawText) {
+      setEditedRawText(record.rawText);
+      setIsEditingRawText(false);
+      return;
+    }
+
+    // AI 재처리
+    setIsEditingRawText(false);
+    setIsReprocessing(true);
+    try {
+      let aiResult;
+      try {
+        aiResult = await processWithAI(trimmed);
+      } catch {
+        aiResult = createFallbackResult(trimmed);
+      }
+
+      await updateRecord(record.id, {
+        rawText: trimmed,
+        summary: aiResult.summary,
+        structuredData: aiResult.structuredData,
+        mood: aiResult.mood,
+        aiPending: false,
+      });
+      await setTagsForRecord(record.id, aiResult.tags);
+
+      await loadRecord();
+    } catch (error) {
+      console.error('Failed to reprocess:', error);
+      Alert.alert('오류', '재처리에 실패했습니다');
+    } finally {
+      setIsReprocessing(false);
+    }
+  }, [isEditingRawText, record, editedRawText, loadRecord]);
 
   const handlePlayAudio = useCallback(async () => {
     if (!record?.audioPath) return;
@@ -240,30 +268,8 @@ export default function RecordDetailScreen({
 
         {/* Summary */}
         <View style={[styles.section, SHADOW.sm]}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>요약</Text>
-            <TouchableOpacity
-              onPress={handleEditSummary}
-              style={styles.editButton}
-            >
-              <Text style={styles.editButtonText}>
-                {isEditing ? '저장' : '수정'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.summaryInput}
-              value={editedSummary}
-              onChangeText={setEditedSummary}
-              multiline
-              autoFocus
-              textAlignVertical="top"
-              placeholderTextColor={COLORS.textTertiary}
-            />
-          ) : (
-            <Text style={styles.summaryText}>{record.summary}</Text>
-          )}
+          <Text style={styles.sectionTitle}>요약</Text>
+          <Text style={styles.summaryText}>{record.summary}</Text>
         </View>
 
         {/* Mood */}
@@ -321,12 +327,38 @@ export default function RecordDetailScreen({
         )}
 
         {/* Raw Text */}
-        {record.rawText && (
-          <View style={[styles.section, SHADOW.sm]}>
+        <View style={[styles.section, SHADOW.sm]}>
+          <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>원본 텍스트</Text>
-            <Text style={styles.rawText}>{record.rawText}</Text>
+            {isReprocessing ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <TouchableOpacity
+                onPress={handleEditRawText}
+                style={styles.editButton}
+              >
+                <Text style={styles.editButtonText}>
+                  {isEditingRawText ? '저장 후 AI 재분석' : '수정'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
+          {isEditingRawText ? (
+            <TextInput
+              style={styles.summaryInput}
+              value={editedRawText}
+              onChangeText={setEditedRawText}
+              multiline
+              autoFocus
+              textAlignVertical="top"
+              placeholderTextColor={COLORS.textTertiary}
+            />
+          ) : (
+            <Text style={styles.rawText}>
+              {record.rawText || '원본 텍스트가 없습니다.'}
+            </Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

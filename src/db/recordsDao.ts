@@ -80,12 +80,16 @@ export async function getAllRecords(limit = 50, offset = 0): Promise<RecordWithT
 // 기록 수정
 export async function updateRecord(
   id: string,
-  updates: Partial<Pick<DiaryRecord, 'summary' | 'structuredData' | 'mood' | 'embedding' | 'aiPending'>>
+  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'mood' | 'embedding' | 'aiPending'>>
 ): Promise<void> {
   const db = await getDatabase();
   const sets: string[] = [];
   const values: any[] = [];
 
+  if (updates.rawText !== undefined) {
+    sets.push('raw_text = ?');
+    values.push(updates.rawText);
+  }
   if (updates.summary !== undefined) {
     sets.push('summary = ?');
     values.push(updates.summary);
