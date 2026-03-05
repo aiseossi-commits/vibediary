@@ -45,7 +45,7 @@ function formatDateTime(timestamp: number): string {
   return `${month}월 ${day}일 ${time}`;
 }
 
-export default function RecordCard({ record, onPress }: RecordCardProps) {
+function RecordCard({ record, onPress }: RecordCardProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -136,3 +136,5 @@ const styles = StyleSheet.create({
     gap: SPACING.xs + 2,
   },
 });
+
+export default React.memo(RecordCard);

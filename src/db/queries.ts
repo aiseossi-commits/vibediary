@@ -172,7 +172,10 @@ function mapRow(row: any, tags: Tag[]): RecordWithTags {
     audioPath: row.audio_path,
     rawText: row.raw_text,
     summary: row.summary,
-    structuredData: row.structured_data ? JSON.parse(row.structured_data) : null,
+    structuredData: (() => {
+      try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
+      catch { return null; }
+    })(),
     mood: row.mood,
     embedding: null, // 목록 조회 시 임베딩은 로드하지 않음 (성능)
     isSynced: row.is_synced === 1,

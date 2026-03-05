@@ -39,6 +39,10 @@ async function handleSTT(request: Request) {
   }
 
   const formData = await request.formData();
+  const model = formData.get('model');
+  if (model && model !== 'whisper-1') {
+    return new Response('Invalid STT model', { status: 400 });
+  }
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
   const upstreamResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {

@@ -14,6 +14,7 @@ interface UseRecordingReturn {
   isStarting: boolean;
   duration: number; // seconds
   audioLevel: number; // 0~1
+  getAverageAudioLevel: () => number;
   start: () => Promise<void>;
   stop: () => Promise<RecordingResult>;
   pause: () => Promise<void>;

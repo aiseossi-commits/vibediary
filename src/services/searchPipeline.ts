@@ -117,7 +117,7 @@ async function generateAnswer(query: string, records: RecordWithTags[]): Promise
           contents: [
             {
               role: 'user',
-              parts: [{ text: `질문: ${query}\n\n관련 기록:\n${context}` }],
+              parts: [{ text: `<user_query>\n${query}\n</user_query>\n\n<context>\n${context}\n</context>` }],
             },
           ],
           generationConfig: {

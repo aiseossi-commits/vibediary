@@ -19,7 +19,8 @@ export async function createTag(name: string): Promise<Tag> {
     normalizedName
   );
 
-  return tag!;
+  if (!tag) throw new Error(`Tag not found after insert: ${normalizedName}`);
+  return tag;
 }
 
 // 태그 삭제

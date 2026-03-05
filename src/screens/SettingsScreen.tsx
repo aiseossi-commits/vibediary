@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
 import { isDatabaseReady } from '../db';
@@ -49,9 +49,9 @@ export default function SettingsScreen() {
           <Text style={styles.cardTitle}>AI에 전송되는 데이터</Text>
           <Text style={styles.cardDescription}>
             • 음성 파일은 기기에만 저장되며 서버로 전송되지 않습니다{'\n'}
-            • STT 변환된 텍스트만 AI(Claude)에 전송됩니다{'\n'}
+            • STT 변환된 텍스트만 AI(Google Gemini)에 전송됩니다{'\n'}
             • AI 서버에 데이터가 저장되지 않습니다{'\n'}
-            • 모든 기록은 기기 내 암호화 DB에 보관됩니다
+            • 모든 기록은 기기 내 로컬 DB에 보관됩니다
           </Text>
         </View>
 

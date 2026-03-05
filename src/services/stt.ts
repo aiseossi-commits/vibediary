@@ -138,7 +138,6 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
     // 2단계: Whisper fallback
     const isOnline = await getNetworkState();
     console.log('[STT] 온라인 상태:', isOnline);
-    console.log('[STT] WORKER_URL:', process.env.EXPO_PUBLIC_WORKER_URL);
     if (isOnline) {
       try {
         const whisperText = await whisperSTT(audioUri);

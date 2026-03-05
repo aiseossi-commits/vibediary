@@ -160,42 +160,6 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     setFilteredRecords([]);
   }, []);
 
-  const renderTagItem = useCallback(
-    ({ item }: { item: TagWithCount }) => {
-      const isSelected = selectedTagIds.includes(item.id);
-      const tagColor = TAG_COLOR_MAP[item.name] ?? COLORS.textSecondary;
-
-      return (
-        <TouchableOpacity
-          onPress={() => handleToggleTag(item.id)}
-          onLongPress={() => handleDeleteTag(item)}
-          activeOpacity={0.7}
-          style={[
-            styles.tagItem,
-            SHADOW.sm,
-            isSelected && { borderColor: tagColor, borderWidth: 1.5 },
-          ]}
-        >
-          <View style={styles.tagItemLeft}>
-            <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
-            <Text
-              style={[
-                styles.tagName,
-                isSelected && { color: tagColor, fontWeight: FONT_WEIGHT.semibold },
-              ]}
-            >
-              {item.name}
-            </Text>
-          </View>
-          <View style={styles.tagItemRight}>
-            <Text style={styles.tagCount}>{item.count}</Text>
-            <Text style={styles.tagCountLabel}>건</Text>
-          </View>
-        </TouchableOpacity>
-      );
-    },
-    [selectedTagIds, handleToggleTag, handleDeleteTag],
-  );
 
   const renderRecordItem = useCallback(
     ({ item }: { item: RecordWithTags }) => (
