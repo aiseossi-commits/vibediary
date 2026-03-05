@@ -1,0 +1,24 @@
+name: Deploy to Deno Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'cloudflare-worker/deno-main.ts'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC 토큰 (deployctl 인증에 필요)
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Deno Deploy
+        uses: denoland/deployctl@v1
+        with:
+          project: vibediary-proxy
+          entrypoint: cloudflare-worker/deno-main.ts
