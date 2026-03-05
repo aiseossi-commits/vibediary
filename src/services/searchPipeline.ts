@@ -79,10 +79,11 @@ export async function searchRecords(
   };
 }
 
-// LLM 답변 생성 (Gemini 2.5 Flash Lite)
+// LLM 답변 생성 (Gemini 2.5 Flash Lite via Worker proxy)
 async function generateAnswer(query: string, records: RecordWithTags[]): Promise<string> {
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_AI_API_KEY;
-  if (!apiKey) {
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) {
     return '기록을 찾았지만 AI 답변을 생성할 수 없습니다.';
   }
 
@@ -102,11 +103,12 @@ async function generateAnswer(query: string, records: RecordWithTags[]): Promise
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-App-Secret': workerSecret,
         },
         body: JSON.stringify({
           systemInstruction: {

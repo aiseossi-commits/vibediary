@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -103,19 +103,24 @@ export default function AppNavigator() {
 }
 
 // RecordingScreen 래퍼 (네비게이션 연결)
-function RecordingScreenWrapper({ navigation }: any) {
+function RecordingScreenWrapper({ navigation, route }: any) {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleRecordingComplete = useCallback(async (uri: string) => {
+  const handleRecordingComplete = useCallback(async (uri: string, _duration: number) => {
     setIsProcessing(true);
     try {
-      await processRecording(uri);
+      const dateStr: string | undefined = route.params?.date;
+      const createdAt = dateStr
+        ? new Date(dateStr + 'T12:00:00').getTime()
+        : undefined;
+      await processRecording(uri, createdAt);
     } catch (error) {
       console.warn('기록 처리 실패:', error);
+      Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');
     } finally {
       navigation.navigate('Main', { screen: 'Home' });
     }
-  }, [navigation]);
+  }, [navigation, route.params?.date]);
 
   const handleCancel = useCallback(() => {
     navigation.goBack();

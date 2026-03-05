@@ -109,6 +109,8 @@ async function whisperSTT(audioUri: string): Promise<string> {
   });
 
   if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    console.error('[STT] Whisper 오류 응답:', errBody);
     throw new Error(`Whisper API 오류: ${response.status}`);
   }
 
@@ -135,6 +137,8 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
 
     // 2단계: Whisper fallback
     const isOnline = await getNetworkState();
+    console.log('[STT] 온라인 상태:', isOnline);
+    console.log('[STT] WORKER_URL:', process.env.EXPO_PUBLIC_WORKER_URL);
     if (isOnline) {
       try {
         const whisperText = await whisperSTT(audioUri);
@@ -145,8 +149,8 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
             source: 'whisper',
           };
         }
-      } catch {
-        // Whisper 실패 시 기기 STT 결과라도 사용
+      } catch (e) {
+        console.error('[STT] Whisper 실패:', e);
       }
     }
 
@@ -160,7 +164,7 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
 
     throw new Error('음성 인식에 실패했습니다. 다시 시도해 주세요.');
   } catch (error) {
-    // 기기 STT 완전 실패 시 Whisper만 시도
+    console.error('[STT] 전체 실패:', error);
     const isOnline = await getNetworkState();
     if (isOnline) {
       try {
@@ -170,8 +174,8 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
           confidence: 0.9,
           source: 'whisper',
         };
-      } catch {
-        // Whisper도 실패
+      } catch (e) {
+        console.error('[STT] Whisper 재시도 실패:', e);
       }
     }
     throw new Error('음성 인식에 실패했습니다. 다시 시도해 주세요.');

@@ -2,6 +2,9 @@ name = "vibediary-proxy"
 main = "index.js"
 compatibility_date = "2024-01-01"
 
+[placement]
+mode = "smart"
+
 # 환경변수는 wrangler secret put으로 설정:
 #   npx wrangler secret put OPENAI_API_KEY
 #   npx wrangler secret put GOOGLE_AI_API_KEY

@@ -22,10 +22,11 @@ export async function createRecord(params: {
   mood?: string | null;
   embedding?: number[] | null;
   aiPending?: boolean;
+  createdAt?: number;
 }): Promise<string> {
   const db = await getDatabase();
   const id = Crypto.randomUUID();
-  const now = Date.now();
+  const now = params.createdAt ?? Date.now();
 
   await db.runAsync(
     `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, ai_pending)
@@ -146,7 +147,10 @@ function mapRowToRecordWithTags(row: any, tags: Tag[]): RecordWithTags {
     audioPath: row.audio_path,
     rawText: row.raw_text,
     summary: row.summary,
-    structuredData: row.structured_data ? JSON.parse(row.structured_data) : null,
+    structuredData: (() => {
+      try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
+      catch { return null; }
+    })(),
     mood: row.mood,
     embedding: row.embedding ? blobToFloat32(row.embedding) : null,
     isSynced: row.is_synced === 1,

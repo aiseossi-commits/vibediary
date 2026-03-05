@@ -6,7 +6,7 @@ import { addToOfflineQueue } from './offlineQueue';
 import type { RecordWithTags } from '../types/record';
 
 // 전체 녹음 → 기록 생성 파이프라인
-export async function processRecording(audioUri: string): Promise<string> {
+export async function processRecording(audioUri: string, createdAt?: number): Promise<string> {
   // 1. STT 변환 (실패해도 기록은 저장)
   let sttResult;
   try {
@@ -40,6 +40,7 @@ export async function processRecording(audioUri: string): Promise<string> {
     structuredData: aiResult.structuredData,
     mood: aiResult.mood,
     aiPending,
+    createdAt,
   });
 
   // 4. 태그 연결

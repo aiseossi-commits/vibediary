@@ -32,6 +32,7 @@ export function useRecording(): UseRecordingReturn {
   const avgLevelRef = useRef({ sum: 0, count: 0 });
 
   const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setDuration((prev) => prev + 1);
     }, 1000);

@@ -57,7 +57,10 @@ export async function stopRecording(): Promise<RecordingResult> {
     throw new Error('진행 중인 녹음이 없습니다');
   }
 
-  await recording.stopAndUnloadAsync();
+  const currentRecording = recording;
+  recording = null;
+
+  await currentRecording.stopAndUnloadAsync();
 
   // 오디오 모드 복원
   await Audio.setAudioModeAsync({
@@ -65,9 +68,8 @@ export async function stopRecording(): Promise<RecordingResult> {
     staysActiveInBackground: false,
   });
 
-  const uri = recording.getURI();
-  const status = await recording.getStatusAsync();
-  recording = null;
+  const uri = currentRecording.getURI();
+  const status = await currentRecording.getStatusAsync();
 
   if (!uri) {
     throw new Error('녹음 파일을 찾을 수 없습니다');

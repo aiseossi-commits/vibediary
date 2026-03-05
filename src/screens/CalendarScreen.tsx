@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -21,6 +21,12 @@ export default function CalendarScreen() {
   const [dailySummaries, setDailySummaries] = useState<DailyRecordSummary[]>([]);
   const [dayRecords, setDayRecords] = useState<RecordWithTags[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('month');
+
+  // refs to avoid stale closure in useFocusEffect without causing re-runs on state change
+  const currentMonthRef = useRef(currentMonth);
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => { currentMonthRef.current = currentMonth; }, [currentMonth]);
+  useEffect(() => { selectedDateRef.current = selectedDate; }, [selectedDate]);
 
   // 월별 데이터 로드
   const loadMonthData = useCallback(async (yearMonth: string) => {
@@ -50,12 +56,12 @@ export default function CalendarScreen() {
     }
   }, []);
 
-  // 화면 포커스 시 데이터 로드
+  // 화면 포커스 시 데이터 로드 (refs 사용으로 불필요한 재실행 방지)
   useFocusEffect(
     useCallback(() => {
-      loadMonthData(currentMonth);
-      loadDayRecords(selectedDate);
-    }, [currentMonth, selectedDate, loadMonthData, loadDayRecords])
+      loadMonthData(currentMonthRef.current);
+      loadDayRecords(selectedDateRef.current);
+    }, [loadMonthData, loadDayRecords])
   );
 
   // 캘린더 마킹 데이터 생성 (태그별 색상 점)
@@ -117,8 +123,8 @@ export default function CalendarScreen() {
   );
 
   const handleStartRecording = useCallback(() => {
-    navigation.navigate('Recording');
-  }, [navigation]);
+    navigation.navigate('Recording', { date: selectedDate });
+  }, [navigation, selectedDate]);
 
   // 선택된 날짜 포맷
   const formattedDate = useMemo(() => {
