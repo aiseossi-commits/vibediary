@@ -104,6 +104,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
   }, [isRecording, isPaused, isStarting, start, pause, resume]);
 
   const MIN_DURATION = 3;
+  const SILENCE_THRESHOLD = 0.08;
   const LOW_AUDIO_THRESHOLD = 0.15;
 
   const handleStop = useCallback(async () => {
@@ -111,8 +112,13 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       if (duration <= MIN_DURATION) { await stop(); onCancel(); return; }
       const avgLevel = getAverageAudioLevel();
       const result = await stop();
+      if (avgLevel <= SILENCE_THRESHOLD) {
+        Alert.alert('녹음된 내용이 없습니다', '음성이 감지되지 않았습니다. 마이크 가까이에서 다시 녹음해 주세요.');
+        onCancel();
+        return;
+      }
       if (avgLevel <= LOW_AUDIO_THRESHOLD) {
-        Alert.alert('녹음이 되지 않았습니다', '내용을 저장할까요?', [
+        Alert.alert('녹음 음량이 낮습니다', '음성이 잘 들리지 않을 수 있습니다. 저장할까요?', [
           { text: '취소', style: 'cancel', onPress: onCancel },
           { text: '저장', onPress: () => onRecordingComplete(result.uri, result.duration) },
         ]);

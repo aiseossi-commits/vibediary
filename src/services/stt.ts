@@ -78,22 +78,42 @@ async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
   });
 }
 
-// Whisper 무음 환각 패턴 블랙리스트
-const WHISPER_HALLUCINATION_PATTERNS = [
+// 무음 파일 최소 크기 (10KB 미만이면 의미있는 음성 없음으로 판단)
+const MIN_AUDIO_FILE_SIZE = 10 * 1024;
+
+// STT 환각 패턴 블랙리스트 (Whisper + 디바이스 STT 공통)
+const HALLUCINATION_PATTERNS = [
   '시청해주셔서 감사합니다',
   '구독과 좋아요',
   '좋아요와 구독',
   'MBC 뉴스',
   'KBS 뉴스',
+  'SBS 뉴스',
   '안녕하세요',
   'thank you for watching',
   'thanks for watching',
   'please subscribe',
+  '다음 영상에서 만나요',
+  '좋아요 구독 알림',
+  '영상이 도움이 되셨다면',
+  'subtitles by',
+  '자막 제공',
 ];
 
 function isHallucination(text: string): boolean {
   const lower = text.toLowerCase().trim();
-  return WHISPER_HALLUCINATION_PATTERNS.some((p) => lower.includes(p.toLowerCase()));
+  return HALLUCINATION_PATTERNS.some((p) => lower.includes(p.toLowerCase()));
+}
+
+// 오디오 파일 크기로 무음 여부 판단
+async function isSilentAudio(audioUri: string): Promise<boolean> {
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(audioUri);
+    if (!fileInfo.exists) return true;
+    return (fileInfo.size ?? 0) < MIN_AUDIO_FILE_SIZE;
+  } catch {
+    return false;
+  }
 }
 
 // Whisper API fallback
@@ -144,6 +164,12 @@ async function whisperSTT(audioUri: string): Promise<string> {
 
 // 통합 STT 파이프라인
 export async function processSTT(audioUri: string): Promise<STTResult> {
+  // 0단계: 파일 크기 기반 무음 감지
+  if (await isSilentAudio(audioUri)) {
+    console.log('[STT] 무음 감지 (파일 크기 기준) — STT 스킵');
+    throw new Error('녹음된 내용이 없습니다.');
+  }
+
   // 1단계: 기기 내장 STT 시도
   try {
     const deviceResult = await deviceSTT(audioUri);
@@ -152,11 +178,16 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
       deviceResult.confidence >= STT_CONFIDENCE_THRESHOLD &&
       deviceResult.text.length >= STT_MIN_TEXT_LENGTH
     ) {
-      return {
-        text: deviceResult.text,
-        confidence: deviceResult.confidence,
-        source: 'device',
-      };
+      // 디바이스 STT 결과에도 환각 필터 적용
+      if (isHallucination(deviceResult.text)) {
+        console.log('[STT] 디바이스 STT 환각 감지:', deviceResult.text);
+      } else {
+        return {
+          text: deviceResult.text,
+          confidence: deviceResult.confidence,
+          source: 'device',
+        };
+      }
     }
 
     // 2단계: Whisper fallback
@@ -177,7 +208,7 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
       }
     }
 
-    if (deviceResult.text.length > 0) {
+    if (deviceResult.text.length > 0 && !isHallucination(deviceResult.text)) {
       return {
         text: deviceResult.text,
         confidence: deviceResult.confidence,
@@ -192,11 +223,13 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
     if (isOnline) {
       try {
         const whisperText = await whisperSTT(audioUri);
-        return {
-          text: whisperText,
-          confidence: 0.9,
-          source: 'whisper',
-        };
+        if (whisperText.length > 0) {
+          return {
+            text: whisperText,
+            confidence: 0.9,
+            source: 'whisper',
+          };
+        }
       } catch (e) {
         console.error('[STT] Whisper 재시도 실패:', e);
       }

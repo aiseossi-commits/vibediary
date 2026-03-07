@@ -8,6 +8,10 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -15,8 +19,10 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
 import WaveLoader from '../components/WaveLoader';
 import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady } from '../db';
+import { processTextRecord } from '../services/recordPipeline';
 import { analyzeDailySummary } from '../services/aiProcessor';
 import { useTheme } from '../context/ThemeContext';
+import { useChild } from '../context/ChildContext';
 import {
   SPACING,
   FONT_SIZE,
@@ -87,12 +93,24 @@ function createStyles(colors: AppColors) {
     emptyText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     recordButton: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.lg, backgroundColor: colors.primary },
     recordButtonText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
+    textInputContainer: { marginTop: SPACING.md, gap: SPACING.sm },
+    textInput: {
+      borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md, fontSize: FONT_SIZE.md, color: colors.textPrimary,
+      backgroundColor: colors.surfaceSecondary, minHeight: 80, textAlignVertical: 'top',
+    },
+    saveButton: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.lg, backgroundColor: colors.accent, alignSelf: 'flex-end' },
+    saveButtonText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
+    inputDivider: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.sm },
+    inputDividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+    inputDividerText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
   });
 }
 
 export default function CalendarScreen() {
   const navigation = useNavigation<any>();
   const { colors, densityColors } = useTheme();
+  const { activeChild } = useChild();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -102,6 +120,8 @@ export default function CalendarScreen() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [textInput, setTextInput] = useState('')
+  const [isSaving, setIsSaving] = useState(false);
   const [aiResult, setAiResult] = useState<{ rational: string; emotional: string } | null>(null);
   const aiCache = useRef<Record<string, { rational: string; emotional: string }>>({});
 
@@ -131,18 +151,18 @@ export default function CalendarScreen() {
   const loadMonthData = useCallback(async (yearMonth: string) => {
     if (!isDatabaseReady()) return;
     try {
-      const summaries = await getDailyRecordSummaries(yearMonth);
+      const summaries = await getDailyRecordSummaries(yearMonth, activeChild?.id);
       setDailySummaries(summaries);
     } catch (error) {
       console.warn('캘린더 데이터 로드 실패:', error);
     }
-  }, []);
+  }, [activeChild?.id]);
 
   const loadDayRecords = useCallback(async (date: string) => {
     if (!isDatabaseReady()) return;
     setIsLoadingRecords(true);
     try {
-      const records = await getRecordsByDate(date);
+      const records = await getRecordsByDate(date, activeChild?.id);
       setDayRecords(records);
       return records;
     } catch {
@@ -151,7 +171,7 @@ export default function CalendarScreen() {
     } finally {
       setIsLoadingRecords(false);
     }
-  }, []);
+  }, [activeChild?.id]);
 
   const loadAIAnalysis = useCallback(async (date: string, records: RecordWithTags[]) => {
     if (records.length === 0) return;
@@ -171,6 +191,8 @@ export default function CalendarScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { loadMonthData(currentMonthRef.current); }, [loadMonthData]));
+
+  useEffect(() => { loadMonthData(currentMonthRef.current); }, [activeChild?.id, loadMonthData]);
 
   const handleDayPress = useCallback(async (day: { dateString: string }) => {
     const date = day.dateString;
@@ -195,6 +217,23 @@ export default function CalendarScreen() {
     closeSheet();
     navigation.navigate('Recording', { date: selectedDate });
   }, [navigation, selectedDate, closeSheet]);
+
+  const handleSaveText = useCallback(async () => {
+    const trimmed = textInput.trim();
+    if (!trimmed) return;
+    setIsSaving(true);
+    try {
+      await processTextRecord(trimmed, activeChild?.id);
+      setTextInput('');
+      Alert.alert('저장 완료', '기록이 저장되었습니다.');
+      await loadDayRecords(selectedDate);
+      await loadMonthData(currentMonth);
+    } catch (error) {
+      Alert.alert('저장 실패', '기록 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth]);
 
   const summaryMap = useMemo(() => {
     const map: Record<string, DailyRecordSummary> = {};
@@ -279,50 +318,94 @@ export default function CalendarScreen() {
       {isSheetOpen && (
         <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetAnim }] }]}>
           <View style={styles.sheetHandle} />
-          <TouchableOpacity onPress={closeSheet} style={styles.sheetClose}>
-            <Text style={styles.sheetCloseText}>✕</Text>
-          </TouchableOpacity>
 
           <Text style={styles.sheetDate}>{formattedDate}</Text>
 
-          <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-            {dayRecords.length > 0 && (
-              <View style={styles.aiCards}>
-                {isLoadingAI ? (
-                  <View style={styles.aiLoading}>
-                    <WaveLoader size={0.7} color={colors.primary} />
-                    <Text style={styles.aiLoadingText}>바다가 분석 중...</Text>
-                  </View>
-                ) : aiResult ? (
-                  <View style={styles.aiCardRow}>
-                    <View style={[styles.aiCard, styles.aiCardRational]}>
-                      <Text style={styles.aiCardLabel}>이성 요약</Text>
-                      <Text style={styles.aiCardText}>{aiResult.rational}</Text>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {dayRecords.length > 0 && (
+                <View style={styles.aiCards}>
+                  {isLoadingAI ? (
+                    <View style={styles.aiLoading}>
+                      <WaveLoader size={0.7} color={colors.primary} />
+                      <Text style={styles.aiLoadingText}>바다가 분석 중...</Text>
                     </View>
-                    <View style={[styles.aiCard, styles.aiCardEmotional]}>
-                      <Text style={styles.aiCardLabel}>감성 위로</Text>
-                      <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
+                  ) : aiResult ? (
+                    <View style={styles.aiCardRow}>
+                      <View style={[styles.aiCard, styles.aiCardRational]}>
+                        <Text style={styles.aiCardLabel}>이성 요약</Text>
+                        <Text style={styles.aiCardText}>{aiResult.rational}</Text>
+                      </View>
+                      <View style={[styles.aiCard, styles.aiCardEmotional]}>
+                        <Text style={styles.aiCardLabel}>감성 위로</Text>
+                        <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
+                      </View>
                     </View>
-                  </View>
-                ) : null}
-              </View>
-            )}
+                  ) : null}
+                </View>
+              )}
 
-            {isLoadingRecords ? (
-              <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
-            ) : dayRecords.length === 0 ? (
-              <View style={styles.emptyDay}>
-                <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
-                <TouchableOpacity onPress={handleStartRecording} style={styles.recordButton}>
-                  <Text style={styles.recordButtonText}>녹음 시작하기</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              dayRecords.map((item) => (
-                <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} />
-              ))
-            )}
-          </ScrollView>
+              {isLoadingRecords ? (
+                <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
+              ) : dayRecords.length === 0 ? (
+                <View style={styles.emptyDay}>
+                  <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
+                  <TouchableOpacity onPress={handleStartRecording} style={styles.recordButton}>
+                    <Text style={styles.recordButtonText}>녹음 시작하기</Text>
+                  </TouchableOpacity>
+                  <View style={styles.inputDivider}>
+                    <View style={styles.inputDividerLine} />
+                    <Text style={styles.inputDividerText}>또는</Text>
+                    <View style={styles.inputDividerLine} />
+                  </View>
+                  <View style={styles.textInputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="텍스트로 기록하기..."
+                      placeholderTextColor={colors.textTertiary}
+                      value={textInput}
+                      onChangeText={setTextInput}
+                      multiline
+                    />
+                    <TouchableOpacity
+                      onPress={handleSaveText}
+                      style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
+                      disabled={!textInput.trim() || isSaving}
+                    >
+                      <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  {dayRecords.map((item) => (
+                    <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} />
+                  ))}
+                  <View style={styles.textInputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="텍스트로 추가 기록하기..."
+                      placeholderTextColor={colors.textTertiary}
+                      value={textInput}
+                      onChangeText={setTextInput}
+                      multiline
+                    />
+                    <TouchableOpacity
+                      onPress={handleSaveText}
+                      style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
+                      disabled={!textInput.trim() || isSaving}
+                    >
+                      <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
+
+          <TouchableOpacity onPress={closeSheet} style={styles.sheetClose}>
+            <Text style={styles.sheetCloseText}>✕</Text>
+          </TouchableOpacity>
         </Animated.View>
       )}
     </SafeAreaView>

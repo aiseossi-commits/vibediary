@@ -83,7 +83,7 @@ function createStyles(colors: AppColors) {
 }
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild } = useChild();
 
@@ -125,11 +125,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     return () => loops.forEach((l) => l.stop());
   }, [pulseAnims]);
 
+  const activeChildIdRef = useRef(activeChild?.id);
+  useEffect(() => { activeChildIdRef.current = activeChild?.id; }, [activeChild?.id]);
+
   const loadRecords = useCallback(async (reset = false) => {
     try {
       if (!isDatabaseReady()) { setRecords([]); setHasMore(false); return; }
       const offset = reset ? 0 : records.length;
-      const filterChildId = activeChild?.id;
+      const filterChildId = activeChildIdRef.current;
       const timeout = new Promise<RecordWithTags[]>((_, reject) => setTimeout(() => reject(new Error('DB query timeout')), 5000));
       const data = await Promise.race([getAllRecords(PAGE_SIZE, offset, filterChildId), timeout]);
       if (reset) { setRecords(data); setShowEmptyState(data.length === 0); }
@@ -142,7 +145,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [records.length, activeChild?.id]);
+  }, [records.length]);
 
   useFocusEffect(
     useCallback(() => {
@@ -150,8 +153,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       loadRecords(true);
       processOfflineQueue().then((count) => { if (count > 0) loadRecords(true); }).catch(() => {});
       return () => setShowEmptyState(false);
-    }, [])
+    }, [loadRecords])
   );
+
+  useEffect(() => { loadRecords(true); }, [activeChild?.id]);
 
   const handleRefresh = useCallback(() => { setIsRefreshing(true); loadRecords(true); }, [loadRecords]);
   const handleLoadMore = useCallback(() => { if (!isLoading && hasMore) loadRecords(false); }, [isLoading, hasMore, loadRecords]);
@@ -216,11 +221,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             activeOpacity={childList.length >= 2 ? 0.7 : 1}
           >
             <Text style={styles.title}>
-              {activeChild ? `${activeChild.name}의 바다` : '바다'}
+              {activeChild ? `${activeChild.name}의 ${isDark ? '밤바다' : '바다'}` : (isDark ? '밤바다' : '바다')}
               {childList.length >= 2 ? ' ⌄' : ''}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.subtitle}>나의 기록</Text>
+          <Text style={styles.subtitle}>{activeChild ? `${activeChild.name}를 바라본 기록` : (isDark ? '나의 밤바다' : '나의 바다')}</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => navigation.navigate('Tags')} style={styles.headerIcon}>
@@ -233,31 +238,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        {!hasRecords && showEmptyState ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyHint}>눌러서 말하거나{'\n'}아래에 타이핑하세요</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={records}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
-            }
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
-            ListEmptyComponent={isLoading ? <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /></View> : null}
-            ListFooterComponent={renderFooter}
-          />
-        )}
-
         <View style={styles.bottomArea}>
-          <View style={styles.pearlContainer}>
-            {PearlButton}
-          </View>
           <View style={styles.inputBar}>
             <TextInput
               style={styles.typingInput}
@@ -282,7 +263,31 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               )}
             </TouchableOpacity>
           </View>
+          <View style={styles.pearlContainer}>
+            {PearlButton}
+          </View>
         </View>
+
+        {!hasRecords && showEmptyState ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyHint}>눌러서 말하거나{'\n'}위에 타이핑하세요</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={records}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+            }
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            ListEmptyComponent={isLoading ? <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /></View> : null}
+            ListFooterComponent={renderFooter}
+          />
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
