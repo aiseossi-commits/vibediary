@@ -1,67 +1,118 @@
 // 바다(vibediary) 디자인 토큰
-// "기록에 치이지 말고, 그냥 말하세요" — 따뜻한 종이 질감, 미니멀 힐링 UI
 
-export const COLORS = {
-  // Primary - 부드러운 민트 블루 (안정감)
+export const DARK_COLORS = {
   primary: '#A8DADC',
-  primaryLight: '#D4F1F4',
-  primaryDark: '#457B9D',
-
-  // Secondary - 신뢰감을 주는 딥 블루
-  secondary: '#457B9D',
-
-  // Background - 따뜻한 아이보리
-  background: '#F1FAEE',
-  surface: '#FFFFFF',
-  surfaceSecondary: '#F5F9FA',
-
-  // Text - 가독성 높은 네이비 계열
-  textPrimary: '#1D3557',
-  textSecondary: '#457B9D',
-  textTertiary: '#A0B8C8',
-  textOnPrimary: '#FFFFFF',
-
-  // Accent - 따뜻한 옐로우 포인트
+  primaryLight: '#1A4A5A',
+  primaryDark: '#7BBFC2',
+  secondary: '#EAEAEA',
+  background: '#051622',
+  surface: '#0A2337',
+  surfaceSecondary: '#0D2B42',
+  textPrimary: '#EAEAEA',
+  textSecondary: '#A8C5DA',
+  textTertiary: '#5A8AA8',
+  textOnPrimary: '#051622',
   accent: '#E9C46A',
-  accentLight: '#FFF3CD',
-
-  // Tag Colors (캘린더 + 태그)
+  accentLight: '#2A1F0A',
   tagMedical: '#EF5350',
   tagMedication: '#42A5F5',
   tagBehavior: '#FFA726',
   tagDaily: '#66BB6A',
   tagTherapy: '#AB47BC',
+  error: '#EF5350',
+  success: '#66BB6A',
+  warning: '#FFA726',
+  info: '#42A5F5',
+  border: '#0F3252',
+  divider: '#0A2840',
+  recordingRed: '#E76F51',
+  recordingRedLight: '#2A1510',
+} as const;
 
-  // System
+export const LIGHT_COLORS = {
+  primary: '#2980B9',
+  primaryLight: '#D4EAF7',
+  primaryDark: '#1A5F8A',
+  secondary: '#1A4A6B',
+  background: '#F0F7FF',
+  surface: '#FFFFFF',
+  surfaceSecondary: '#E8F3FA',
+  textPrimary: '#1A2A3A',
+  textSecondary: '#4A6A8A',
+  textTertiary: '#8AAABB',
+  textOnPrimary: '#FFFFFF',
+  accent: '#E9C46A',
+  accentLight: '#FDF3D8',
+  tagMedical: '#E53935',
+  tagMedication: '#1E88E5',
+  tagBehavior: '#FB8C00',
+  tagDaily: '#43A047',
+  tagTherapy: '#8E24AA',
   error: '#E53935',
   success: '#43A047',
   warning: '#FB8C00',
-  info: '#457B9D',
-
-  // Border & Divider
-  border: '#D4E8EC',
-  divider: '#EAF4F4',
-
-  // Recording - 소프트한 산호빛
+  info: '#1E88E5',
+  border: '#C5DFF0',
+  divider: '#DDF0FA',
   recordingRed: '#E76F51',
-  recordingRedLight: '#FAD7CB',
+  recordingRedLight: '#FDEAE4',
 } as const;
 
-export const TAG_COLOR_MAP: Record<string, string> = {
-  '#의료': COLORS.tagMedical,
-  '#투약': COLORS.tagMedication,
-  '#행동': COLORS.tagBehavior,
-  '#일상': COLORS.tagDaily,
-  '#치료': COLORS.tagTherapy,
-};
+export interface AppColors {
+  primary: string;
+  primaryLight: string;
+  primaryDark: string;
+  secondary: string;
+  background: string;
+  surface: string;
+  surfaceSecondary: string;
+  textPrimary: string;
+  textSecondary: string;
+  textTertiary: string;
+  textOnPrimary: string;
+  accent: string;
+  accentLight: string;
+  tagMedical: string;
+  tagMedication: string;
+  tagBehavior: string;
+  tagDaily: string;
+  tagTherapy: string;
+  error: string;
+  success: string;
+  warning: string;
+  info: string;
+  border: string;
+  divider: string;
+  recordingRed: string;
+  recordingRedLight: string;
+}
+
+// 하위 호환용 (직접 import 하는 곳 있을 경우 대비)
+export const COLORS = DARK_COLORS;
+
+export const DARK_DENSITY_COLORS = [
+  'transparent',
+  '#0A2337',
+  '#0F3252',
+  '#1A4A75',
+  '#2461A0',
+] as const;
+
+export const LIGHT_DENSITY_COLORS = [
+  'transparent',
+  '#E8F3FB',
+  '#C5DFF0',
+  '#8ABCD8',
+  '#5499BE',
+] as const;
 
 export const SPACING = {
   xs: 4,
   sm: 8,
   md: 16,
   lg: 24,
-  xl: 32,
-  xxl: 48,
+  xl: 40,
+  xxl: 56,
 } as const;
 
 export const FONT_SIZE = {
@@ -92,47 +143,45 @@ export const BORDER_RADIUS = {
 
 export const SHADOW = {
   sm: {
-    shadowColor: '#1D3557',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.3,
     shadowRadius: 3,
-    elevation: 1,
+    elevation: 2,
   },
   md: {
-    shadowColor: '#1D3557',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.4,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: 4,
   },
   lg: {
-    shadowColor: '#1D3557',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.5,
     shadowRadius: 12,
-    elevation: 5,
+    elevation: 8,
   },
 } as const;
 
-// 녹음 버튼 최소 터치 영역 (한 손 조작 최적화)
 export const TOUCH_TARGET = {
   min: 48,
-  recordButton: 96, // 확장된 녹음 버튼
+  recordButton: 96,
   fab: 56,
 } as const;
 
-// 제목 타이포그래피 (여백의 미)
 export const TYPOGRAPHY = {
   h1: {
     fontSize: FONT_SIZE.title,
-    fontWeight: FONT_WEIGHT.bold as const,
+    fontWeight: '700' as const,
     lineHeight: FONT_SIZE.title * 1.45,
     letterSpacing: -0.5,
   },
   h2: {
     fontSize: FONT_SIZE.xxl,
-    fontWeight: FONT_WEIGHT.semibold as const,
+    fontWeight: '600' as const,
     lineHeight: FONT_SIZE.xxl * 1.55,
     letterSpacing: -0.3,
   },
-} as const;
+};

@@ -1,5 +1,13 @@
 // SQLite 스키마 정의 (design.md D4 참조)
 
+export const CREATE_CHILDREN_TABLE = `
+  CREATE TABLE IF NOT EXISTS children (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+`;
+
 export const CREATE_RECORDS_TABLE = `
   CREATE TABLE IF NOT EXISTS records (
     id TEXT PRIMARY KEY,
@@ -11,7 +19,8 @@ export const CREATE_RECORDS_TABLE = `
     mood TEXT,
     embedding BLOB,
     is_synced INTEGER DEFAULT 0,
-    ai_pending INTEGER DEFAULT 0
+    ai_pending INTEGER DEFAULT 0,
+    child_id TEXT REFERENCES children(id) ON DELETE SET NULL
   );
 `;
 

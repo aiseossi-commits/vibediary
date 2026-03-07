@@ -2,3 +2,4 @@ export { initializeDatabase, getDatabase, closeDatabase, isDatabaseReady } from 
 export * from './recordsDao';
 export * from './tagsDao';
 export * from './queries';
+export * from './childrenDao';

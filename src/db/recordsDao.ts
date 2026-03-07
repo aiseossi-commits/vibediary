@@ -23,14 +23,15 @@ export async function createRecord(params: {
   embedding?: number[] | null;
   aiPending?: boolean;
   createdAt?: number;
+  childId?: string | null;
 }): Promise<string> {
   const db = await getDatabase();
   const id = Crypto.randomUUID();
   const now = params.createdAt ?? Date.now();
 
   await db.runAsync(
-    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, ai_pending)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, ai_pending, child_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     now,
     params.audioPath ?? null,
@@ -39,7 +40,8 @@ export async function createRecord(params: {
     params.structuredData ? JSON.stringify(params.structuredData) : null,
     params.mood ?? null,
     params.embedding ? float32ToBlob(params.embedding) : null,
-    params.aiPending ? 1 : 0
+    params.aiPending ? 1 : 0,
+    params.childId ?? null
   );
 
   return id;
@@ -60,15 +62,19 @@ export async function getRecordById(id: string): Promise<RecordWithTags | null> 
   return mapRowToRecordWithTags(row, tags);
 }
 
-// 전체 기록 조회 (최신순)
-export async function getAllRecords(limit = 50, offset = 0): Promise<RecordWithTags[]> {
+// 전체 기록 조회 (최신순), childId가 string이면 해당 아이만, undefined면 전체
+export async function getAllRecords(limit = 50, offset = 0, childId?: string): Promise<RecordWithTags[]> {
   const db = await getDatabase();
 
-  const rows = await db.getAllAsync<any>(
-    'SELECT * FROM records ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    limit,
-    offset
-  );
+  const rows = childId !== undefined
+    ? await db.getAllAsync<any>(
+        'SELECT * FROM records WHERE child_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        childId, limit, offset
+      )
+    : await db.getAllAsync<any>(
+        'SELECT * FROM records ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        limit, offset
+      );
 
   const results: RecordWithTags[] = [];
   for (const row of rows) {

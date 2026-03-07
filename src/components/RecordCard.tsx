@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import {
-  COLORS,
   SPACING,
   FONT_SIZE,
   FONT_WEIGHT,
   BORDER_RADIUS,
   SHADOW,
+  type AppColors,
 } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import type { RecordWithTags } from '../types/record';
 import TagChip from './TagChip';
 
@@ -45,35 +46,88 @@ function formatDateTime(timestamp: number): string {
   return `${month}월 ${day}일 ${time}`;
 }
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md,
+      marginHorizontal: SPACING.md,
+      marginBottom: SPACING.sm + 2,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
+    dateText: {
+      fontSize: FONT_SIZE.xs,
+      color: colors.textTertiary,
+      fontWeight: FONT_WEIGHT.regular,
+    },
+    pendingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+      backgroundColor: colors.accentLight,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+      borderRadius: BORDER_RADIUS.full,
+    },
+    pendingText: {
+      fontSize: FONT_SIZE.xs,
+      color: colors.accent,
+      fontWeight: FONT_WEIGHT.medium,
+    },
+    summary: {
+      fontSize: FONT_SIZE.md,
+      color: colors.textPrimary,
+      fontWeight: FONT_WEIGHT.regular,
+      lineHeight: FONT_SIZE.md * 1.5,
+      marginBottom: SPACING.sm,
+    },
+    mood: {
+      fontSize: FONT_SIZE.sm,
+      color: colors.textSecondary,
+      marginBottom: SPACING.sm,
+    },
+    tagsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: SPACING.xs + 2,
+    },
+  });
+}
+
 function RecordCard({ record, onPress }: RecordCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
       style={[styles.card, SHADOW.sm]}
     >
-      {/* Header: date + AI pending */}
       <View style={styles.header}>
         <Text style={styles.dateText}>{formatDateTime(record.createdAt)}</Text>
         {record.aiPending && (
           <View style={styles.pendingBadge}>
-            <ActivityIndicator size="small" color={COLORS.accent} />
+            <ActivityIndicator size="small" color={colors.accent} />
             <Text style={styles.pendingText}>AI 처리 중</Text>
           </View>
         )}
       </View>
 
-      {/* Summary */}
       <Text style={styles.summary} numberOfLines={3}>
         {record.summary}
       </Text>
 
-      {/* Mood indicator */}
       {record.mood && (
         <Text style={styles.mood}>{record.mood}</Text>
       )}
 
-      {/* Tags */}
       {record.tags.length > 0 && (
         <View style={styles.tagsRow}>
           {record.tags.map((tag) => (
@@ -84,57 +138,5 @@ function RecordCard({ record, onPress }: RecordCardProps) {
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.sm + 2,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  dateText: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textTertiary,
-    fontWeight: FONT_WEIGHT.regular,
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-    backgroundColor: COLORS.accentLight,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  pendingText: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.accent,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-  summary: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textPrimary,
-    fontWeight: FONT_WEIGHT.regular,
-    lineHeight: FONT_SIZE.md * 1.5,
-    marginBottom: SPACING.sm,
-  },
-  mood: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.xs + 2,
-  },
-});
 
 export default React.memo(RecordCard);

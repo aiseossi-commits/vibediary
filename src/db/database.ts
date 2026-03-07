@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import {
+  CREATE_CHILDREN_TABLE,
   CREATE_RECORDS_TABLE,
   CREATE_TAGS_TABLE,
   CREATE_RECORD_TAGS_TABLE,
@@ -30,7 +31,8 @@ export async function initializeDatabase(): Promise<void> {
     // 외래 키 활성화
     await database.execAsync('PRAGMA foreign_keys = ON;');
 
-    // 테이블 생성
+    // 테이블 생성 (children 먼저 — records가 FK 참조)
+    await database.execAsync(CREATE_CHILDREN_TABLE);
     await database.execAsync(CREATE_RECORDS_TABLE);
     await database.execAsync(CREATE_TAGS_TABLE);
     await database.execAsync(CREATE_RECORD_TAGS_TABLE);
@@ -47,6 +49,21 @@ export async function initializeDatabase(): Promise<void> {
         'INSERT OR IGNORE INTO tags (name) VALUES (?)',
         tagName
       );
+    }
+
+    // 마이그레이션 (기존 DB 버전 확인)
+    const versionRow = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+    const currentVersion = versionRow?.user_version ?? 0;
+
+    if (currentVersion < 1) {
+      // v0 → v1: children 테이블 + records.child_id 추가
+      await database.execAsync(CREATE_CHILDREN_TABLE);
+      try {
+        await database.execAsync('ALTER TABLE records ADD COLUMN child_id TEXT REFERENCES children(id) ON DELETE SET NULL');
+      } catch {
+        // 이미 컬럼이 있으면 무시
+      }
+      await database.execAsync('PRAGMA user_version = 1');
     }
 
     dbInitialized = true;

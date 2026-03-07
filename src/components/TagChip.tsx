@@ -7,13 +7,12 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
-  COLORS,
   SPACING,
   FONT_SIZE,
   FONT_WEIGHT,
   BORDER_RADIUS,
-  TAG_COLOR_MAP,
 } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export interface TagChipProps {
   name: string;
@@ -25,6 +24,17 @@ export interface TagChipProps {
   style?: ViewStyle;
 }
 
+function getTagColor(name: string, colors: ReturnType<typeof useTheme>['colors']): string {
+  const map: Record<string, string> = {
+    '#의료': colors.tagMedical,
+    '#투약': colors.tagMedication,
+    '#행동': colors.tagBehavior,
+    '#일상': colors.tagDaily,
+    '#치료': colors.tagTherapy,
+  };
+  return map[name] ?? colors.textSecondary;
+}
+
 export default function TagChip({
   name: nameProp,
   tag,
@@ -34,8 +44,9 @@ export default function TagChip({
   size = 'sm',
   style,
 }: TagChipProps) {
+  const { colors } = useTheme();
   const name = tag?.name ?? nameProp ?? '';
-  const tagColor = TAG_COLOR_MAP[name] ?? COLORS.textSecondary;
+  const tagColor = getTagColor(name, colors);
   const isSmall = size === 'sm';
 
   const chipContent = (
@@ -50,14 +61,14 @@ export default function TagChip({
       <View
         style={[
           styles.dot,
-          { backgroundColor: selected ? COLORS.textOnPrimary : tagColor },
+          { backgroundColor: selected ? colors.textOnPrimary : tagColor },
         ]}
       />
       <Text
         style={[
           styles.label,
           isSmall ? styles.labelSmall : styles.labelMedium,
-          { color: selected ? COLORS.textOnPrimary : tagColor },
+          { color: selected ? colors.textOnPrimary : tagColor },
         ]}
         numberOfLines={1}
       >
@@ -72,7 +83,7 @@ export default function TagChip({
           <Text
             style={[
               styles.removeIcon,
-              { color: selected ? COLORS.textOnPrimary : tagColor },
+              { color: selected ? colors.textOnPrimary : tagColor },
             ]}
           >
             x

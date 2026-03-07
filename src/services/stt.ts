@@ -78,6 +78,24 @@ async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
   });
 }
 
+// Whisper 무음 환각 패턴 블랙리스트
+const WHISPER_HALLUCINATION_PATTERNS = [
+  '시청해주셔서 감사합니다',
+  '구독과 좋아요',
+  '좋아요와 구독',
+  'MBC 뉴스',
+  'KBS 뉴스',
+  '안녕하세요',
+  'thank you for watching',
+  'thanks for watching',
+  'please subscribe',
+];
+
+function isHallucination(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return WHISPER_HALLUCINATION_PATTERNS.some((p) => lower.includes(p.toLowerCase()));
+}
+
 // Whisper API fallback
 async function whisperSTT(audioUri: string): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
@@ -99,6 +117,7 @@ async function whisperSTT(audioUri: string): Promise<string> {
   } as any);
   formData.append('model', 'whisper-1');
   formData.append('language', 'ko');
+  formData.append('prompt', '발달장애인 돌봄 기록입니다. 의료, 투약, 행동, 일상, 치료 관련 내용입니다.');
 
   const response = await fetch(`${workerUrl}/stt`, {
     method: 'POST',
@@ -115,7 +134,12 @@ async function whisperSTT(audioUri: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.text || '';
+  const text: string = data.text || '';
+  const trimmed = text.trim();
+
+  // 10자 미만이거나 환각 패턴이면 빈 텍스트 반환
+  if (trimmed.length < 10 || isHallucination(trimmed)) return '';
+  return trimmed;
 }
 
 // 통합 STT 파이프라인

@@ -9,7 +9,11 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_WORKER_URL": "https://vibediary.aiseossi-commits.deno.net",
+        "EXPO_PUBLIC_WORKER_SECRET": "vibediary-0304"
+      }
     },
     "production": {
       "autoIncrement": true

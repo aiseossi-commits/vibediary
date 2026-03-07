@@ -108,6 +108,47 @@ export async function processWithAI(text: string): Promise<AIProcessingResult> {
   return callGeminiAPI(text);
 }
 
+// 일별 기록 분석 (이성 요약 + 감성 위로)
+export async function analyzeDailySummary(
+  summaries: string[],
+  tags: string[]
+): Promise<{ rational: string; emotional: string }> {
+  const isOnline = await getNetworkState();
+  if (!isOnline) throw new Error('OFFLINE');
+
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) throw new Error('Worker URL 또는 Secret이 설정되지 않았습니다');
+
+  const context = summaries.map((s, i) => `${i + 1}. ${s}`).join('\n');
+  const tagStr = [...new Set(tags)].join(', ');
+
+  const response = await fetch(`${workerUrl}/ai?model=gemini-2.5-flash-lite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: '당신은 발달장애인 돌봄 가족을 위한 AI 비서입니다. 하루 기록을 분석하여 JSON으로 응답하세요.' }],
+      },
+      contents: [{
+        role: 'user',
+        parts: [{ text: `오늘의 돌봄 기록 (태그: ${tagStr}):\n${context}\n\nJSON으로 응답:\n{"rational": "오늘의 객관적 요약 (의료/투약/행동 데이터 중심, 2-3문장)", "emotional": "따뜻한 위로와 응원 메시지 (1-2문장)"}` }],
+      }],
+      generationConfig: { maxOutputTokens: 300, temperature: 0.4, responseMimeType: 'application/json' },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI 오류: ${response.status}`);
+  const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const cleaned = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+  const parsed = JSON.parse(cleaned.match(/\{[\s\S]*\}/)?.[0] || '{}');
+  return {
+    rational: parsed.rational || '오늘의 기록을 분석했어요.',
+    emotional: parsed.emotional || '오늘도 수고하셨어요.',
+  };
+}
+
 // 오프라인 fallback: 원문을 그대로 사용
 export function createFallbackResult(text: string): AIProcessingResult {
   return {

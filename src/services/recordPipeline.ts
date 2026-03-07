@@ -6,7 +6,7 @@ import { addToOfflineQueue } from './offlineQueue';
 import type { RecordWithTags } from '../types/record';
 
 // 전체 녹음 → 기록 생성 파이프라인
-export async function processRecording(audioUri: string, createdAt?: number): Promise<string> {
+export async function processRecording(audioUri: string, createdAt?: number, childId?: string): Promise<string> {
   // 1. STT 변환 (실패해도 기록은 저장)
   let sttResult;
   try {
@@ -41,6 +41,7 @@ export async function processRecording(audioUri: string, createdAt?: number): Pr
     mood: aiResult.mood,
     aiPending,
     createdAt,
+    childId,
   });
 
   // 4. 태그 연결
@@ -65,7 +66,7 @@ export async function runSTTOnly(audioUri: string): Promise<string> {
 }
 
 // 텍스트 받아서 AI 처리 + DB 저장
-export async function processFromText(audioUri: string, text: string): Promise<string> {
+export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string): Promise<string> {
   let aiResult;
   let aiPending = false;
 
@@ -88,6 +89,8 @@ export async function processFromText(audioUri: string, text: string): Promise<s
     structuredData: aiResult.structuredData,
     mood: aiResult.mood,
     aiPending,
+    createdAt,
+    childId,
   });
 
   await setTagsForRecord(recordId, aiResult.tags);
@@ -100,7 +103,7 @@ export async function processFromText(audioUri: string, text: string): Promise<s
 }
 
 // 텍스트 직접 입력 → 기록 생성 파이프라인 (STT 건너뜀)
-export async function processTextRecord(text: string): Promise<string> {
+export async function processTextRecord(text: string, childId?: string): Promise<string> {
   // 1. AI 처리 시도
   let aiResult;
   let aiPending = false;
@@ -120,6 +123,7 @@ export async function processTextRecord(text: string): Promise<string> {
     structuredData: aiResult.structuredData,
     mood: aiResult.mood,
     aiPending,
+    childId,
   });
 
   // 3. 태그 연결
