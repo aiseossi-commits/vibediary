@@ -1,0 +1,19 @@
+# mic-icon-display Specification
+
+## Purpose
+TBD - created by archiving change mic-icon. Update Purpose after archive.
+## Requirements
+### Requirement: 녹음 버튼 마이크 아이콘 표시
+
+홈 화면의 녹음 버튼(진주 버튼)에는 마이크 아이콘이 표시되어야 한다(MUST). 아이콘은 테마 색상에 맞게 투명도가 적용되어야 한다(SHALL).
+
+#### Scenario: 다크 모드에서 마이크 아이콘 표시
+
+- **WHEN** 앱이 다크 모드로 실행된다
+- **THEN** 진주 버튼 중앙에 흰색 계열 반투명 마이크 아이콘이 표시된다
+
+#### Scenario: 라이트 모드에서 마이크 아이콘 표시
+
+- **WHEN** 앱이 라이트 모드로 실행된다
+- **THEN** 진주 버튼 중앙에 어두운 계열 반투명 마이크 아이콘이 표시된다
+

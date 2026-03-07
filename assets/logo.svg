@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#051622"/>
+
+  <!-- Note shadow -->
+  <rect x="232" y="212" width="480" height="580" rx="36" fill="#000000" opacity="0.25"/>
+
+  <!-- Note body -->
+  <rect x="220" y="196" width="480" height="580" rx="36" fill="#EAEAEA"/>
+
+  <!-- Top fold line -->
+  <rect x="220" y="280" width="480" height="3" fill="#C8C8C8" opacity="0.6"/>
+
+  <!-- Spiral binding dots -->
+  <circle cx="304" cy="280" r="18" fill="#051622"/>
+  <circle cx="304" cy="280" r="11" fill="#EAEAEA"/>
+  <circle cx="388" cy="280" r="18" fill="#051622"/>
+  <circle cx="388" cy="280" r="11" fill="#EAEAEA"/>
+  <circle cx="472" cy="280" r="18" fill="#051622"/>
+  <circle cx="472" cy="280" r="11" fill="#EAEAEA"/>
+  <circle cx="556" cy="280" r="18" fill="#051622"/>
+  <circle cx="556" cy="280" r="11" fill="#EAEAEA"/>
+  <circle cx="640" cy="280" r="18" fill="#051622"/>
+  <circle cx="640" cy="280" r="11" fill="#EAEAEA"/>
+
+  <!-- Text lines -->
+  <rect x="284" y="360" width="372" height="24" rx="12" fill="#0A2337" opacity="0.12"/>
+  <rect x="284" y="420" width="300" height="24" rx="12" fill="#0A2337" opacity="0.12"/>
+  <rect x="284" y="480" width="348" height="24" rx="12" fill="#0A2337" opacity="0.12"/>
+  <rect x="284" y="540" width="240" height="24" rx="12" fill="#0A2337" opacity="0.12"/>
+  <rect x="284" y="600" width="320" height="24" rx="12" fill="#0A2337" opacity="0.12"/>
+  <rect x="284" y="660" width="180" height="24" rx="12" fill="#0A2337" opacity="0.12"/>
+
+  <!-- ON AIR glow (outer ring) -->
+  <circle cx="668" cy="228" r="64" fill="#00C851" opacity="0.18"/>
+  <!-- ON AIR glow (mid ring) -->
+  <circle cx="668" cy="228" r="48" fill="#00C851" opacity="0.30"/>
+  <!-- ON AIR green dot -->
+  <circle cx="668" cy="228" r="34" fill="#00E64D"/>
+  <!-- ON AIR inner highlight -->
+  <circle cx="658" cy="218" r="10" fill="#FFFFFF" opacity="0.35"/>
+</svg>
