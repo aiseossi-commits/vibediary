@@ -53,9 +53,10 @@ export function detectTagsFromQuery(query: string): string[] {
 export async function vectorSearch(
   queryEmbedding: number[],
   topK: number = 5,
-  filterTagIds?: number[]
+  filterTagIds?: number[],
+  childId?: string
 ): Promise<{ id: string; summary: string; structuredData: string | null; score: number; createdAt: number }[]> {
-  const records = await getRecordsWithEmbeddings(filterTagIds);
+  const records = await getRecordsWithEmbeddings(filterTagIds, childId);
 
   const scored = records.map((record) => {
     const embedding = blobToFloat32Array(record.embedding);

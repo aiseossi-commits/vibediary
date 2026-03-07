@@ -52,8 +52,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "c43c1e17-f436-44d9-95ee-ed1cdad398b3"
+        "projectId": "e624c730-81a4-44e6-bc57-0bd045fa357d"
       }
-    }
+    },
+    "owner": "sunseok"
   }
 }

@@ -18,6 +18,7 @@ import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { getAllTags, isDatabaseReady } from '../db';
 import { useTheme } from '../context/ThemeContext';
+import { useChild } from '../context/ChildContext';
 import {
   SPACING,
   FONT_SIZE,
@@ -103,6 +104,7 @@ function createStyles(colors: AppColors) {
 export default function SearchScreen() {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
+  const { activeChild } = useChild();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [query, setQuery] = useState('');
@@ -122,14 +124,19 @@ export default function SearchScreen() {
     setIsSearching(true);
     setResult(null);
     try {
-      const searchResult = await searchRecords(query.trim(), null, selectedTags.length > 0 ? selectedTags : undefined);
+      const searchResult = await searchRecords(
+        query.trim(),
+        null,
+        selectedTags.length > 0 ? selectedTags : undefined,
+        activeChild?.id
+      );
       setResult(searchResult);
     } catch {
       setResult({ answer: '검색 중 오류가 발생했어요. 다시 시도해 주세요.', sourceRecords: [] });
     } finally {
       setIsSearching(false);
     }
-  }, [query, selectedTags]);
+  }, [query, selectedTags, activeChild?.id]);
 
   const handleTagToggle = useCallback((tagName: string) => {
     setSelectedTags((prev) => prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]);

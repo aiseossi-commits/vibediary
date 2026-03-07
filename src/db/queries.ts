@@ -4,19 +4,22 @@ import type { RecordWithTags, Tag, DailyRecordSummary } from '../types/record';
 // 날짜 범위 기반 기록 조회 (캘린더용)
 export async function getRecordsByDateRange(
   startDate: string, // YYYY-MM-DD
-  endDate: string // YYYY-MM-DD
+  endDate: string, // YYYY-MM-DD
+  childId?: string
 ): Promise<RecordWithTags[]> {
   const db = await getDatabase();
   const startTs = new Date(startDate).setHours(0, 0, 0, 0);
   const endTs = new Date(endDate).setHours(23, 59, 59, 999);
 
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM records
-     WHERE created_at >= ? AND created_at <= ?
-     ORDER BY created_at DESC`,
-    startTs,
-    endTs
-  );
+  const rows = childId
+    ? await db.getAllAsync<any>(
+        `SELECT * FROM records WHERE created_at >= ? AND created_at <= ? AND child_id = ? ORDER BY created_at DESC`,
+        startTs, endTs, childId
+      )
+    : await db.getAllAsync<any>(
+        `SELECT * FROM records WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC`,
+        startTs, endTs
+      );
 
   const results: RecordWithTags[] = [];
   for (const row of rows) {
@@ -33,7 +36,8 @@ export async function getRecordsByDateRange(
 
 // 날짜별 기록 요약 (캘린더 점 표시용)
 export async function getDailyRecordSummaries(
-  yearMonth: string // YYYY-MM
+  yearMonth: string, // YYYY-MM
+  childId?: string
 ): Promise<DailyRecordSummary[]> {
   const db = await getDatabase();
   const startDate = `${yearMonth}-01`;
@@ -42,16 +46,17 @@ export async function getDailyRecordSummaries(
   const endTs = new Date(endDate).setHours(23, 59, 59, 999);
 
   // 날짜별 기록 수
-  const rows = await db.getAllAsync<{ date_str: string; count: number }>(
-    `SELECT
-       date(created_at / 1000, 'unixepoch', 'localtime') as date_str,
-       COUNT(*) as count
-     FROM records
-     WHERE created_at >= ? AND created_at <= ?
-     GROUP BY date_str`,
-    startTs,
-    endTs
-  );
+  const rows = childId
+    ? await db.getAllAsync<{ date_str: string; count: number }>(
+        `SELECT date(created_at / 1000, 'unixepoch', 'localtime') as date_str, COUNT(*) as count
+         FROM records WHERE created_at >= ? AND created_at <= ? AND child_id = ? GROUP BY date_str`,
+        startTs, endTs, childId
+      )
+    : await db.getAllAsync<{ date_str: string; count: number }>(
+        `SELECT date(created_at / 1000, 'unixepoch', 'localtime') as date_str, COUNT(*) as count
+         FROM records WHERE created_at >= ? AND created_at <= ? GROUP BY date_str`,
+        startTs, endTs
+      );
 
   const summaries: DailyRecordSummary[] = [];
   for (const row of rows) {
@@ -59,14 +64,21 @@ export async function getDailyRecordSummaries(
     const dayStart = new Date(row.date_str).setHours(0, 0, 0, 0);
     const dayEnd = new Date(row.date_str).setHours(23, 59, 59, 999);
 
-    const tagRows = await db.getAllAsync<{ name: string }>(
-      `SELECT DISTINCT t.name FROM tags t
-       INNER JOIN record_tags rt ON t.id = rt.tag_id
-       INNER JOIN records r ON rt.record_id = r.id
-       WHERE r.created_at >= ? AND r.created_at <= ?`,
-      dayStart,
-      dayEnd
-    );
+    const tagRows = childId
+      ? await db.getAllAsync<{ name: string }>(
+          `SELECT DISTINCT t.name FROM tags t
+           INNER JOIN record_tags rt ON t.id = rt.tag_id
+           INNER JOIN records r ON rt.record_id = r.id
+           WHERE r.created_at >= ? AND r.created_at <= ? AND r.child_id = ?`,
+          dayStart, dayEnd, childId
+        )
+      : await db.getAllAsync<{ name: string }>(
+          `SELECT DISTINCT t.name FROM tags t
+           INNER JOIN record_tags rt ON t.id = rt.tag_id
+           INNER JOIN records r ON rt.record_id = r.id
+           WHERE r.created_at >= ? AND r.created_at <= ?`,
+          dayStart, dayEnd
+        );
 
     summaries.push({
       date: row.date_str,
@@ -79,31 +91,39 @@ export async function getDailyRecordSummaries(
 }
 
 // 특정 날짜의 기록 조회
-export async function getRecordsByDate(date: string): Promise<RecordWithTags[]> {
-  return getRecordsByDateRange(date, date);
+export async function getRecordsByDate(date: string, childId?: string): Promise<RecordWithTags[]> {
+  return getRecordsByDateRange(date, date, childId);
 }
 
 // 태그 기반 필터링 (OR 필터: 태그 중 하나라도 포함)
 export async function getRecordsByTags(
   tagIds: number[],
   limit = 50,
-  offset = 0
+  offset = 0,
+  childId?: string
 ): Promise<RecordWithTags[]> {
   if (tagIds.length === 0) return [];
 
   const db = await getDatabase();
   const placeholders = tagIds.map(() => '?').join(',');
 
-  const rows = await db.getAllAsync<any>(
-    `SELECT DISTINCT r.* FROM records r
-     INNER JOIN record_tags rt ON r.id = rt.record_id
-     WHERE rt.tag_id IN (${placeholders})
-     ORDER BY r.created_at DESC
-     LIMIT ? OFFSET ?`,
-    ...tagIds,
-    limit,
-    offset
-  );
+  const rows = childId
+    ? await db.getAllAsync<any>(
+        `SELECT DISTINCT r.* FROM records r
+         INNER JOIN record_tags rt ON r.id = rt.record_id
+         WHERE rt.tag_id IN (${placeholders}) AND r.child_id = ?
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`,
+        ...tagIds, childId, limit, offset
+      )
+    : await db.getAllAsync<any>(
+        `SELECT DISTINCT r.* FROM records r
+         INNER JOIN record_tags rt ON r.id = rt.record_id
+         WHERE rt.tag_id IN (${placeholders})
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`,
+        ...tagIds, limit, offset
+      );
 
   const results: RecordWithTags[] = [];
   for (const row of rows) {
@@ -122,7 +142,8 @@ export async function getRecordsByTags(
 export async function getRecordsByTagNames(
   tagNames: string[],
   limit = 50,
-  offset = 0
+  offset = 0,
+  childId?: string
 ): Promise<RecordWithTags[]> {
   if (tagNames.length === 0) return [];
 
@@ -138,17 +159,21 @@ export async function getRecordsByTagNames(
   return getRecordsByTags(
     tagRows.map((t) => t.id),
     limit,
-    offset
+    offset,
+    childId
   );
 }
 
 // 임베딩이 있는 전체 기록 조회 (벡터 검색용)
-export async function getRecordsWithEmbeddings(tagIds?: number[]): Promise<
+export async function getRecordsWithEmbeddings(tagIds?: number[], childId?: string): Promise<
   { id: string; summary: string; structuredData: string | null; embedding: Uint8Array; createdAt: number }[]
 > {
   const db = await getDatabase();
 
-  let query = 'SELECT id, summary, structured_data, embedding, created_at FROM records WHERE embedding IS NOT NULL';
+  const childFilter = childId ? ' AND child_id = ?' : '';
+  const childParams = childId ? [childId] : [];
+
+  let query: string;
   const params: any[] = [];
 
   if (tagIds && tagIds.length > 0) {
@@ -156,8 +181,11 @@ export async function getRecordsWithEmbeddings(tagIds?: number[]): Promise<
     query = `SELECT DISTINCT r.id, r.summary, r.structured_data, r.embedding, r.created_at
              FROM records r
              INNER JOIN record_tags rt ON r.id = rt.record_id
-             WHERE r.embedding IS NOT NULL AND rt.tag_id IN (${placeholders})`;
-    params.push(...tagIds);
+             WHERE r.embedding IS NOT NULL AND rt.tag_id IN (${placeholders})${childFilter}`;
+    params.push(...tagIds, ...childParams);
+  } else {
+    query = `SELECT id, summary, structured_data, embedding, created_at FROM records WHERE embedding IS NOT NULL${childFilter}`;
+    params.push(...childParams);
   }
 
   query += ' ORDER BY created_at DESC';
