@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Modal,
   RefreshControl,
   ActivityIndicator,
   Animated,
@@ -53,21 +54,19 @@ function createStyles(colors: AppColors) {
     subtitle: { fontSize: FONT_SIZE.sm, color: colors.textTertiary, marginTop: 2, letterSpacing: 0.3 },
     headerRight: { flexDirection: 'row', gap: SPACING.sm },
     headerIcon: { padding: SPACING.sm },
-    listContent: { paddingTop: SPACING.md, paddingBottom: SPACING.md },
+    listContent: { paddingTop: SPACING.xl * 1.25, paddingBottom: SPACING.md },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: SPACING.xxl },
     listFooter: { paddingVertical: SPACING.xl, alignItems: 'center' },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     emptyHint: { fontSize: FONT_SIZE.md, color: colors.textTertiary, textAlign: 'center', lineHeight: 24 },
-    bottomArea: { alignItems: 'center', paddingBottom: SPACING.lg },
     inputBar: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: colors.surface,
-      borderTopWidth: 1, borderTopColor: colors.border,
       borderBottomWidth: 1, borderBottomColor: colors.border,
       paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-      width: '100%', marginTop: SPACING.md, gap: SPACING.sm,
+      width: '100%', gap: SPACING.sm,
     },
-    pearlContainer: { alignItems: 'center' },
+    pearlCenter: { alignItems: 'center', marginTop: SPACING.xxl * 1.5, marginBottom: SPACING.lg },
     pearlWrapper: { width: PEARL_SIZE, height: PEARL_SIZE, alignItems: 'center', justifyContent: 'center' },
     pulseRing: { position: 'absolute', width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2, backgroundColor: colors.secondary },
     pearlButton: {
@@ -79,6 +78,29 @@ function createStyles(colors: AppColors) {
       width: TOUCH_TARGET.min, height: TOUCH_TARGET.min, borderRadius: TOUCH_TARGET.min / 2,
       backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     },
+    modalOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center',
+    },
+    modalBox: {
+      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.lg,
+      paddingVertical: SPACING.lg, paddingHorizontal: SPACING.xl, width: '75%',
+    },
+    modalTitle: {
+      fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary,
+      textAlign: 'center', marginBottom: SPACING.md,
+    },
+    modalItem: {
+      paddingVertical: SPACING.md, paddingHorizontal: SPACING.md,
+      borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.xs,
+    },
+    modalItemActive: { backgroundColor: colors.primaryLight ?? colors.border },
+    modalItemText: { fontSize: FONT_SIZE.md, color: colors.textPrimary },
+    modalItemTextActive: { fontWeight: FONT_WEIGHT.bold, color: colors.primary },
+    modalCancel: {
+      marginTop: SPACING.sm, paddingVertical: SPACING.md, alignItems: 'center',
+      borderTopWidth: 1, borderTopColor: colors.border,
+    },
+    modalCancelText: { fontSize: FONT_SIZE.md, color: colors.textTertiary },
   });
 }
 
@@ -94,6 +116,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [childModalVisible, setChildModalVisible] = useState(false);
 
   const pulseAnims = useRef(
     Array.from({ length: PULSE_COUNT }, () => ({
@@ -169,7 +192,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     setIsSaving(true);
     setTextInput('');
     try { await processTextRecord(text, activeChild?.id); loadRecords(true); }
-    catch {}
+    catch (e) { Alert.alert('저장 실패', '기록 저장 중 오류가 발생했습니다.'); console.error('텍스트 저장 오류:', e); }
     finally { setIsSaving(false); }
   }, [textInput, isSaving, loadRecords, activeChild?.id]);
 
@@ -201,22 +224,34 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Modal visible={childModalVisible} transparent animationType="fade" onRequestClose={() => setChildModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setChildModalVisible(false)}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>바다 전환</Text>
+            {childList.map(c => (
+              <TouchableOpacity
+                key={c.id}
+                style={[styles.modalItem, c.id === activeChild?.id && styles.modalItemActive]}
+                onPress={() => { setActiveChild(c.id); setChildModalVisible(false); }}
+              >
+                <Text style={[styles.modalItemText, c.id === activeChild?.id && styles.modalItemTextActive]}>
+                  {c.id === activeChild?.id ? '✓ ' : ''}{c.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setChildModalVisible(false)}>
+              <Text style={styles.modalCancelText}>취소</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <View style={styles.header}>
         <View>
           <TouchableOpacity
             onPress={() => {
               if (childList.length < 2) return;
-              Alert.alert(
-                '아이 전환',
-                '기록을 볼 아이를 선택하세요',
-                [
-                  ...childList.map(c => ({
-                    text: (c.id === activeChild?.id ? '✓ ' : '') + c.name,
-                    onPress: () => setActiveChild(c.id),
-                  })),
-                  { text: '취소', style: 'cancel' as const },
-                ]
-              );
+              setChildModalVisible(true);
             }}
             activeOpacity={childList.length >= 2 ? 0.7 : 1}
           >
@@ -225,47 +260,46 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               {childList.length >= 2 ? ' ⌄' : ''}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.subtitle}>{activeChild ? `${activeChild.name}를 바라본 기록` : (isDark ? '나의 밤바다' : '나의 바다')}</Text>
+          <Text style={styles.subtitle}>작은 기록이 큰 추억이 됩니다</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => navigation.navigate('Tags')} style={styles.headerIcon}>
-            <Ionicons name="pricetags-outline" size={22} color={colors.textSecondary} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerIcon}>
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Tags')} style={styles.headerIcon}>
+            <Ionicons name="pricetags-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.bottomArea}>
-          <View style={styles.inputBar}>
-            <TextInput
-              style={styles.typingInput}
-              placeholder="기록을 입력하세요..."
-              placeholderTextColor={colors.textTertiary}
-              value={textInput}
-              onChangeText={setTextInput}
-              onSubmitEditing={handleTextSubmit}
-              returnKeyType="send"
-              multiline={false}
-              editable={!isSaving}
-            />
-            <TouchableOpacity
-              onPress={handleTextSubmit}
-              style={[styles.sendButton, !textInput.trim() && !isSaving && { opacity: 0.35 }]}
-              disabled={isSaving || !textInput.trim()}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color={colors.textOnPrimary} />
-              ) : (
-                <Ionicons name="send" size={18} color={colors.textOnPrimary} />
-              )}
-            </TouchableOpacity>
-          </View>
-          <View style={styles.pearlContainer}>
-            {PearlButton}
-          </View>
+        <View style={styles.inputBar}>
+          <TextInput
+            style={styles.typingInput}
+            placeholder="기록을 입력하세요..."
+            placeholderTextColor={colors.textTertiary}
+            value={textInput}
+            onChangeText={setTextInput}
+            onSubmitEditing={handleTextSubmit}
+            returnKeyType="send"
+            multiline={false}
+            editable={!isSaving}
+          />
+          <TouchableOpacity
+            onPress={handleTextSubmit}
+            style={[styles.sendButton, !textInput.trim() && !isSaving && { opacity: 0.35 }]}
+            disabled={isSaving || !textInput.trim()}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color={colors.textOnPrimary} />
+            ) : (
+              <Ionicons name="send" size={18} color={colors.textOnPrimary} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.pearlCenter}>
+          {PearlButton}
         </View>
 
         {!hasRecords && showEmptyState ? (

@@ -12,31 +12,46 @@ import {
 
 let db: SQLite.SQLiteDatabase | null = null;
 let dbInitialized = false;
+let initPromise: Promise<void> | null = null;
 
-export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (db) return db;
+async function openDb(): Promise<SQLite.SQLiteDatabase> {
+  if (db) {
+    try {
+      await db.execAsync('SELECT 1');
+      return db;
+    } catch {
+      db = null;
+    }
+  }
   db = await SQLite.openDatabaseAsync('vibediary.db');
   return db;
 }
 
+export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+  // DB가 초기화되지 않았으면 초기화 먼저 실행
+  if (!dbInitialized) {
+    await initializeDatabase();
+  }
+  return openDb();
+}
+
 export async function initializeDatabase(): Promise<void> {
   if (dbInitialized) return;
+  // 이미 초기화 진행 중이면 기존 프로미스 대기
+  if (initPromise) return initPromise;
 
-  // 웹에서 expo-sqlite OPFS가 특정 헤더 없이 행(hang)할 수 있으므로 타임아웃 적용
-  const timeoutMs = Platform.OS === 'web' ? 3000 : 10000;
+  initPromise = (async () => {
+    const database = await openDb();
 
-  const dbPromise = (async () => {
-    const database = await getDatabase();
-
-    // 외래 키 활성화
-    await database.execAsync('PRAGMA foreign_keys = ON;');
-
-    // 테이블 생성 (children 먼저 — records가 FK 참조)
+    // 테이블 생성 (FK 검증 전에 테이블부터 생성)
     await database.execAsync(CREATE_CHILDREN_TABLE);
     await database.execAsync(CREATE_RECORDS_TABLE);
     await database.execAsync(CREATE_TAGS_TABLE);
     await database.execAsync(CREATE_RECORD_TAGS_TABLE);
     await database.execAsync(CREATE_OFFLINE_QUEUE_TABLE);
+
+    // 외래 키 활성화 (테이블 생성 후)
+    await database.execAsync('PRAGMA foreign_keys = ON;');
 
     // 인덱스 생성
     for (const indexSQL of CREATE_INDEXES) {
@@ -69,11 +84,16 @@ export async function initializeDatabase(): Promise<void> {
     dbInitialized = true;
   })();
 
+  const timeoutMs = Platform.OS === 'web' ? 3000 : 10000;
   const timeout = new Promise<void>((_, reject) =>
     setTimeout(() => reject(new Error('DB 초기화 타임아웃')), timeoutMs)
   );
 
-  await Promise.race([dbPromise, timeout]);
+  try {
+    await Promise.race([initPromise, timeout]);
+  } finally {
+    initPromise = null;
+  }
 }
 
 export function isDatabaseReady(): boolean {
@@ -85,5 +105,6 @@ export async function closeDatabase(): Promise<void> {
     await db.closeAsync();
     db = null;
     dbInitialized = false;
+    initPromise = null;
   }
 }

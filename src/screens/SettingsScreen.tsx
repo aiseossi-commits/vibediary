@@ -80,7 +80,7 @@ export default function SettingsScreen() {
   };
 
   const handleAddChild = () => {
-    openNameModal('아이 등록', '', async (name) => {
+    openNameModal('바다 등록', '', async (name) => {
       const child = await createChild(name);
       await refreshChildren();
       setActiveChild(child.id);
@@ -90,7 +90,7 @@ export default function SettingsScreen() {
   const handleChildPress = (child: { id: string; name: string }) => {
     Alert.alert(child.name, '선택하세요', [
       {
-        text: '이 아이로 전환',
+        text: '이 바다로 전환',
         onPress: () => setActiveChild(child.id),
       },
       {
@@ -104,7 +104,7 @@ export default function SettingsScreen() {
         text: '삭제',
         style: 'destructive',
         onPress: () => {
-          Alert.alert('아이 삭제', `${child.name}의 프로필을 삭제할까요?\n기록은 삭제되지 않습니다.`, [
+          Alert.alert('바다 삭제', `${child.name}의 바다를 삭제할까요?\n기록은 삭제되지 않습니다.`, [
             { text: '취소', style: 'cancel' },
             {
               text: '삭제', style: 'destructive', onPress: async () => {
@@ -173,9 +173,9 @@ export default function SettingsScreen() {
           <Text style={styles.title}>설정</Text>
         </View>
 
-        {/* 아이 관리 */}
+        {/* 바다 관리 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>아이 관리</Text>
+          <Text style={styles.sectionTitle}>나의 바다</Text>
           <View style={styles.card}>
             {childList.map(child => (
               <TouchableOpacity key={child.id} style={styles.childRow} onPress={() => handleChildPress(child)}>
@@ -186,7 +186,7 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={styles.addChildButton} onPress={handleAddChild}>
-              <Text style={styles.addChildText}>+ 아이 추가</Text>
+              <Text style={styles.addChildText}>+ 바다 추가</Text>
             </TouchableOpacity>
           </View>
         </View>
