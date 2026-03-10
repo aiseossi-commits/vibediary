@@ -6,11 +6,11 @@ import { addToOfflineQueue } from './offlineQueue';
 import type { RecordWithTags } from '../types/record';
 
 // 전체 녹음 → 기록 생성 파이프라인
-export async function processRecording(audioUri: string, createdAt?: number, childId?: string): Promise<string> {
+export async function processRecording(audioUri: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
   // 1. STT 변환 (실패해도 기록은 저장)
   let sttResult;
   try {
-    sttResult = await processSTT(audioUri);
+    sttResult = await processSTT(audioUri, childName);
   } catch {
     sttResult = { text: '', confidence: 0, source: 'device' as const };
   }
@@ -21,7 +21,7 @@ export async function processRecording(audioUri: string, createdAt?: number, chi
 
   if (sttResult.text.trim().length > 0) {
     try {
-      aiResult = await processWithAI(sttResult.text);
+      aiResult = await processWithAI(sttResult.text, childName);
     } catch {
       aiResult = createFallbackResult(sttResult.text);
       aiPending = true;
@@ -56,9 +56,9 @@ export async function processRecording(audioUri: string, createdAt?: number, chi
 }
 
 // STT만 실행, 실패 시 빈 문자열 반환
-export async function runSTTOnly(audioUri: string): Promise<string> {
+export async function runSTTOnly(audioUri: string, subjectName?: string): Promise<string> {
   try {
-    const sttResult = await processSTT(audioUri);
+    const sttResult = await processSTT(audioUri, subjectName);
     return sttResult.text;
   } catch {
     return '';
@@ -66,13 +66,13 @@ export async function runSTTOnly(audioUri: string): Promise<string> {
 }
 
 // 텍스트 받아서 AI 처리 + DB 저장
-export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string): Promise<string> {
+export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
   let aiResult;
   let aiPending = false;
 
   if (text.trim().length > 0) {
     try {
-      aiResult = await processWithAI(text);
+      aiResult = await processWithAI(text, childName);
     } catch {
       aiResult = createFallbackResult(text);
       aiPending = true;

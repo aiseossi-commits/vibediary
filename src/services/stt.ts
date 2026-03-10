@@ -81,6 +81,28 @@ async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
 // 무음 파일 최소 크기 (10KB 미만이면 의미있는 음성 없음으로 판단)
 const MIN_AUDIO_FILE_SIZE = 10 * 1024;
 
+// 이름 변형 목록 생성 (Whisper 힌트용)
+// 예) "서지원" → ["서지원", "지원이", "지원"]
+function generateNameVariants(name: string): string[] {
+  const variants = new Set<string>([name]);
+
+  if (name.length >= 3) {
+    const givenName = name.slice(1); // 성 제외 이름
+    variants.add(givenName);
+
+    // 받침 여부 확인 → 이 suffix
+    const code = givenName.charCodeAt(givenName.length - 1);
+    const hasBatchim = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
+    if (hasBatchim) variants.add(givenName + '이');
+  } else {
+    const code = name.charCodeAt(name.length - 1);
+    const hasBatchim = code >= 0xAC00 && code <= 0xD7A3 && (code - 0xAC00) % 28 !== 0;
+    if (hasBatchim) variants.add(name + '이');
+  }
+
+  return [...variants];
+}
+
 // STT 환각 패턴 블랙리스트 (Whisper + 디바이스 STT 공통)
 const HALLUCINATION_PATTERNS = [
   '시청해주셔서 감사합니다',
@@ -117,7 +139,7 @@ async function isSilentAudio(audioUri: string): Promise<boolean> {
 }
 
 // Whisper API fallback
-async function whisperSTT(audioUri: string): Promise<string> {
+async function whisperSTT(audioUri: string, subjectName?: string): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
   if (!workerUrl || !workerSecret) {
@@ -137,7 +159,11 @@ async function whisperSTT(audioUri: string): Promise<string> {
   } as any);
   formData.append('model', 'whisper-1');
   formData.append('language', 'ko');
-  formData.append('prompt', '발달장애인 돌봄 기록입니다. 의료, 투약, 행동, 일상, 치료 관련 내용입니다.');
+  const basePrompt = '발달장애인 돌봄 기록입니다. 의료, 투약, 행동, 일상, 치료 관련 내용입니다.';
+  const nameHint = subjectName
+    ? ` 관찰 대상 이름: ${generateNameVariants(subjectName).join(', ')}.`
+    : '';
+  formData.append('prompt', basePrompt + nameHint);
 
   const response = await fetch(`${workerUrl}/stt`, {
     method: 'POST',
@@ -163,7 +189,7 @@ async function whisperSTT(audioUri: string): Promise<string> {
 }
 
 // 통합 STT 파이프라인
-export async function processSTT(audioUri: string): Promise<STTResult> {
+export async function processSTT(audioUri: string, subjectName?: string): Promise<STTResult> {
   // 0단계: 파일 크기 기반 무음 감지
   if (await isSilentAudio(audioUri)) {
     console.log('[STT] 무음 감지 (파일 크기 기준) — STT 스킵');
@@ -195,7 +221,7 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
     console.log('[STT] 온라인 상태:', isOnline);
     if (isOnline) {
       try {
-        const whisperText = await whisperSTT(audioUri);
+        const whisperText = await whisperSTT(audioUri, subjectName);
         if (whisperText.length > 0) {
           return {
             text: whisperText,
@@ -222,7 +248,7 @@ export async function processSTT(audioUri: string): Promise<STTResult> {
     const isOnline = await getNetworkState();
     if (isOnline) {
       try {
-        const whisperText = await whisperSTT(audioUri);
+        const whisperText = await whisperSTT(audioUri, subjectName);
         if (whisperText.length > 0) {
           return {
             text: whisperText,

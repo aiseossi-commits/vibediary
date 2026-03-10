@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -65,6 +66,25 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { colors } = useTheme();
+  const { children: childList, isLoaded } = useChild();
+
+  if (!isLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (childList.length === 0) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -117,7 +137,7 @@ function RecordingScreenWrapper({ navigation, route }: any) {
   const handleRecordingComplete = useCallback(async (uri: string, _duration: number) => {
     setIsProcessing(true);
     try {
-      const text = await runSTTOnly(uri);
+      const text = await runSTTOnly(uri, activeChild?.name);
       if (!text.trim()) {
         Alert.alert('음성 입력 없음', '음성 입력이 되지 않았습니다. 다시 녹음해 주세요.');
         setIsProcessing(false);
@@ -125,7 +145,7 @@ function RecordingScreenWrapper({ navigation, route }: any) {
       }
       const dateStr: string | undefined = route.params?.date;
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
-      await processFromText(uri, text, createdAt, activeChild?.id);
+      await processFromText(uri, text, createdAt, activeChild?.id, activeChild?.name);
     } catch (error) {
       console.warn('기록 처리 실패:', error);
       Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');

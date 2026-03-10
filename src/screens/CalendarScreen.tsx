@@ -12,6 +12,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -91,25 +92,55 @@ function createStyles(colors: AppColors) {
     aiCardText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, lineHeight: 20 },
     emptyDay: { alignItems: 'center', paddingVertical: SPACING.xxl, gap: SPACING.md },
     emptyText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
-    recordButton: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.lg, backgroundColor: colors.primary },
-    recordButtonText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
+    recordButton: {
+      paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md,
+      borderWidth: 1.5, borderColor: colors.primary,
+      alignItems: 'center',
+    },
+    recordButtonText: { fontSize: FONT_SIZE.md, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
     textInputContainer: { marginTop: SPACING.md, gap: SPACING.sm },
     textInput: {
       borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md, fontSize: FONT_SIZE.md, color: colors.textPrimary,
       backgroundColor: colors.surfaceSecondary, minHeight: 80, textAlignVertical: 'top',
     },
-    saveButton: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.lg, backgroundColor: colors.accent, alignSelf: 'flex-end' },
+    saveButton: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, backgroundColor: colors.primary, alignItems: 'center' },
     saveButtonText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
     inputDivider: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.sm },
     inputDividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
     inputDividerText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
+    calendarMonthBtn: { paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, alignSelf: 'center' },
+    calendarMonthText: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary },
+    staleBar: {
+      backgroundColor: colors.accent + '33',
+      borderRadius: BORDER_RADIUS.sm,
+      padding: SPACING.sm,
+      marginBottom: SPACING.sm,
+      alignItems: 'center',
+    },
+    staleBarText: { fontSize: FONT_SIZE.sm, color: colors.accent, fontWeight: FONT_WEIGHT.medium },
+    pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    pickerContainer: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.lg, width: '85%' },
+    pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', marginBottom: SPACING.md },
+    pickerYearRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.lg, marginBottom: SPACING.md },
+    pickerArrow: { fontSize: 24, color: colors.primary, paddingHorizontal: SPACING.sm },
+    pickerYearText: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, minWidth: 80, textAlign: 'center' },
+    pickerMonthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.lg },
+    pickerMonthItem: { width: '22%', paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.surfaceSecondary },
+    pickerMonthItemSelected: { backgroundColor: colors.primary },
+    pickerMonthText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
+    pickerMonthTextSelected: { color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    pickerButtonRow: { flexDirection: 'row', gap: SPACING.sm },
+    pickerCancelBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.surfaceSecondary },
+    pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
+    pickerConfirmBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.primary },
+    pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
   });
 }
 
 export default function CalendarScreen() {
   const navigation = useNavigation<any>();
-  const { colors, densityColors } = useTheme();
+  const { colors, densityColors, isDark } = useTheme();
   const { activeChild } = useChild();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -123,6 +154,12 @@ export default function CalendarScreen() {
   const [textInput, setTextInput] = useState('')
   const [isSaving, setIsSaving] = useState(false);
   const [aiResult, setAiResult] = useState<{ rational: string; emotional: string } | null>(null);
+  const [isAIStale, setIsAIStale] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
+  const [calendarKey, setCalendarKey] = useState(0);
+  const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
   const aiCache = useRef<Record<string, { rational: string; emotional: string }>>({});
 
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -173,6 +210,23 @@ export default function CalendarScreen() {
     }
   }, [activeChild?.id]);
 
+  const handleDatePickerConfirm = useCallback(() => {
+    const yearMonth = `${pickerYear}-${String(pickerMonth).padStart(2, '0')}`;
+    const newCurrent = `${yearMonth}-01`;
+    setCurrentMonth(yearMonth);
+    setCalendarCurrent(newCurrent);
+    setCalendarKey(k => k + 1);
+    loadMonthData(yearMonth);
+    setShowDatePicker(false);
+  }, [pickerYear, pickerMonth, loadMonthData]);
+
+  const handleRefreshAI = useCallback(async () => {
+    delete aiCache.current[selectedDate];
+    setIsAIStale(false);
+    setAiResult(null);
+    loadAIAnalysis(selectedDate, dayRecords);
+  }, [selectedDate, dayRecords, loadAIAnalysis]);
+
   const loadAIAnalysis = useCallback(async (date: string, records: RecordWithTags[]) => {
     if (records.length === 0) return;
     if (aiCache.current[date]) { setAiResult(aiCache.current[date]); return; }
@@ -198,6 +252,7 @@ export default function CalendarScreen() {
     const date = day.dateString;
     setSelectedDate(date);
     setAiResult(null);
+    setIsAIStale(false);
     const records = await loadDayRecords(date);
     openSheet();
     loadAIAnalysis(date, records ?? []);
@@ -223,17 +278,25 @@ export default function CalendarScreen() {
     if (!trimmed) return;
     setIsSaving(true);
     try {
+      const hadAiResult = aiResult !== null;
+      const hadRecords = dayRecords.length > 0;
       await processTextRecord(trimmed, activeChild?.id);
       setTextInput('');
       Alert.alert('저장 완료', '기록이 저장되었습니다.');
-      await loadDayRecords(selectedDate);
+      delete aiCache.current[selectedDate];
+      const updatedRecords = await loadDayRecords(selectedDate);
       await loadMonthData(currentMonth);
+      if (hadAiResult) {
+        setIsAIStale(true);
+      } else if (!hadRecords) {
+        loadAIAnalysis(selectedDate, updatedRecords ?? []);
+      }
     } catch (error) {
       Alert.alert('저장 실패', '기록 저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
-  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth]);
+  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth, aiResult, dayRecords, loadAIAnalysis]);
 
   const summaryMap = useMemo(() => {
     const map: Record<string, DailyRecordSummary> = {};
@@ -282,14 +345,34 @@ export default function CalendarScreen() {
       </View>
 
       <Calendar
+        key={`${calendarKey}-${isDark ? 'dark' : 'light'}`}
+        current={calendarCurrent}
         dayComponent={CustomDay}
         onMonthChange={handleMonthChange}
+        renderHeader={() => (
+          <TouchableOpacity
+            onPress={() => {
+              const [y, m] = currentMonth.split('-');
+              setPickerYear(parseInt(y));
+              setPickerMonth(parseInt(m));
+              setShowDatePicker(true);
+            }}
+            style={styles.calendarMonthBtn}
+          >
+            <Text style={styles.calendarMonthText}>
+              {currentMonth.split('-')[0]}년 {parseInt(currentMonth.split('-')[1])}월 ▾
+            </Text>
+          </TouchableOpacity>
+        )}
         theme={{
           backgroundColor: colors.background,
           calendarBackground: colors.background,
           textSectionTitleColor: colors.textTertiary,
           arrowColor: colors.primary,
           monthTextColor: colors.textPrimary,
+          dayTextColor: colors.textPrimary,
+          todayTextColor: colors.primary,
+          textDisabledColor: colors.textTertiary,
           textMonthFontWeight: FONT_WEIGHT.semibold,
           textDayHeaderFontWeight: FONT_WEIGHT.medium,
           textMonthFontSize: FONT_SIZE.lg,
@@ -331,16 +414,23 @@ export default function CalendarScreen() {
                       <Text style={styles.aiLoadingText}>바다가 분석 중...</Text>
                     </View>
                   ) : aiResult ? (
-                    <View style={styles.aiCardRow}>
-                      <View style={[styles.aiCard, styles.aiCardRational]}>
-                        <Text style={styles.aiCardLabel}>이성 요약</Text>
-                        <Text style={styles.aiCardText}>{aiResult.rational}</Text>
+                    <>
+                      {isAIStale && (
+                        <TouchableOpacity onPress={handleRefreshAI} style={styles.staleBar}>
+                          <Text style={styles.staleBarText}>최신 기록이 반영되지 않았어요 · 새로고침</Text>
+                        </TouchableOpacity>
+                      )}
+                      <View style={styles.aiCardRow}>
+                        <View style={[styles.aiCard, styles.aiCardRational]}>
+                          <Text style={styles.aiCardLabel}>T의 하루 요약</Text>
+                          <Text style={styles.aiCardText}>{aiResult.rational}</Text>
+                        </View>
+                        <View style={[styles.aiCard, styles.aiCardEmotional]}>
+                          <Text style={styles.aiCardLabel}>F의 하루 공감</Text>
+                          <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
+                        </View>
                       </View>
-                      <View style={[styles.aiCard, styles.aiCardEmotional]}>
-                        <Text style={styles.aiCardLabel}>감성 위로</Text>
-                        <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
-                      </View>
-                    </View>
+                    </>
                   ) : null}
                 </View>
               )}
@@ -381,6 +471,14 @@ export default function CalendarScreen() {
                   {dayRecords.map((item) => (
                     <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} />
                   ))}
+                  <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
+                    <Text style={styles.recordButtonText}>녹음 추가하기</Text>
+                  </TouchableOpacity>
+                  <View style={styles.inputDivider}>
+                    <View style={styles.inputDividerLine} />
+                    <Text style={styles.inputDividerText}>또는</Text>
+                    <View style={styles.inputDividerLine} />
+                  </View>
                   <View style={styles.textInputContainer}>
                     <TextInput
                       style={styles.textInput}
@@ -408,6 +506,43 @@ export default function CalendarScreen() {
           </TouchableOpacity>
         </Animated.View>
       )}
+      <Modal visible={showDatePicker} transparent animationType="fade">
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>날짜 선택</Text>
+            <View style={styles.pickerYearRow}>
+              <TouchableOpacity onPress={() => setPickerYear(y => y - 1)}>
+                <Text style={styles.pickerArrow}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.pickerYearText}>{pickerYear}년</Text>
+              <TouchableOpacity onPress={() => setPickerYear(y => y + 1)}>
+                <Text style={styles.pickerArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.pickerMonthGrid}>
+              {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                <TouchableOpacity
+                  key={m}
+                  style={[styles.pickerMonthItem, pickerMonth === m && styles.pickerMonthItemSelected]}
+                  onPress={() => setPickerMonth(m)}
+                >
+                  <Text style={[styles.pickerMonthText, pickerMonth === m && styles.pickerMonthTextSelected]}>
+                    {m}월
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.pickerButtonRow}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.pickerCancelBtn}>
+                <Text style={styles.pickerCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDatePickerConfirm} style={styles.pickerConfirmBtn}>
+                <Text style={styles.pickerConfirmText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

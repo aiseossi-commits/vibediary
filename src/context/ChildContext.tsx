@@ -9,6 +9,7 @@ interface ChildContextValue {
   activeChild: Child | null;
   setActiveChild: (id: string | null) => void;
   refreshChildren: () => Promise<void>;
+  isLoaded: boolean;
 }
 
 const ChildContext = createContext<ChildContextValue>({
@@ -16,11 +17,13 @@ const ChildContext = createContext<ChildContextValue>({
   activeChild: null,
   setActiveChild: () => {},
   refreshChildren: async () => {},
+  isLoaded: false,
 });
 
 export function ChildProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const [childList, setChildList] = useState<Child[]>([]);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const refreshChildren = useCallback(async () => {
     try {
@@ -30,13 +33,15 @@ export function ChildProvider({ children: reactChildren }: { children: React.Rea
   }, []);
 
   useEffect(() => {
-    FileSystem.readAsStringAsync(SETTINGS_FILE)
-      .then(json => {
+    (async () => {
+      try {
+        const json = await FileSystem.readAsStringAsync(SETTINGS_FILE);
         const settings = JSON.parse(json);
         if (settings.activeChildId) setActiveChildId(settings.activeChildId);
-      })
-      .catch(() => {});
-    refreshChildren();
+      } catch {}
+      await refreshChildren();
+      setIsLoaded(true);
+    })();
   }, [refreshChildren]);
 
   const setActiveChild = useCallback((id: string | null) => {
@@ -52,7 +57,7 @@ export function ChildProvider({ children: reactChildren }: { children: React.Rea
   const activeChild = childList.find(c => c.id === activeChildId) ?? null;
 
   return (
-    <ChildContext.Provider value={{ children: childList, activeChild, setActiveChild, refreshChildren }}>
+    <ChildContext.Provider value={{ children: childList, activeChild, setActiveChild, refreshChildren, isLoaded }}>
       {reactChildren}
     </ChildContext.Provider>
   );

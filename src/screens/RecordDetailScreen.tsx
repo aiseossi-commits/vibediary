@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
@@ -114,6 +116,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [isPlaying, setIsPlaying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const loadRecord = useCallback(async () => {
     try {
@@ -133,7 +136,11 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
 
   const handleEditRawText = useCallback(async () => {
     if (!record) return;
-    if (!isEditingRawText) { setIsEditingRawText(true); return; }
+    if (!isEditingRawText) {
+      setIsEditingRawText(true);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 300);
+      return;
+    }
     const trimmed = editedRawText.trim();
     if (!trimmed || trimmed === record.rawText) { setEditedRawText(record.rawText ?? ''); setIsEditingRawText(false); return; }
     setIsEditingRawText(false);
@@ -225,7 +232,14 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.dateSection}>
           <Text style={styles.dateText}>{formatFullDate(record.createdAt)}</Text>
           <Text style={styles.timeText}>{formatTime(record.createdAt)}</Text>
@@ -308,6 +322,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           )}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
