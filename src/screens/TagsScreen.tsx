@@ -22,7 +22,6 @@ import {
 } from '../constants/theme';
 import type { Tag, RecordWithTags } from '../types/record';
 import { getTagsWithCount, createTag, deleteTag, getRecordsByTags, isDatabaseReady } from '../db';
-import TagChip from '../components/TagChip';
 import RecordCard from '../components/RecordCard';
 
 interface TagsScreenProps {

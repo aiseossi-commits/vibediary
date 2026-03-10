@@ -1,6 +1,5 @@
 import { getRecordsWithEmbeddings } from '../db/queries';
 import { getAllTags } from '../db/tagsDao';
-import type { Tag } from '../types/record';
 
 // 코사인 유사도 계산
 export function cosineSimilarity(a: number[], b: number[]): number {

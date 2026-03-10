@@ -220,13 +220,6 @@ export default function CalendarScreen() {
     setShowDatePicker(false);
   }, [pickerYear, pickerMonth, loadMonthData]);
 
-  const handleRefreshAI = useCallback(async () => {
-    delete aiCache.current[selectedDate];
-    setIsAIStale(false);
-    setAiResult(null);
-    loadAIAnalysis(selectedDate, dayRecords);
-  }, [selectedDate, dayRecords, loadAIAnalysis]);
-
   const loadAIAnalysis = useCallback(async (date: string, records: RecordWithTags[]) => {
     if (records.length === 0) return;
     if (aiCache.current[date]) { setAiResult(aiCache.current[date]); return; }
@@ -243,6 +236,13 @@ export default function CalendarScreen() {
       setIsLoadingAI(false);
     }
   }, []);
+
+  const handleRefreshAI = useCallback(async () => {
+    delete aiCache.current[selectedDate];
+    setIsAIStale(false);
+    setAiResult(null);
+    loadAIAnalysis(selectedDate, dayRecords);
+  }, [selectedDate, dayRecords, loadAIAnalysis]);
 
   useFocusEffect(useCallback(() => { loadMonthData(currentMonthRef.current); }, [loadMonthData]));
 

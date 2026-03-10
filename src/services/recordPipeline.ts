@@ -3,7 +3,6 @@ import { processWithAI, createFallbackResult } from './aiProcessor';
 import { createRecord } from '../db/recordsDao';
 import { setTagsForRecord } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
-import type { RecordWithTags } from '../types/record';
 
 // 전체 녹음 → 기록 생성 파이프라인
 export async function processRecording(audioUri: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
