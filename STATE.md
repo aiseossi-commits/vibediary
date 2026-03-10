@@ -21,6 +21,8 @@
 - [x] TypeScript strict 강화 (noUnusedLocals, noUnusedParameters)
 - [x] pre-commit TypeScript 타입 체크 hook 설정
 - [x] CalendarScreen loadAIAnalysis 선언 순서 버그 수정
+- [x] CLAUDE.md, STATE.md 추가 (컨텍스트 엔지니어링)
+- [x] pre-commit hook: STATE.md 포함 여부 강제 검증 추가
 
 ---
 

@@ -41,7 +41,13 @@
 
 ## 코딩 규칙
 
+### 커밋 전 필수 절차 (이 순서대로)
+1. `STATE.md` 업데이트 — 완료된 작업, 진행 중인 작업, 다음 계획 반영
+2. `git add STATE.md` — STATE.md를 반드시 같은 커밋에 포함
+3. 커밋 — pre-commit hook이 STATE.md 포함 여부 + 타입 체크 자동 검증
+
 ### 반드시 지킬 것
+- 커밋 시 STATE.md를 항상 함께 업데이트하고 같은 커밋에 포함 (hook이 강제함)
 - 코드 수정 후 `npx tsc --noEmit` 통과 확인 (pre-commit hook이 자동 실행)
 - API 직접 호출 금지 — 모든 Gemini/Whisper 호출은 Worker 프록시 경유
 - 환경변수는 `EXPO_PUBLIC_` 접두어 사용 (클라이언트 번들 포함)
