@@ -30,6 +30,10 @@
 
 없음
 
+## 최근 버그 수정
+
+- [x] 연속 녹음 시 "only one recording object can be prepared" 에러 수정 (`audioRecorder.ts`)
+
 ---
 
 ## 알려진 문제 / 기술부채

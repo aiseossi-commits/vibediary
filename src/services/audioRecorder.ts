@@ -24,6 +24,12 @@ export async function requestAudioPermission(): Promise<boolean> {
 
 // 녹음 시작
 export async function startRecording(): Promise<void> {
+  // 이전 녹음 객체가 남아있으면 강제 해제 (연속 녹음 시 충돌 방지)
+  if (recording) {
+    try { await recording.stopAndUnloadAsync(); } catch {}
+    recording = null;
+  }
+
   const hasPermission = await requestAudioPermission();
   if (!hasPermission) {
     throw new Error('마이크 권한이 필요합니다');
