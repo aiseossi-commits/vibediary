@@ -80,6 +80,7 @@ function createStyles(colors: AppColors) {
     },
     stopIcon: { width: 20, height: 20, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.recordingRed },
     errorText: { fontSize: FONT_SIZE.sm, color: colors.error, marginTop: SPACING.md },
+    processingText: { fontSize: FONT_SIZE.md, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium, letterSpacing: 0.5 },
   });
 }
 
@@ -176,30 +177,36 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       </View>
 
       <View style={styles.controls}>
-        <Text style={styles.timer}>{formatDuration(duration)}</Text>
-        <View style={styles.buttonRow}>
-          {isRecording && (
-            <TouchableOpacity onPress={handleStop} style={styles.stopButton}>
-              <View style={styles.stopIcon} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={handleToggleRecording}
-            disabled={isStarting}
-            style={[styles.recordButton, isRecording && !isPaused && styles.recordButtonActive, isStarting && { opacity: 0.5 }]}
-            activeOpacity={0.7}
-          >
-            {!isRecording ? (
-              <View style={styles.recordDot} />
-            ) : isPaused ? (
-              <Text style={styles.resumeIcon}>▶</Text>
-            ) : (
-              <Text style={styles.pauseIcon}>❚❚</Text>
-            )}
-          </TouchableOpacity>
-          {isRecording && <View style={{ width: TOUCH_TARGET.min }} />}
-        </View>
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {isProcessing ? (
+          <Text style={styles.processingText}>기록중입니다...</Text>
+        ) : (
+          <>
+            <Text style={styles.timer}>{formatDuration(duration)}</Text>
+            <View style={styles.buttonRow}>
+              {isRecording && (
+                <TouchableOpacity onPress={handleStop} style={styles.stopButton}>
+                  <View style={styles.stopIcon} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={handleToggleRecording}
+                disabled={isStarting}
+                style={[styles.recordButton, isRecording && !isPaused && styles.recordButtonActive, isStarting && { opacity: 0.5 }]}
+                activeOpacity={0.7}
+              >
+                {!isRecording ? (
+                  <View style={styles.recordDot} />
+                ) : isPaused ? (
+                  <Text style={styles.resumeIcon}>▶</Text>
+                ) : (
+                  <Text style={styles.pauseIcon}>❚❚</Text>
+                )}
+              </TouchableOpacity>
+              {isRecording && <View style={{ width: TOUCH_TARGET.min }} />}
+            </View>
+            {error && <Text style={styles.errorText}>{error}</Text>}
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
