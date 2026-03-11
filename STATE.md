@@ -34,6 +34,7 @@
 
 - [x] 연속 녹음 시 "only one recording object can be prepared" 에러 수정 (`audioRecorder.ts`)
 - [x] 소음 환경 할루시네이션: Whisper verbose_json + no_speech_prob 필터 추가 (`stt.ts`)
+- [x] 앱 로고 "바다" 로 교체 (assets/)
 - [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시 (`RecordingScreen.tsx`)
 
 ---
