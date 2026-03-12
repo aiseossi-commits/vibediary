@@ -7,7 +7,6 @@ import { useTheme } from '../context/ThemeContext';
 import {
   SPACING,
   FONT_SIZE,
-  FONT_WEIGHT,
   BORDER_RADIUS,
   TOUCH_TARGET,
   TYPOGRAPHY,
@@ -25,51 +24,51 @@ function createStyles(colors: AppColors) {
     container: { flex: 1, backgroundColor: colors.background },
     bgGlow: {
       position: 'absolute',
-      top: -80,
-      left: '10%',
-      right: '10%',
-      height: 320,
+      top: -120,
+      left: '15%',
+      right: '15%',
+      height: 280,
       borderRadius: BORDER_RADIUS.full,
       backgroundColor: colors.primary,
-      opacity: 0.12,
+      opacity: 0.04,
     },
     header: { flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: SPACING.lg, paddingTop: SPACING.md },
     cancelButton: { padding: SPACING.sm },
-    cancelText: { fontSize: FONT_SIZE.lg, color: colors.textSecondary },
+    cancelText: { fontSize: 16, color: colors.textSecondary },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: SPACING.xxl },
     guideText: { ...TYPOGRAPHY.h2, color: colors.textSecondary, textAlign: 'center' },
     waveform: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 72, gap: 7 },
-    waveBar: { width: 6, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.full },
+    waveBar: { width: 5, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.full },
     statusText: {
-      fontSize: FONT_SIZE.md,
-      color: colors.secondary,
-      marginTop: SPACING.lg,
-      fontWeight: FONT_WEIGHT.medium,
-      letterSpacing: 0.5,
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 20,
+      fontWeight: '500' as const,
+      letterSpacing: 0.4,
     },
     controls: { paddingBottom: SPACING.xxl, paddingHorizontal: SPACING.xl, alignItems: 'center' },
     timer: {
-      fontSize: FONT_SIZE.xxl,
-      fontWeight: FONT_WEIGHT.semibold,
+      fontSize: 22,
+      fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginBottom: SPACING.xl,
-      letterSpacing: 1,
+      marginBottom: 32,
+      letterSpacing: 2,
     },
     buttonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xl },
     recordButton: {
       width: TOUCH_TARGET.recordButton,
       height: TOUCH_TARGET.recordButton,
       borderRadius: BORDER_RADIUS.full,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: colors.micBg,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 3,
-      borderColor: colors.primary,
+      borderWidth: 2,
+      borderColor: colors.micBorder,
     },
-    recordButtonActive: { backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    recordDot: { width: 32, height: 32, borderRadius: BORDER_RADIUS.full, backgroundColor: colors.secondary },
-    resumeIcon: { fontSize: 26, color: colors.secondary },
-    pauseIcon: { fontSize: 22, color: colors.secondary, letterSpacing: 3 },
+    recordButtonActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+    recordDot: { width: 32, height: 32, borderRadius: BORDER_RADIUS.full, backgroundColor: colors.primary },
+    resumeIcon: { fontSize: 24, color: colors.primary },
+    pauseIcon: { fontSize: 20, color: colors.textSecondary, letterSpacing: 4 },
     stopButton: {
       width: TOUCH_TARGET.min,
       height: TOUCH_TARGET.min,
@@ -77,10 +76,12 @@ function createStyles(colors: AppColors) {
       backgroundColor: colors.recordingRedLight,
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.recordingRed,
     },
     stopIcon: { width: 20, height: 20, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.recordingRed },
     errorText: { fontSize: FONT_SIZE.sm, color: colors.error, marginTop: SPACING.md },
-    processingText: { fontSize: FONT_SIZE.md, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium, letterSpacing: 0.5 },
+    processingText: { fontSize: 15, color: colors.textSecondary, fontWeight: '500' as const, letterSpacing: 0.4 },
   });
 }
 
@@ -155,9 +156,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
 
       <View style={styles.center}>
         {isProcessing && <WaveLoader color={colors.primary} />}
-        {!isRecording && !isProcessing && (
-          <Text style={styles.guideText}>기록에 치이지 말고,{'\n'}그냥 말하세요</Text>
-        )}
+        {!isRecording && !isProcessing && null}
         {isRecording && (
           <>
             <View style={styles.waveform}>

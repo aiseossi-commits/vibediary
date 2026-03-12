@@ -50,10 +50,17 @@ function createStyles(colors: AppColors) {
   return StyleSheet.create({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: BORDER_RADIUS.md,
-      padding: SPACING.md,
-      marginHorizontal: SPACING.md,
-      marginBottom: SPACING.sm + 2,
+      borderRadius: 20,
+      padding: 18,
+      marginHorizontal: 16,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 6,
     },
     header: {
       flexDirection: 'row',
@@ -62,9 +69,10 @@ function createStyles(colors: AppColors) {
       marginBottom: SPACING.sm,
     },
     dateText: {
-      fontSize: FONT_SIZE.xs,
+      fontSize: 11,
       color: colors.textTertiary,
-      fontWeight: FONT_WEIGHT.regular,
+      fontWeight: '400' as const,
+      letterSpacing: 0.2,
     },
     pendingBadge: {
       flexDirection: 'row',
@@ -81,21 +89,21 @@ function createStyles(colors: AppColors) {
       fontWeight: FONT_WEIGHT.medium,
     },
     summary: {
-      fontSize: FONT_SIZE.md,
+      fontSize: 15,
       color: colors.textPrimary,
-      fontWeight: FONT_WEIGHT.regular,
-      lineHeight: FONT_SIZE.md * 1.5,
-      marginBottom: SPACING.sm,
+      fontWeight: '400' as const,
+      lineHeight: 24,
+      marginBottom: 10,
     },
     mood: {
-      fontSize: FONT_SIZE.sm,
-      color: colors.textSecondary,
-      marginBottom: SPACING.sm,
+      fontSize: 12,
+      color: colors.textTertiary,
+      marginBottom: 8,
     },
     tagsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: SPACING.xs + 2,
+      gap: 6,
     },
   });
 }

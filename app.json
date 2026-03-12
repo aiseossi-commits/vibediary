@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#070D1A"
     },
     "ios": {
       "bundleIdentifier": "com.aiseossi.vibediary",
@@ -22,7 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#E8F3FB"
+        "backgroundColor": "#070D1A"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [

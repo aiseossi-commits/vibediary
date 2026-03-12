@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="pearl" cx="38%" cy="33%" r="68%">
+      <stop offset="0%" stop-color="#1A2E48"/>
+      <stop offset="100%" stop-color="#0D1F35"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Transparent background (adaptive icon system applies its own bg) -->
+
+  <!-- Pulse rings -->
+  <circle cx="512" cy="512" r="240" fill="#60A5FA" opacity="0.05"/>
+  <circle cx="512" cy="512" r="200" fill="#60A5FA" opacity="0.08"/>
+  <circle cx="512" cy="512" r="164" fill="#60A5FA" opacity="0.13"/>
+
+  <!-- Pearl body -->
+  <circle cx="512" cy="512" r="134" fill="url(#pearl)" stroke="#334155" stroke-width="2"/>
+
+  <!-- Pearl shimmer -->
+  <ellipse cx="486" cy="472" rx="22" ry="14" fill="#93C5FD" opacity="0.13" transform="rotate(-28 486 472)"/>
+
+  <!-- Mic capsule -->
+  <rect x="488" y="436" width="48" height="84" rx="24" fill="#60A5FA"/>
+
+  <!-- Mic stand arc -->
+  <path d="M464,514 C464,574 560,574 560,514"
+        stroke="#60A5FA" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+  <!-- Mic pole -->
+  <line x1="512" y1="574" x2="512" y2="604"
+        stroke="#60A5FA" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Mic base -->
+  <line x1="490" y1="604" x2="534" y2="604"
+        stroke="#60A5FA" stroke-width="8" stroke-linecap="round"/>
+</svg>

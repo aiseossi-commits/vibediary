@@ -21,10 +21,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import {
   SPACING,
-  FONT_SIZE,
-  FONT_WEIGHT,
-  BORDER_RADIUS,
-  SHADOW,
   TOUCH_TARGET,
   type AppColors,
 } from '../constants/theme';
@@ -42,38 +38,42 @@ const PAGE_SIZE = 20;
 const PEARL_SIZE = 160;
 const PULSE_COUNT = 3;
 
+
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     flex: { flex: 1 },
     header: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingHorizontal: SPACING.xl, paddingTop: SPACING.lg, paddingBottom: SPACING.lg,
+      paddingHorizontal: 24, paddingVertical: 20,
     },
-    title: { fontSize: 28, fontWeight: FONT_WEIGHT.bold, color: colors.secondary, letterSpacing: -0.5 },
-    subtitle: { fontSize: FONT_SIZE.sm, color: colors.textTertiary, marginTop: 2, letterSpacing: 0.3 },
+    title: { fontSize: 30, fontWeight: '700' as const, color: colors.textPrimary, letterSpacing: -0.6 },
+    subtitle: { fontSize: 13, color: colors.textTertiary, marginTop: 4, letterSpacing: 0.2 },
     headerRight: { flexDirection: 'row', gap: SPACING.sm },
     headerIcon: { padding: SPACING.sm },
-    listContent: { paddingTop: SPACING.xl * 1.25, paddingBottom: SPACING.md },
+    listContent: { paddingTop: 8, paddingBottom: 16, paddingHorizontal: 0 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: SPACING.xxl },
     listFooter: { paddingVertical: SPACING.xl, alignItems: 'center' },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    emptyHint: { fontSize: FONT_SIZE.md, color: colors.textTertiary, textAlign: 'center', lineHeight: 24 },
+    emptyHint: { fontSize: 15, color: colors.textTertiary, textAlign: 'center', lineHeight: 24 },
     inputBar: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: colors.surface,
-      borderBottomWidth: 1, borderBottomColor: colors.border,
-      paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
+      borderBottomWidth: 1, borderBottomColor: colors.divider,
+      paddingHorizontal: 16, paddingVertical: 6,
       width: '100%', gap: SPACING.sm,
     },
-    pearlCenter: { alignItems: 'center', marginTop: SPACING.xxl * 1.5, marginBottom: SPACING.lg },
+    pearlCenter: { alignItems: 'center', marginTop: 60, marginBottom: 24 },
     pearlWrapper: { width: PEARL_SIZE, height: PEARL_SIZE, alignItems: 'center', justifyContent: 'center' },
-    pulseRing: { position: 'absolute', width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2, backgroundColor: colors.secondary },
+    pulseRing: { position: 'absolute', width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2, backgroundColor: colors.primary },
     pearlButton: {
       width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2,
-      backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', ...SHADOW.lg,
+      backgroundColor: colors.micBg, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: colors.micBorder,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 24, elevation: 12,
     },
-    typingInput: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary, paddingVertical: SPACING.sm },
+    pearlLabel: { fontSize: 15, fontWeight: '500' as const, color: colors.micLabel, marginTop: 16, opacity: 0.85, letterSpacing: 0.2 },
+    typingInput: { flex: 1, fontSize: 15, color: colors.textPrimary, paddingVertical: SPACING.sm },
     sendButton: {
       width: TOUCH_TARGET.min, height: TOUCH_TARGET.min, borderRadius: TOUCH_TARGET.min / 2,
       backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
@@ -82,25 +82,26 @@ function createStyles(colors: AppColors) {
       flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center',
     },
     modalBox: {
-      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.lg,
+      backgroundColor: colors.surface, borderRadius: 20,
       paddingVertical: SPACING.lg, paddingHorizontal: SPACING.xl, width: '75%',
+      borderWidth: 1, borderColor: colors.border,
     },
     modalTitle: {
-      fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary,
+      fontSize: 17, fontWeight: '600' as const, color: colors.textPrimary,
       textAlign: 'center', marginBottom: SPACING.md,
     },
     modalItem: {
-      paddingVertical: SPACING.md, paddingHorizontal: SPACING.md,
-      borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.xs,
+      paddingVertical: 14, paddingHorizontal: 16,
+      borderRadius: 12, marginBottom: SPACING.xs,
     },
-    modalItemActive: { backgroundColor: colors.primaryLight ?? colors.border },
-    modalItemText: { fontSize: FONT_SIZE.md, color: colors.textPrimary },
-    modalItemTextActive: { fontWeight: FONT_WEIGHT.bold, color: colors.primary },
+    modalItemActive: { backgroundColor: colors.primaryLight },
+    modalItemText: { fontSize: 15, color: colors.textPrimary },
+    modalItemTextActive: { fontWeight: '600' as const, color: colors.primary },
     modalCancel: {
-      marginTop: SPACING.sm, paddingVertical: SPACING.md, alignItems: 'center',
-      borderTopWidth: 1, borderTopColor: colors.border,
+      marginTop: 8, paddingVertical: 14, alignItems: 'center',
+      borderTopWidth: 1, borderTopColor: colors.divider,
     },
-    modalCancelText: { fontSize: FONT_SIZE.md, color: colors.textTertiary },
+    modalCancelText: { fontSize: 15, color: colors.textTertiary },
   });
 }
 
@@ -133,7 +134,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           Animated.parallel([
             Animated.timing(scale, { toValue: 1.9, duration: 1800, useNativeDriver: true }),
             Animated.sequence([
-              Animated.timing(opacity, { toValue: 0.25, duration: 400, useNativeDriver: true }),
+              Animated.timing(opacity, { toValue: 0.08, duration: 400, useNativeDriver: true }),
               Animated.timing(opacity, { toValue: 0, duration: 1400, useNativeDriver: true }),
             ]),
           ]),
@@ -207,9 +208,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const hasRecords = records.length > 0;
 
-  const micIconColor = colors.secondary === '#EAEAEA'
-    ? 'rgba(5,22,34,0.35)'
-    : 'rgba(255,255,255,0.35)';
+  const micIconColor = colors.micIcon;
 
   const PearlButton = (
     <View style={styles.pearlWrapper}>
@@ -300,11 +299,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={styles.pearlCenter}>
           {PearlButton}
+          <Text style={styles.pearlLabel}>지금 말하기</Text>
         </View>
 
         {!hasRecords && showEmptyState ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyHint}>눌러서 말하거나{'\n'}위에 타이핑하세요</Text>
+            <Text style={styles.emptyHint}>마이크를 눌러서 말하거나,{'\n'}기록창에 타이핑해서 입력하세요</Text>
           </View>
         ) : (
           <FlatList

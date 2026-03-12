@@ -1,61 +1,75 @@
 // 바다(vibediary) 디자인 토큰
 
 export const DARK_COLORS = {
-  primary: '#A8DADC',
-  primaryLight: '#1A4A5A',
-  primaryDark: '#7BBFC2',
-  secondary: '#EAEAEA',
-  background: '#051622',
-  surface: '#0A2337',
-  surfaceSecondary: '#0D2B42',
-  textPrimary: '#EAEAEA',
-  textSecondary: '#A8C5DA',
-  textTertiary: '#5A8AA8',
-  textOnPrimary: '#051622',
-  accent: '#E9C46A',
-  accentLight: '#2A1F0A',
-  tagMedical: '#EF5350',
-  tagMedication: '#42A5F5',
-  tagBehavior: '#FFA726',
-  tagDaily: '#66BB6A',
-  tagTherapy: '#AB47BC',
-  error: '#EF5350',
-  success: '#66BB6A',
-  warning: '#FFA726',
-  info: '#42A5F5',
-  border: '#0F3252',
-  divider: '#0A2840',
-  recordingRed: '#E76F51',
-  recordingRedLight: '#2A1510',
+  primary: '#60A5FA',
+  primaryLight: '#1C3353',
+  primaryDark: '#3B82F6',
+  secondary: '#F1F5F9',
+  background: '#070D1A',
+  surface: '#111827',
+  surfaceSecondary: '#1A2535',
+  textPrimary: '#F1F5F9',
+  textSecondary: '#94A3B8',
+  textTertiary: '#64748B',
+  textOnPrimary: '#070D1A',
+  accent: '#FCD34D',
+  accentLight: '#1C1A08',
+  tagMedical: '#F87171',
+  tagMedication: '#60A5FA',
+  tagBehavior: '#FBBF24',
+  tagDaily: '#4ADE80',
+  tagTherapy: '#C084FC',
+  error: '#F87171',
+  success: '#4ADE80',
+  warning: '#FBBF24',
+  info: '#60A5FA',
+  border: '#1E3352',
+  divider: '#0F1E35',
+  recordingRed: '#F87171',
+  recordingRedLight: '#1C1020',
+  micBg: '#1E293B',
+  micBorder: '#334155',
+  micIcon: '#94A3B8',
+  micLabel: '#94A3B8',
+  tabBg: '#070D1A',
+  tabBorder: '#0F1E35',
+  tabInactive: '#475569',
 } as const;
 
 export const LIGHT_COLORS = {
-  primary: '#2980B9',
-  primaryLight: '#D4EAF7',
-  primaryDark: '#1A5F8A',
-  secondary: '#1A4A6B',
+  primary: '#2563EB',
+  primaryLight: '#EFF6FF',
+  primaryDark: '#1D4ED8',
+  secondary: '#111827',
   background: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceSecondary: '#E8F3FA',
-  textPrimary: '#1E293B',
-  textSecondary: '#64748B',
-  textTertiary: '#8AAABB',
+  surfaceSecondary: '#F1F5F9',
+  textPrimary: '#111827',
+  textSecondary: '#4B5563',
+  textTertiary: '#6B7280',
   textOnPrimary: '#FFFFFF',
-  accent: '#E9C46A',
-  accentLight: '#FDF3D8',
-  tagMedical: '#E53935',
-  tagMedication: '#1E88E5',
-  tagBehavior: '#FB8C00',
-  tagDaily: '#43A047',
-  tagTherapy: '#8E24AA',
-  error: '#E53935',
-  success: '#43A047',
-  warning: '#FB8C00',
-  info: '#1E88E5',
-  border: '#C5DFF0',
-  divider: '#DDF0FA',
-  recordingRed: '#E76F51',
-  recordingRedLight: '#FDEAE4',
+  accent: '#F59E0B',
+  accentLight: '#FEF3C7',
+  tagMedical: '#EF4444',
+  tagMedication: '#2563EB',
+  tagBehavior: '#F59E0B',
+  tagDaily: '#16A34A',
+  tagTherapy: '#9333EA',
+  error: '#EF4444',
+  success: '#16A34A',
+  warning: '#F59E0B',
+  info: '#2563EB',
+  border: '#E5E7EB',
+  divider: '#F3F4F6',
+  recordingRed: '#EF4444',
+  recordingRedLight: '#FEF2F2',
+  micBg: '#EFF6FF',
+  micBorder: '#BFDBFE',
+  micIcon: '#2563EB',
+  micLabel: '#4B5563',
+  tabBg: '#FFFFFF',
+  tabBorder: '#E5E7EB',
+  tabInactive: '#6B7280',
 } as const;
 
 export interface AppColors {
@@ -85,6 +99,13 @@ export interface AppColors {
   divider: string;
   recordingRed: string;
   recordingRedLight: string;
+  micBg: string;
+  micBorder: string;
+  micIcon: string;
+  micLabel: string;
+  tabBg: string;
+  tabBorder: string;
+  tabInactive: string;
 }
 
 // 하위 호환용 (직접 import 하는 곳 있을 경우 대비)
@@ -92,18 +113,18 @@ export const COLORS = DARK_COLORS;
 
 export const DARK_DENSITY_COLORS = [
   'transparent',
-  '#0A2337',
-  '#0F3252',
-  '#1A4A75',
-  '#2461A0',
+  '#0F1E35',
+  '#1C3353',
+  '#1E5190',
+  '#2563EB',
 ] as const;
 
 export const LIGHT_DENSITY_COLORS = [
   'transparent',
-  '#E8F3FB',
-  '#C5DFF0',
-  '#8ABCD8',
-  '#5499BE',
+  '#DBEAFE',
+  '#BFDBFE',
+  '#93C5FD',
+  '#3B82F6',
 ] as const;
 
 export const SPACING = {
@@ -144,24 +165,24 @@ export const BORDER_RADIUS = {
 export const SHADOW = {
   sm: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   md: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    shadowOpacity: 0.07,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    shadowOpacity: 0.25,
+    elevation: 6,
   },
   lg: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 12,
   },
 } as const;
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, ActivityIndicator, View } from 'react-native';
+import { Alert, ActivityIndicator, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -42,19 +42,20 @@ function TabNavigator() {
             <Ionicons
               name={focused ? icons?.active : icons?.inactive}
               size={24}
-              color={focused ? colors.secondary : colors.textTertiary}
+              color={focused ? colors.primary : colors.tabInactive}
             />
           );
         },
         tabBarLabel: () => null,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: colors.tabBg,
+          borderTopWidth: 1,
+          borderTopColor: colors.tabBorder,
           height: 60 + insets.bottom,
           paddingBottom: 8 + insets.bottom,
         },
-        tabBarActiveTintColor: colors.secondary,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabInactive,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -70,8 +71,11 @@ export default function AppNavigator() {
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 20 }}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textSecondary, textAlign: 'center', lineHeight: 28, letterSpacing: -0.3 }}>
+          기록에 치이지 말고,{'\n'}그냥 말하세요
+        </Text>
       </View>
     );
   }
@@ -147,8 +151,13 @@ function RecordingScreenWrapper({ navigation, route }: any) {
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
       await processFromText(uri, text, createdAt, activeChild?.id);
     } catch (error) {
-      console.warn('기록 처리 실패:', error);
-      Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');
+      const msg = error instanceof Error ? error.message : '';
+      if (msg === 'NO_SPEECH') {
+        Alert.alert('음성 없음', '음성이 인식되지 않았습니다. 조용한 곳에서 다시 녹음해 주세요.');
+      } else {
+        console.warn('기록 처리 실패:', error);
+        Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');
+      }
     } finally {
       navigation.navigate('Main', { screen: 'Home' });
     }

@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
-import { isDatabaseReady, createChild, updateChild, deleteChild } from '../db';
+import {
+  isDatabaseReady, createChild, updateChild, deleteChild,
+  getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
+} from '../db';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, type AppColors } from '../constants/theme';
@@ -41,13 +45,24 @@ function createStyles(colors: AppColors) {
     modalConfirm: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     modalCancelText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     modalConfirmText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
-    // 테마 선택
-    themeRow: { flexDirection: 'row', gap: SPACING.sm },
-    themeOption: { flex: 1, borderRadius: BORDER_RADIUS.md, paddingVertical: SPACING.md, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
-    themeOptionActive: { borderColor: colors.primary },
-    themePreview: { width: 48, height: 48, borderRadius: 24, marginBottom: SPACING.sm, alignItems: 'center', justifyContent: 'center' },
-    themeLabel: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
-    themeSub: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginTop: 2 },
+    // 테마 토글
+    themeToggleRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
+      paddingHorizontal: SPACING.md, paddingVertical: SPACING.md,
+      ...SHADOW.sm,
+    },
+    themeToggleLabel: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    toggleTrack: {
+      width: 51, height: 31, borderRadius: 16,
+      justifyContent: 'center', paddingHorizontal: 2,
+    },
+    toggleThumb: {
+      width: 27, height: 27, borderRadius: 14,
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
+    },
   });
 }
 
@@ -57,6 +72,16 @@ export default function SettingsScreen() {
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orphanedCount, setOrphanedCount] = useState(0);
+
+  const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.spring(toggleAnim, {
+      toValue: isDark ? 1 : 0,
+      useNativeDriver: true,
+      bounciness: 4,
+    }).start();
+  }, [isDark, toggleAnim]);
 
   // 이름 입력 모달 상태
   const [nameModalVisible, setNameModalVisible] = useState(false);
@@ -64,12 +89,18 @@ export default function SettingsScreen() {
   const [nameInputValue, setNameInputValue] = useState('');
   const [nameModalOnConfirm, setNameModalOnConfirm] = useState<(name: string) => void>(() => () => {});
 
-  useEffect(() => { loadPendingCount(); }, []);
+  useEffect(() => { loadCounts(); }, []);
 
-  const loadPendingCount = async () => {
+  const loadCounts = async () => {
     if (!isDatabaseReady()) return;
-    try { const count = await getPendingQueueCount(); setPendingCount(count); }
-    catch {}
+    try {
+      const [pending, orphaned] = await Promise.all([
+        getPendingQueueCount(),
+        getOrphanedRecordsCount(),
+      ]);
+      setPendingCount(pending);
+      setOrphanedCount(orphaned);
+    } catch {}
   };
 
   const openNameModal = (title: string, initialValue: string, onConfirm: (name: string) => void) => {
@@ -104,16 +135,50 @@ export default function SettingsScreen() {
         text: '삭제',
         style: 'destructive',
         onPress: () => {
-          Alert.alert('바다 삭제', `${child.name}의 바다를 삭제할까요?\n기록은 삭제되지 않습니다.`, [
-            { text: '취소', style: 'cancel' },
-            {
-              text: '삭제', style: 'destructive', onPress: async () => {
+          const otherChildren = childList.filter(c => c.id !== child.id);
+          if (otherChildren.length > 0) {
+            // 다른 바다가 있으면 기록 이동 옵션 제공
+            const moveOptions = otherChildren.map(target => ({
+              text: `"${target.name}"으로 기록 이동 후 삭제`,
+              onPress: async () => {
+                await reassignChildRecords(child.id, target.id);
                 await deleteChild(child.id);
-                if (activeChild?.id === child.id) setActiveChild(null);
+                if (activeChild?.id === child.id) setActiveChild(target.id);
                 await refreshChildren();
+                await loadCounts();
               },
-            },
-          ]);
+            }));
+            Alert.alert(
+              '바다 삭제',
+              `${child.name}의 바다를 삭제할까요?\n기록을 다른 바다로 이동하거나, 그냥 삭제할 수 있습니다.`,
+              [
+                { text: '취소', style: 'cancel' },
+                ...moveOptions,
+                {
+                  text: '기록 유지 없이 삭제',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await deleteChild(child.id);
+                    if (activeChild?.id === child.id) setActiveChild(null);
+                    await refreshChildren();
+                    await loadCounts();
+                  },
+                },
+              ]
+            );
+          } else {
+            Alert.alert('바다 삭제', `${child.name}의 바다를 삭제할까요?\n기존 기록은 앱에서 더 이상 볼 수 없게 됩니다.`, [
+              { text: '취소', style: 'cancel' },
+              {
+                text: '삭제', style: 'destructive', onPress: async () => {
+                  await deleteChild(child.id);
+                  setActiveChild(null);
+                  await refreshChildren();
+                  await loadCounts();
+                },
+              },
+            ]);
+          }
         },
       },
       { text: '취소', style: 'cancel' },
@@ -125,7 +190,7 @@ export default function SettingsScreen() {
     try {
       const processed = await processOfflineQueue();
       Alert.alert('완료', `${processed}건의 기록이 AI 처리되었습니다.`);
-      loadPendingCount();
+      loadCounts();
     } catch {
       Alert.alert('오류', '처리 중 문제가 발생했습니다.');
     }
@@ -194,30 +259,36 @@ export default function SettingsScreen() {
         {/* 테마 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>화면 모드</Text>
-          <View style={styles.themeRow}>
-            <TouchableOpacity
-              style={[styles.themeOption, { backgroundColor: '#F0F7FF' }, !isDark && styles.themeOptionActive]}
-              onPress={() => setTheme('light')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.themePreview, { backgroundColor: '#1A4A6B' }]}>
-                <Text style={{ fontSize: 20 }}>🌊</Text>
-              </View>
-              <Text style={[styles.themeLabel, { color: '#1A2A3A' }]}>바다</Text>
-              <Text style={[styles.themeSub, { color: '#4A6A8A' }]}>일반 모드</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.themeOption, { backgroundColor: '#0A2337' }, isDark && styles.themeOptionActive]}
-              onPress={() => setTheme('dark')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.themePreview, { backgroundColor: '#EAEAEA' }]}>
-                <Text style={{ fontSize: 20 }}>🌙</Text>
-              </View>
-              <Text style={[styles.themeLabel, { color: '#EAEAEA' }]}>밤바다</Text>
-              <Text style={[styles.themeSub, { color: '#5A8AA8' }]}>다크 모드</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.themeToggleRow}
+            onPress={() => setTheme(isDark ? 'light' : 'dark')}
+            activeOpacity={0.7}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.themeToggleLabel}>{isDark ? '밤바다' : '바다'}</Text>
+            </View>
+            <Animated.View style={[
+              styles.toggleTrack,
+              {
+                backgroundColor: toggleAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['#CBD5E1', colors.primary],
+                }),
+              },
+            ]}>
+              <Animated.View style={[
+                styles.toggleThumb,
+                {
+                  transform: [{
+                    translateX: toggleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 20],
+                    }),
+                  }],
+                },
+              ]} />
+            </Animated.View>
+          </TouchableOpacity>
         </View>
 
         {/* AI 데이터 투명성 */}
@@ -241,6 +312,44 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* 미분류 기록 */}
+        {orphanedCount > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>미분류 기록</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>바다 없는 기록 {orphanedCount}개</Text>
+              <Text style={styles.cardDescription}>
+                삭제된 바다에 속해 있던 기록입니다.{'\n'}
+                아래 버튼을 눌러 현재 바다로 불러올 수 있어요.
+              </Text>
+              {activeChild && (
+                <TouchableOpacity
+                  style={styles.processButton}
+                  onPress={() => {
+                    Alert.alert(
+                      '기록 불러오기',
+                      `${orphanedCount}개의 기록을 "${activeChild.name}"의 바다로 이동할까요?`,
+                      [
+                        { text: '취소', style: 'cancel' },
+                        {
+                          text: '이동',
+                          onPress: async () => {
+                            await reassignOrphanedRecords(activeChild.id);
+                            await loadCounts();
+                            Alert.alert('완료', `${orphanedCount}개의 기록을 "${activeChild.name}"로 이동했습니다.`);
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.processButtonText}>"{activeChild.name}"으로 불러오기</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* 오프라인 큐 */}
         {pendingCount > 0 && (

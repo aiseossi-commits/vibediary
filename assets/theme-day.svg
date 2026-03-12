@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C2E4FF"/>
+      <stop offset="100%" stop-color="#7EC8E3"/>
+    </linearGradient>
+    <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2B88C8"/>
+      <stop offset="100%" stop-color="#1A5E8A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="400" height="220" fill="url(#sky)"/>
+
+  <!-- Sun glow -->
+  <circle cx="328" cy="58" r="36" fill="#FFE566" opacity="0.22"/>
+  <circle cx="328" cy="58" r="24" fill="#FFE566" opacity="0.42"/>
+  <!-- Sun core -->
+  <circle cx="328" cy="58" r="16" fill="#FFD700"/>
+
+  <!-- Cloud 1 -->
+  <ellipse cx="76" cy="52" rx="38" ry="14" fill="white" opacity="0.75"/>
+  <ellipse cx="104" cy="44" rx="28" ry="20" fill="white" opacity="0.7"/>
+  <ellipse cx="56" cy="57" rx="24" ry="12" fill="white" opacity="0.65"/>
+
+  <!-- Cloud 2 (small) -->
+  <ellipse cx="210" cy="36" rx="26" ry="10" fill="white" opacity="0.6"/>
+  <ellipse cx="228" cy="31" rx="18" ry="13" fill="white" opacity="0.55"/>
+
+  <!-- Ocean surface wave -->
+  <path d="M0,126 C66,112 132,134 200,120 C268,106 334,126 400,114 L400,220 L0,220 Z"
+        fill="url(#ocean)"/>
+
+  <!-- Wave shimmer line -->
+  <path d="M0,126 C66,112 132,134 200,120 C268,106 334,126 400,114"
+        stroke="rgba(255,255,255,0.55)" stroke-width="1.8" fill="none"/>
+
+  <!-- Ocean wave lines -->
+  <path d="M18,148 C58,142 96,150 140,145"
+        stroke="rgba(255,255,255,0.28)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M170,156 C210,150 260,158 310,152"
+        stroke="rgba(255,255,255,0.22)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M60,172 C108,166 158,174 210,169"
+        stroke="rgba(255,255,255,0.18)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>

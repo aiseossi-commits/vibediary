@@ -24,6 +24,14 @@
 - [x] CLAUDE.md, STATE.md 추가 (컨텍스트 엔지니어링)
 - [x] pre-commit hook: STATE.md 포함 여부 강제 검증 추가
 - [x] iOS 개발 빌드 성공: expo-modules-core 55.x 호환성 shim (Podfile post_install)
+- [x] 프리미엄 UI 리디자인 (다크/라이트 테마, 새 색상 팔레트, AppColors 확장)
+- [x] 앱 아이콘 교체: 바다 컨셉 (딥 네이비 + 진주 버튼 + 마이크 + 파도) — scripts/generate-icons.js
+- [x] 설정 화면 모드 토글: 씬 카드 → 슬라이드 토글로 교체
+- [x] 온보딩 이모지 제거, 시작하기 버튼 다크모드 색상 수정 (primary 사용)
+- [x] 홈 빈 상태 문구 개선, 로딩 중 슬로건 표시
+- [x] 할루시네이션 방지 강화: Whisper no_speech_prob 세그먼트별 체크, prompt 힌트, STT 빈 결과 저장 차단
+- [x] 미분류 기록 불러오기: 바다 삭제 시 기록 이동 옵션 + 설정 미분류 섹션
+- [x] Android release APK 빌드 (로컬, 서버 불필요)
 
 ---
 

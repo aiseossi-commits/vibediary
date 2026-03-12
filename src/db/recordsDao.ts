@@ -127,6 +127,34 @@ export async function updateRecord(
   );
 }
 
+// 미분류 기록 수 조회 (child_id IS NULL)
+export async function getOrphanedRecordsCount(): Promise<number> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM records WHERE child_id IS NULL'
+  );
+  return row?.count ?? 0;
+}
+
+// 미분류 기록 → 특정 바다로 일괄 이동
+export async function reassignOrphanedRecords(childId: string): Promise<number> {
+  const db = await getDatabase();
+  const result = await db.runAsync(
+    'UPDATE records SET child_id = ? WHERE child_id IS NULL',
+    childId
+  );
+  return result.changes;
+}
+
+// 특정 바다의 기록 → 다른 바다로 이동 (삭제 전 호출)
+export async function reassignChildRecords(fromChildId: string, toChildId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE records SET child_id = ? WHERE child_id = ?',
+    toChildId, fromChildId
+  );
+}
+
 // 기록 삭제
 export async function deleteRecord(id: string): Promise<void> {
   const db = await getDatabase();

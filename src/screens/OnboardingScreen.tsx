@@ -26,7 +26,6 @@ function createStyles(colors: AppColors) {
       flex: 1, justifyContent: 'center', alignItems: 'center',
       paddingHorizontal: SPACING.xl * 2,
     },
-    emoji: { fontSize: 64, marginBottom: SPACING.xl },
     title: {
       fontSize: 26, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary,
       textAlign: 'center', marginBottom: SPACING.sm,
@@ -42,14 +41,14 @@ function createStyles(colors: AppColors) {
       marginBottom: SPACING.xl,
     },
     button: {
-      width: '100%', backgroundColor: colors.secondary,
+      width: '100%', backgroundColor: colors.primary,
       paddingVertical: SPACING.md + 2, borderRadius: BORDER_RADIUS.lg,
       alignItems: 'center',
     },
     buttonDisabled: { opacity: 0.4 },
     buttonText: {
       fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold,
-      color: colors.secondary === '#EAEAEA' ? '#051622' : '#FFFFFF',
+      color: colors.textOnPrimary,
     },
     hint: {
       fontSize: FONT_SIZE.xs, color: colors.textTertiary,
@@ -81,7 +80,6 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <Text style={styles.emoji}>🌊</Text>
         <Text style={styles.title}>바다의 이름을 지어주세요</Text>
         <Text style={styles.subtitle}>
           누구의 이야기를 기록할까요?{'\n'}

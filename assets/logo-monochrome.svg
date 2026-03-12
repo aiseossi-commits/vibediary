@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432">
+  <!-- Monochrome: white shapes on transparent for Android 13+ themed icons -->
+
+  <!-- Mic capsule -->
+  <rect x="192" y="118" width="48" height="84" rx="24" fill="white"/>
+
+  <!-- Mic stand arc -->
+  <path d="M168,194 C168,254 264,254 264,194"
+        stroke="white" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+  <!-- Mic pole -->
+  <line x1="216" y1="254" x2="216" y2="284"
+        stroke="white" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Mic base -->
+  <line x1="194" y1="284" x2="238" y2="284"
+        stroke="white" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Ocean wave below mic -->
+  <path d="M32,320 C100,298 160,330 216,312 C272,294 332,326 400,308 L400,390 L32,390 Z"
+        fill="white" opacity="0.6"/>
+  <path d="M32,344 C108,326 172,356 216,340 C260,324 328,354 400,336 L400,390 L32,390 Z"
+        fill="white"/>
+</svg>

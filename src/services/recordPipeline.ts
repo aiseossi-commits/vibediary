@@ -6,29 +6,21 @@ import { addToOfflineQueue } from './offlineQueue';
 
 // 전체 녹음 → 기록 생성 파이프라인
 export async function processRecording(audioUri: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
-  // 1. STT 변환 (실패해도 기록은 저장)
-  let sttResult;
-  try {
-    sttResult = await processSTT(audioUri, childName);
-  } catch {
-    sttResult = { text: '', confidence: 0, source: 'device' as const };
+  // 1. STT 변환 — 실패하거나 빈 텍스트면 저장 자체를 차단
+  const sttResult = await processSTT(audioUri, childName);
+  if (!sttResult.text.trim()) {
+    throw new Error('NO_SPEECH');
   }
 
-  // 2. AI 처리 시도 (STT 텍스트가 있을 때만)
+  // 2. AI 처리 시도
   let aiResult;
   let aiPending = false;
 
-  if (sttResult.text.trim().length > 0) {
-    try {
-      aiResult = await processWithAI(sttResult.text);
-    } catch {
-      aiResult = createFallbackResult(sttResult.text);
-      aiPending = true;
-    }
-  } else {
-    // STT 실패 → 텍스트 없음, AI 처리 불가 → aiPending=false
-    aiResult = { ...createFallbackResult(''), summary: '음성 저장됨 (텍스트 변환 실패)' };
-    aiPending = false;
+  try {
+    aiResult = await processWithAI(sttResult.text);
+  } catch {
+    aiResult = createFallbackResult(sttResult.text);
+    aiPending = true;
   }
 
   // 3. DB에 기록 저장
@@ -69,16 +61,15 @@ export async function processFromText(audioUri: string, text: string, createdAt?
   let aiResult;
   let aiPending = false;
 
-  if (text.trim().length > 0) {
-    try {
-      aiResult = await processWithAI(text);
-    } catch {
-      aiResult = createFallbackResult(text);
-      aiPending = true;
-    }
-  } else {
-    aiResult = { ...createFallbackResult(''), summary: '음성 저장됨 (텍스트 변환 실패)' };
-    aiPending = false;
+  if (!text.trim()) {
+    throw new Error('NO_SPEECH');
+  }
+
+  try {
+    aiResult = await processWithAI(text);
+  } catch {
+    aiResult = createFallbackResult(text);
+    aiPending = true;
   }
 
   const recordId = await createRecord({

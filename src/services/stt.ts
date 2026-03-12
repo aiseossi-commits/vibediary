@@ -165,7 +165,7 @@ async function whisperSTT(audioUri: string, subjectName?: string): Promise<strin
   formData.append('model', 'whisper-1');
   formData.append('language', 'ko');
   formData.append('response_format', 'verbose_json');
-  const basePrompt = '발달장애인 돌봄 기록입니다. 의료, 투약, 행동, 일상, 치료 관련 내용입니다.';
+  const basePrompt = '발달장애인 돌봄 기록입니다. 의료, 투약, 행동, 일상, 치료 관련 내용입니다. 음성 발화가 없거나 소음만 있는 경우 빈 텍스트로 응답하세요.';
   const nameHint = subjectName
     ? ` 관찰 대상 이름: ${generateNameVariants(subjectName).join(', ')}.`
     : '';
@@ -189,12 +189,14 @@ async function whisperSTT(audioUri: string, subjectName?: string): Promise<strin
   const text: string = data.text || '';
   const trimmed = text.trim();
 
-  // no_speech_prob: 세그먼트 평균으로 음성 없음 판단 (소음만 있는 경우 필터)
+  // no_speech_prob: 세그먼트별 개별 체크 (평균 대신 비율로 판단)
   const segments: { no_speech_prob?: number }[] = data.segments ?? [];
   if (segments.length > 0) {
     const avgNoSpeech = segments.reduce((s, seg) => s + (seg.no_speech_prob ?? 0), 0) / segments.length;
-    if (avgNoSpeech > 0.6) {
-      console.log('[STT] Whisper no_speech_prob 높음:', avgNoSpeech, '→ 무음 처리');
+    const highNoSpeechRatio = segments.filter((seg) => (seg.no_speech_prob ?? 0) > 0.7).length / segments.length;
+    // 평균 0.45 초과이거나 70% 이상 세그먼트가 소음이면 무음 처리
+    if (avgNoSpeech > 0.45 || highNoSpeechRatio >= 0.5) {
+      console.log('[STT] Whisper 소음 판정 — avg:', avgNoSpeech.toFixed(2), 'highRatio:', highNoSpeechRatio.toFixed(2));
       return '';
     }
   }
