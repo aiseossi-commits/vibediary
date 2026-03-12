@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: GitHub Actions DENO_DEPLOY_TOKEN 추가` (2026-03-13)
+**마지막 커밋**: `chore: Deno Worker 배포 트리거` (2026-03-13)
 
 **현재 브랜치**: main
 
