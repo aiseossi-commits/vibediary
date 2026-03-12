@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
-  Animated,
+  Animated, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import {
   loadAlarms, toggleAlarm, updateAlarm, addAlarm, deleteAlarm,
   requestNotificationPermission, type AlarmSetting,
 } from '../services/alarmService';
+import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, type AppColors } from '../constants/theme';
@@ -91,6 +92,12 @@ function createStyles(colors: AppColors) {
     alarmDeleteText: { fontSize: FONT_SIZE.sm, color: colors.error ?? '#EF4444' },
     addAlarmButton: { marginTop: SPACING.sm, paddingVertical: SPACING.sm, alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.sm, borderStyle: 'dashed' },
     addAlarmText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
+    // 백업/복원
+    backupRow: { flexDirection: 'row', gap: SPACING.sm },
+    backupButton: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
+    backupButtonPrimary: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
+    backupButtonText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
+    backupButtonTextPrimary: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
     // 테마 토글
     themeToggleRow: {
       flexDirection: 'row', alignItems: 'center',
@@ -192,6 +199,86 @@ export default function SettingsScreen() {
       },
     ]);
   }, []);
+
+  // 백업/복원 상태
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    setIsBackingUp(true);
+    try {
+      await exportBackup();
+    } catch {
+      Alert.alert('오류', '백업 내보내기 중 문제가 발생했습니다.');
+    } finally {
+      setIsBackingUp(false);
+    }
+  }, []);
+
+  const handleImport = useCallback(async () => {
+    let data;
+    try {
+      data = await pickAndParseBackup();
+    } catch (e: any) {
+      if (e?.message === 'CANCELED') return;
+      Alert.alert('오류', '유효하지 않은 백업 파일입니다.');
+      return;
+    }
+
+    Alert.alert(
+      '복원 방식 선택',
+      '기존 데이터를 어떻게 처리할까요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '병합 (기존 유지 + 신규 추가)',
+          onPress: async () => {
+            setIsRestoring(true);
+            try {
+              await restoreMerge(data);
+              await refreshChildren();
+              await loadCounts();
+              Alert.alert('완료', '병합 복원이 완료되었습니다.');
+            } catch {
+              Alert.alert('오류', '복원 중 문제가 발생했습니다.');
+            } finally {
+              setIsRestoring(false);
+            }
+          },
+        },
+        {
+          text: '덮어쓰기 (전체 교체)',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              '주의',
+              '기존 데이터가 모두 삭제됩니다. 계속하시겠습니까?',
+              [
+                { text: '취소', style: 'cancel' },
+                {
+                  text: '덮어쓰기',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setIsRestoring(true);
+                    try {
+                      await restoreOverwrite(data);
+                      await refreshChildren();
+                      await loadCounts();
+                      Alert.alert('완료', '덮어쓰기 복원이 완료되었습니다.');
+                    } catch {
+                      Alert.alert('오류', '복원 중 문제가 발생했습니다.');
+                    } finally {
+                      setIsRestoring(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  }, [refreshChildren]);
 
   const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
   useEffect(() => {
@@ -459,6 +546,39 @@ export default function SettingsScreen() {
             <TouchableOpacity style={styles.addAlarmButton} onPress={() => openAlarmModal()}>
               <Text style={styles.addAlarmText}>+ 알람 추가</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 데이터 백업/복원 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>데이터 백업/복원</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardDescription}>
+              기록 데이터를 JSON 파일로 저장하거나, 파일에서 복원합니다.{'\n'}
+              폰 교체 시 데이터 이전에 사용하세요.
+            </Text>
+            <View style={[styles.backupRow, { marginTop: SPACING.md }]}>
+              <TouchableOpacity
+                style={styles.backupButtonPrimary}
+                onPress={handleExport}
+                disabled={isBackingUp}
+              >
+                {isBackingUp
+                  ? <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                  : <Text style={styles.backupButtonTextPrimary}>내보내기</Text>
+                }
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.backupButton}
+                onPress={handleImport}
+                disabled={isRestoring}
+              >
+                {isRestoring
+                  ? <ActivityIndicator size="small" color={colors.textSecondary} />
+                  : <Text style={styles.backupButtonText}>가져오기</Text>
+                }
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

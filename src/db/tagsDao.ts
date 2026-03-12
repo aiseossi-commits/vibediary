@@ -23,6 +23,14 @@ export async function createTag(name: string): Promise<Tag> {
   return tag;
 }
 
+// 백업용: record_tags 전체 조회
+export async function getAllRecordTags(): Promise<{ record_id: string; tag_id: number }[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<{ record_id: string; tag_id: number }>(
+    'SELECT record_id, tag_id FROM record_tags'
+  );
+}
+
 // 태그 삭제
 export async function deleteTag(tagId: number): Promise<void> {
   const db = await getDatabase();

@@ -84,6 +84,24 @@ export async function getAllRecords(limit = 50, offset = 0, childId?: string): P
   return results;
 }
 
+// 백업용: 전체 기록 무제한 조회 (raw row, embedding 제외)
+export async function getAllRecordsForBackup(): Promise<{
+  id: string;
+  created_at: number;
+  audio_path: string | null;
+  raw_text: string | null;
+  summary: string;
+  structured_data: string | null;
+  mood: string | null;
+  is_synced: number;
+  child_id: string | null;
+}[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<any>(
+    'SELECT id, created_at, audio_path, raw_text, summary, structured_data, mood, is_synced, child_id FROM records ORDER BY created_at ASC'
+  );
+}
+
 // 기록 수정
 export async function updateRecord(
   id: string,

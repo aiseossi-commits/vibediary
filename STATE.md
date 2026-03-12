@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: iOS 빌드 UMPromiseResolveBlock shim, expo-notifications 호환성` (2026-03-13)
+**마지막 커밋**: `feat: 백업/복원 기능 (JSON 내보내기/가져오기, 덮어쓰기/병합)` (2026-03-13)
 
 **현재 브랜치**: main
 
@@ -29,6 +29,7 @@
 - [x] CalendarScreen 날짜 UTC 버그 수정: toISOString() → getFullYear/getMonth/getDate (한국 시간대)
 - [x] AI 등대 SearchScreen: 쿼리 임베딩 생성 추가 (generateEmbedding 호출)
 - [x] aiProcessor.ts generateEmbedding 8초 AbortController 타임아웃 추가
+- [x] 백업/복원 기능: JSON 내보내기(expo-sharing) + 가져오기(expo-document-picker), 덮어쓰기/병합 두 모드
 - [x] 프리미엄 UI 리디자인 (다크/라이트 테마, 새 색상 팔레트, AppColors 확장)
 - [x] 앱 아이콘 교체: 바다 컨셉 (딥 네이비 + 진주 버튼 + 마이크 + 파도) — scripts/generate-icons.js
 - [x] 설정 화면 모드 토글: 씬 카드 → 슬라이드 토글로 교체
@@ -85,11 +86,11 @@
 
 ## 다음 계획
 
-- [ ] child-profile OpenSpec 변경 아카이브
-- [ ] 앱 전체 dead code 감사 (OpenSpec 도입 이전 코드)
+- [ ] child-profile OpenSpec 변경 아카이브 → `/openspec-archive` 권장
+- [ ] 앱 전체 dead code 감사 (OpenSpec 도입 이전 코드) → `/openspec-explore` 권장
 - [x] 기록 알림 기능: 굿모닝/굿나잇 + 커스텀 알람, 설정 화면 토글 (expo-notifications)
-- [ ] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면)
-- [ ] AI 등대 탭 구현
+- [x] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면) → `/openspec-new` 권장
+- [ ] AI 등대 탭 구현 → `/openspec-new` 권장
 
 ---
 
