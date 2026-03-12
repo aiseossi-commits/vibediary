@@ -6,9 +6,9 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `0879c3c feat: 홈화면 UI 개선, DB 안정성 강화, '바다' 용어 통일` (2026-03-12)
+**마지막 커밋**: `feat: 스플래시 슬로건, 네비게이션 안정화, STT 이름 힌트, 버그 수정` (2026-03-12)
 
-**현재 브랜치**: main
+**현재 브랜치**: ui-redesign
 
 ---
 
@@ -32,6 +32,14 @@
 - [x] 할루시네이션 방지 강화: Whisper no_speech_prob 세그먼트별 체크, prompt 힌트, STT 빈 결과 저장 차단
 - [x] 미분류 기록 불러오기: 바다 삭제 시 기록 이동 옵션 + 설정 미분류 섹션
 - [x] Android release APK 빌드 (로컬, 서버 불필요)
+- [x] 스플래시 화면: 슬로건 "기록에 치이지 말고, 그냥 말하세요" 표시 (scripts/generate-splash.js)
+- [x] NavigationContainer 단일화: 바다 삭제 시 네비게이션 리셋 버그 수정
+- [x] 바다 삭제 후 navigation.goBack() 추가
+- [x] ChildContext: refreshChildren 시 stale activeChildId 자동 수정
+- [x] iOS 네이티브 STT contextualStrings에 아이 이름 변형 전달 (이름 오인식 방지)
+- [x] RecordingScreen: 기록중입니다... 텍스트를 WaveLoader 바로 아래로 이동
+- [x] 온보딩 타이틀 줄넘김 수정 ("바다의 이름을 / 지어주세요")
+- [x] 설정 화면 테스트 데이터 추가 버튼 (seedData.ts, 10일치 샘플)
 
 ---
 
@@ -46,12 +54,15 @@
 - [x] 앱 로고 "바다" 로 교체 (assets/)
 - [x] 라이트 모드 색상 개선 (배경 #F8FAFC, 텍스트 슬레이트 표준화)
 - [x] 그림자 opacity 완화 (0.3~0.5 → 0.06~0.08, 소프트 카드 스타일)
-- [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시 (`RecordingScreen.tsx`)
-- [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결 (Podfile shim: EXFatal, EXLogWarn/Error/Info, UMPromise* 등)
-- [x] "permissions module not found" 오류 수정 (EXPermissionsServiceAdapter.m — EXPermissionsService를 EXModuleRegistry에 등록)
-- [x] metro.config.js mock 제거 (개발 빌드에서는 실제 네이티브 모듈 사용)
-- [x] AI 요약 → 정제 방식 전환: 압축·재해석 금지, 빈도어·인과관계·행위주체 보존
-- [x] AI 프롬프트에서 아이 이름 힌트 제거 (요약에 이름이 자동 삽입되던 문제 해결)
+- [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시
+- [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결
+- [x] "permissions module not found" 오류 수정
+- [x] metro.config.js mock 제거
+- [x] AI 요약 → 정제 방식 전환
+- [x] AI 프롬프트에서 아이 이름 힌트 제거
+- [x] 바다 삭제 시 NavigationContainer 리셋으로 뒤로가기 버튼 사라지는 버그 수정
+- [x] iOS STT "지투" → "질투" 오인식: contextualStrings로 이름 힌트 전달
+- [x] 스플래시 구버전 로고: SplashScreenLegacy 이미지 슬로건 PNG로 교체
 
 ---
 
@@ -77,5 +88,6 @@
 | 2026-03-10 | noUnusedLocals/noUnusedParameters 활성화 | dead code 컴파일 타임 탐지 |
 | 2026-03-10 | 코드 삭제 시 완전 삭제 원칙 | 기술부채 방지 |
 | 2026-03-12 | Podfile post_install으로 expo-av 호환 shim | expo-av 16.x가 expo-modules-core 55.x와 빌드 충돌, 삭제된 헤더/매크로/타입 shimming |
+| 2026-03-12 | NavigationContainer 단일화 | 조건부 이중 NC로 인한 바다 삭제 시 네비게이션 리셋 버그 |
 | 2026-03-07 | Deno Deploy를 기본 프록시로 | Cloudflare Worker 대비 설정 간편 |
 | 2026-03-04 | 모든 API 호출을 Worker 프록시 경유 | 클라이언트에 API 키 노출 방지 |

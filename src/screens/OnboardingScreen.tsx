@@ -80,7 +80,7 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={styles.content} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <Text style={styles.title}>바다의 이름을 지어주세요</Text>
+        <Text style={styles.title}>{"바다의 이름을\n지어주세요"}</Text>
         <Text style={styles.subtitle}>
           누구의 이야기를 기록할까요?{'\n'}
           아이 이름, 나의 별명 등{'\n'}

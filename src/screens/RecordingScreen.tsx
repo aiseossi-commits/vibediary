@@ -81,7 +81,7 @@ function createStyles(colors: AppColors) {
     },
     stopIcon: { width: 20, height: 20, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.recordingRed },
     errorText: { fontSize: FONT_SIZE.sm, color: colors.error, marginTop: SPACING.md },
-    processingText: { fontSize: 15, color: colors.textSecondary, fontWeight: '500' as const, letterSpacing: 0.4 },
+    processingText: { fontSize: 15, color: colors.textSecondary, fontWeight: '500' as const, letterSpacing: 0.4, marginTop: SPACING.lg },
   });
 }
 
@@ -155,7 +155,12 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       </View>
 
       <View style={styles.center}>
-        {isProcessing && <WaveLoader color={colors.primary} />}
+        {isProcessing && (
+          <>
+            <WaveLoader color={colors.primary} />
+            <Text style={styles.processingText}>기록중입니다...</Text>
+          </>
+        )}
         {!isRecording && !isProcessing && null}
         {isRecording && (
           <>
@@ -176,9 +181,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       </View>
 
       <View style={styles.controls}>
-        {isProcessing ? (
-          <Text style={styles.processingText}>기록중입니다...</Text>
-        ) : (
+        {isProcessing ? null : (
           <>
             <Text style={styles.timer}>{formatDuration(duration)}</Text>
             <View style={styles.buttonRow}>

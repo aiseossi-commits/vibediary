@@ -5,11 +5,13 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
 import {
   isDatabaseReady, createChild, updateChild, deleteChild,
   getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
 } from '../db';
+import { seedDemoData } from '../db/seedData';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, type AppColors } from '../constants/theme';
@@ -70,6 +72,7 @@ export default function SettingsScreen() {
   const { colors, isDark, setTheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
+  const navigation = useNavigation();
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orphanedCount, setOrphanedCount] = useState(0);
@@ -146,6 +149,7 @@ export default function SettingsScreen() {
                 if (activeChild?.id === child.id) setActiveChild(target.id);
                 await refreshChildren();
                 await loadCounts();
+                navigation.goBack();
               },
             }));
             Alert.alert(
@@ -162,6 +166,7 @@ export default function SettingsScreen() {
                     if (activeChild?.id === child.id) setActiveChild(null);
                     await refreshChildren();
                     await loadCounts();
+                    navigation.goBack();
                   },
                 },
               ]
@@ -175,6 +180,7 @@ export default function SettingsScreen() {
                   setActiveChild(null);
                   await refreshChildren();
                   await loadCounts();
+                  navigation.goBack();
                 },
               },
             ]);
@@ -361,6 +367,33 @@ export default function SettingsScreen() {
               </Text>
               <TouchableOpacity onPress={handleProcessQueue} style={styles.processButton} disabled={isProcessing}>
                 <Text style={styles.processButtonText}>{isProcessing ? '처리 중...' : '지금 처리하기'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* 테스트 데이터 */}
+        {activeChild && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>개발자 도구</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardDescription}>10일치 샘플 데이터를 추가합니다.</Text>
+              <TouchableOpacity
+                style={styles.processButton}
+                onPress={() => {
+                  Alert.alert('샘플 데이터 추가', `"${activeChild.name}"에 10일치 데이터를 추가할까요?`, [
+                    { text: '취소', style: 'cancel' },
+                    {
+                      text: '추가',
+                      onPress: async () => {
+                        await seedDemoData(activeChild.id);
+                        Alert.alert('완료', '10일치 샘플 데이터가 추가되었습니다.');
+                      },
+                    },
+                  ]);
+                }}
+              >
+                <Text style={styles.processButtonText}>샘플 데이터 추가</Text>
               </TouchableOpacity>
             </View>
           </View>

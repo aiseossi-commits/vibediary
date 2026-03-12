@@ -80,55 +80,53 @@ export default function AppNavigator() {
     );
   }
 
-  if (childList.length === 0) {
-    return (
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
-  }
+  const hasChildren = childList.length > 0;
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={TabNavigator} />
-        <Stack.Screen
-          name="Recording"
-          component={RecordingScreenWrapper}
-          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="RecordDetail"
-          component={RecordDetailScreen}
-          options={{
-            headerShown: true,
-            title: '기록 상세',
-            headerTintColor: colors.primary,
-            headerStyle: { backgroundColor: colors.surface },
-          }}
-        />
-        <Stack.Screen
-          name="Tags"
-          component={TagsScreen}
-          options={{
-            headerShown: true,
-            title: '태그',
-            headerTintColor: colors.primary,
-            headerStyle: { backgroundColor: colors.surface },
-          }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            headerShown: true,
-            title: '설정',
-            headerTintColor: colors.primary,
-            headerStyle: { backgroundColor: colors.surface },
-          }}
-        />
+        {!hasChildren ? (
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={TabNavigator} />
+            <Stack.Screen
+              name="Recording"
+              component={RecordingScreenWrapper}
+              options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="RecordDetail"
+              component={RecordDetailScreen}
+              options={{
+                headerShown: true,
+                title: '기록 상세',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="Tags"
+              component={TagsScreen}
+              options={{
+                headerShown: true,
+                title: '태그',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{
+                headerShown: true,
+                title: '설정',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

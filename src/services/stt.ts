@@ -24,7 +24,7 @@ interface DeviceSTTResult {
 }
 
 // 기기 내장 STT (expo-speech-recognition, iOS 전용)
-async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
+async function deviceSTT(audioUri: string, subjectName?: string): Promise<DeviceSTTResult> {
   // Android 또는 Expo Go 환경 → 즉시 반환
   if (DEVICE_STT_TIMEOUT === 0 || !ExpoSpeechRecognitionModule) {
     return { text: '', confidence: 0 };
@@ -70,10 +70,12 @@ async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
       resolve({ text: '', confidence: 0 });
     });
 
+    const nameVariants = subjectName ? generateNameVariants(subjectName) : [];
     ExpoSpeechRecognitionModule.start({
       lang: 'ko-KR',
       interimResults: false,
       continuous: false,
+      contextualStrings: nameVariants.length > 0 ? nameVariants : undefined,
       audioSource: {
         uri: audioUri,
         audioChannels: 1,
@@ -216,7 +218,7 @@ export async function processSTT(audioUri: string, subjectName?: string): Promis
 
   // 1단계: 기기 내장 STT 시도
   try {
-    const deviceResult = await deviceSTT(audioUri);
+    const deviceResult = await deviceSTT(audioUri, subjectName);
 
     if (
       deviceResult.confidence >= STT_CONFIDENCE_THRESHOLD &&

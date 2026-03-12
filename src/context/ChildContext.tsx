@@ -29,6 +29,15 @@ export function ChildProvider({ children: reactChildren }: { children: React.Rea
     try {
       const list = await getAllChildren();
       setChildList(list);
+      // activeChildId가 더 이상 유효하지 않으면 첫 번째 아이로 자동 수정
+      setActiveChildId(current => {
+        if (current && !list.find(c => c.id === current)) {
+          const newId = list[0]?.id ?? null;
+          FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({ activeChildId: newId })).catch(() => {});
+          return newId;
+        }
+        return current;
+      });
     } catch {}
   }, []);
 
