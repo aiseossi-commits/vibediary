@@ -159,6 +159,32 @@ export async function analyzeDailySummary(
   };
 }
 
+// 텍스트 임베딩 생성 (text-embedding-004, 768차원)
+export async function generateEmbedding(text: string): Promise<number[] | null> {
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) return null;
+
+  try {
+    const response = await fetch(`${workerUrl}/embedding`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
+      body: JSON.stringify({
+        model: 'models/text-embedding-004',
+        content: { parts: [{ text }] },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const values: number[] | undefined = data.embedding?.values;
+    return Array.isArray(values) ? values : null;
+  } catch {
+    return null;
+  }
+}
+
 // 오프라인 fallback: 원문을 그대로 사용
 export function createFallbackResult(text: string): AIProcessingResult {
   return {

@@ -1,5 +1,5 @@
 import { processSTT } from './stt';
-import { processWithAI, createFallbackResult } from './aiProcessor';
+import { processWithAI, createFallbackResult, generateEmbedding } from './aiProcessor';
 import { createRecord } from '../db/recordsDao';
 import { setTagsForRecord } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
@@ -23,22 +23,26 @@ export async function processRecording(audioUri: string, createdAt?: number, chi
     aiPending = true;
   }
 
-  // 3. DB에 기록 저장
+  // 3. embedding 생성 (AI 처리 성공 시에만)
+  const embedding = !aiPending ? await generateEmbedding(aiResult.summary) : null;
+
+  // 4. DB에 기록 저장
   const recordId = await createRecord({
     audioPath: audioUri,
     rawText: sttResult.text,
     summary: aiResult.summary,
     structuredData: aiResult.structuredData,
     mood: aiResult.mood,
+    embedding,
     aiPending,
     createdAt,
     childId,
   });
 
-  // 4. 태그 연결
+  // 5. 태그 연결
   await setTagsForRecord(recordId, aiResult.tags);
 
-  // 5. AI 실패 시 오프라인 큐에 추가 (rawText가 있을 때만)
+  // 6. AI 실패 시 오프라인 큐에 추가 (rawText가 있을 때만)
   if (aiPending && sttResult.text.trim().length > 0) {
     await addToOfflineQueue(recordId, sttResult.text);
   }
@@ -72,12 +76,15 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     aiPending = true;
   }
 
+  const embedding = !aiPending ? await generateEmbedding(aiResult.summary) : null;
+
   const recordId = await createRecord({
     audioPath: audioUri,
     rawText: text,
     summary: aiResult.summary,
     structuredData: aiResult.structuredData,
     mood: aiResult.mood,
+    embedding,
     aiPending,
     createdAt,
     childId,
@@ -105,13 +112,16 @@ export async function processTextRecord(text: string, childId?: string): Promise
     aiPending = true;
   }
 
-  // 2. DB에 기록 저장 (audioPath 없음)
+  // 2. embedding 생성 + DB 저장
+  const embedding = !aiPending ? await generateEmbedding(aiResult.summary) : null;
+
   const recordId = await createRecord({
     audioPath: '',
     rawText: text,
     summary: aiResult.summary,
     structuredData: aiResult.structuredData,
     mood: aiResult.mood,
+    embedding,
     aiPending,
     childId,
   });

@@ -1,4 +1,4 @@
-const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1'];
+const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1', 'text-embedding-004'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
 
@@ -56,6 +56,10 @@ Deno.serve(async (request: Request) => {
     return handleAI(request, url);
   }
 
+  if (request.method === 'POST' && url.pathname === '/embedding') {
+    return handleEmbedding(request);
+  }
+
   return new Response('Not Found', { status: 404 });
 });
 
@@ -80,6 +84,32 @@ async function handleSTT(request: Request) {
 
   const body = await upstreamResponse.text();
   return new Response(body, {
+    status: upstreamResponse.status,
+    headers: {
+      'Content-Type': upstreamResponse.headers.get('Content-Type') || 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
+}
+
+async function handleEmbedding(request: Request) {
+  const body = await request.text();
+  if (body.length > MAX_AI_BODY_LENGTH) {
+    return new Response('Request body too large', { status: 413 });
+  }
+
+  const googleKey = Deno.env.get('GOOGLE_AI_API_KEY');
+  const upstreamResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${googleKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    }
+  );
+
+  const responseBody = await upstreamResponse.text();
+  return new Response(responseBody, {
     status: upstreamResponse.status,
     headers: {
       'Content-Type': upstreamResponse.headers.get('Content-Type') || 'application/json',

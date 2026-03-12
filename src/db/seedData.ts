@@ -1,4 +1,5 @@
 import { createRecord } from './recordsDao';
+import { generateEmbedding } from '../services/aiProcessor';
 
 const SEED_RECORDS = [
   {
@@ -79,11 +80,13 @@ export async function seedDemoData(childId: string): Promise<void> {
 
   for (const record of SEED_RECORDS) {
     const createdAt = now - record.daysAgo * DAY_MS;
+    const embedding = await generateEmbedding(record.summary);
     await createRecord({
       rawText: record.rawText,
       summary: record.summary,
       mood: record.mood,
       structuredData: record.structuredData as any,
+      embedding,
       aiPending: false,
       createdAt,
       childId,

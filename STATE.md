@@ -79,6 +79,7 @@
 - [ ] 앱 전체 dead code 감사 (OpenSpec 도입 이전 코드)
 - [ ] 기록 알림 기능: 사용자 지정 시간에 매일 푸시 알림 (expo-notifications, iOS/Android 공통)
 - [ ] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면)
+- [ ] AI 등대 탭 구현
 
 ---
 
