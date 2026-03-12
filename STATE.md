@@ -40,6 +40,10 @@
 - [x] 그림자 opacity 완화 (0.3~0.5 → 0.06~0.08, 소프트 카드 스타일)
 - [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시 (`RecordingScreen.tsx`)
 - [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결 (Podfile shim: EXFatal, EXLogWarn/Error/Info, UMPromise* 등)
+- [x] "permissions module not found" 오류 수정 (EXPermissionsServiceAdapter.m — EXPermissionsService를 EXModuleRegistry에 등록)
+- [x] metro.config.js mock 제거 (개발 빌드에서는 실제 네이티브 모듈 사용)
+- [x] AI 요약 → 정제 방식 전환: 압축·재해석 금지, 빈도어·인과관계·행위주체 보존
+- [x] AI 프롬프트에서 아이 이름 힌트 제거 (요약에 이름이 자동 삽입되던 문제 해결)
 
 ---
 

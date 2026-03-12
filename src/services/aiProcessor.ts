@@ -2,38 +2,45 @@ import type { AIProcessingResult } from '../types/record';
 import { getNetworkState } from '../utils/network';
 
 // AI 처리를 위한 시스템 프롬프트 (고정)
-const SYSTEM_PROMPT = `당신은 발달장애인 돌봄 가족의 음성 기록을 정리하는 AI 비서입니다.
+const SYSTEM_PROMPT = `당신은 발달장애인 돌봄 가족의 음성 기록을 정제하는 AI 비서입니다.
 사용자가 음성으로 남긴 기록을 분석하여 아래 JSON 형식으로 응답하세요.
 
+핵심 원칙:
+- <user_input>의 내용을 압축하거나 재해석하지 마세요.
+- 발화에 없는 내용을 추가하거나 창작하지 마세요.
+- 말의 내용과 맥락을 그대로 유지하면서, 읽기 좋은 문어체로 다듬는 것이 목표입니다.
+
 규칙:
-1. summary: 핵심 내용을 1-2문장으로 요약 (따뜻하고 간결한 톤)
-2. tags: 해당하는 태그를 배열로 반환. 가능한 태그: #의료, #투약, #행동, #일상, #치료
-3. structured_data: 체온, 약물명, 용량, 횟수, 시간 등 구조화 가능한 데이터 추출
+1. summary: 발화 내용을 정제한 문장. 아래 지침을 반드시 따르세요:
+   - "음", "그니까", "있잖아", "뭐" 같은 필러(filler) 단어만 제거
+   - "자꾸", "항상", "가끔", "계속" 같은 빈도·강도 표현은 반드시 유지
+   - "해가지고", "그래서", "때문에" 같은 인과관계 표현은 반드시 유지
+   - 누가 무엇을 했는지 행위 주체와 행동을 바꾸지 말 것
+   - 의미 변질 없이 최소한의 문법 교정만 허용
+2. tags: 해당하는 태그를 배열로 반환. 가능한 태그: #의료, #투약, #행동, #일상, #치료. 관련 없으면 빈 배열.
+3. structured_data: 체온, 약물명, 용량, 횟수, 시간 등 구조화 가능한 데이터만 추출. 없으면 빈 객체.
 4. mood: 기록의 전반적 분위기 (positive, neutral, negative, urgent)
 
 반드시 유효한 JSON만 응답하세요. 다른 텍스트는 포함하지 마세요.`;
 
-const USER_PROMPT_TEMPLATE = `다음 음성 기록을 분석해주세요:
+const USER_PROMPT_TEMPLATE = `다음 음성 기록을 정제해주세요:
 {subjectLine}
 <user_input>
 {text}
 </user_input>
 
-JSON 형식으로 응답:
+위 발화 내용을 압축하지 말고 정제하여 JSON으로 응답:
 {"summary": "", "tags": [], "structured_data": {}, "mood": ""}`;
 
 // Gemini API 호출
-async function callGeminiAPI(text: string, subjectName?: string): Promise<AIProcessingResult> {
+async function callGeminiAPI(text: string): Promise<AIProcessingResult> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
   if (!workerUrl || !workerSecret) {
     throw new Error('Worker URL 또는 Secret이 설정되지 않았습니다');
   }
 
-  const subjectLine = subjectName
-    ? `관찰 대상: ${subjectName} (STT 발음 오류로 유사한 이름이 잘못 인식됐을 수 있으니 ${subjectName}으로 교정하세요)\n`
-    : '';
-  const userMessage = USER_PROMPT_TEMPLATE.replace('{subjectLine}', subjectLine).replace('{text}', text);
+  const userMessage = USER_PROMPT_TEMPLATE.replace('{subjectLine}', '').replace('{text}', text);
 
   const response = await fetch(
     `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
@@ -101,14 +108,14 @@ function parseAIResponse(content: string): AIProcessingResult {
 }
 
 // 텍스트 처리 메인 함수
-export async function processWithAI(text: string, subjectName?: string): Promise<AIProcessingResult> {
+export async function processWithAI(text: string): Promise<AIProcessingResult> {
   const isOnline = await getNetworkState();
 
   if (!isOnline) {
     throw new Error('OFFLINE');
   }
 
-  return callGeminiAPI(text, subjectName);
+  return callGeminiAPI(text);
 }
 
 // 일별 기록 분석 (이성 요약 + 감성 위로)

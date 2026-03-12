@@ -145,7 +145,7 @@ function RecordingScreenWrapper({ navigation, route }: any) {
       }
       const dateStr: string | undefined = route.params?.date;
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
-      await processFromText(uri, text, createdAt, activeChild?.id, activeChild?.name);
+      await processFromText(uri, text, createdAt, activeChild?.id);
     } catch (error) {
       console.warn('기록 처리 실패:', error);
       Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');

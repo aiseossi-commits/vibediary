@@ -19,3 +19,4 @@ xcuserdata/
 *.moved-aside
 *.xcuserstate
 *.xcscmblueprint
+ios/.xcode.env.local

@@ -20,7 +20,7 @@ export async function processRecording(audioUri: string, createdAt?: number, chi
 
   if (sttResult.text.trim().length > 0) {
     try {
-      aiResult = await processWithAI(sttResult.text, childName);
+      aiResult = await processWithAI(sttResult.text);
     } catch {
       aiResult = createFallbackResult(sttResult.text);
       aiPending = true;
@@ -65,13 +65,13 @@ export async function runSTTOnly(audioUri: string, subjectName?: string): Promis
 }
 
 // 텍스트 받아서 AI 처리 + DB 저장
-export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
+export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string): Promise<string> {
   let aiResult;
   let aiPending = false;
 
   if (text.trim().length > 0) {
     try {
-      aiResult = await processWithAI(text, childName);
+      aiResult = await processWithAI(text);
     } catch {
       aiResult = createFallbackResult(text);
       aiPending = true;
