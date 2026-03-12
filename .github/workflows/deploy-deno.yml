@@ -22,3 +22,4 @@ jobs:
         with:
           project: vibediary
           entrypoint: cloudflare-worker/deno-main.ts
+          token: ${{ secrets.DENO_DEPLOY_TOKEN }}
