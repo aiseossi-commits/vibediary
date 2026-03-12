@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: Deno Deploy from GitHub 테스트` (2026-03-13)
+**마지막 커밋**: `chore: GitHub Actions 워크플로우 삭제 (Deno Deploy from GitHub로 대체)` (2026-03-13)
 
 **현재 브랜치**: main
 
