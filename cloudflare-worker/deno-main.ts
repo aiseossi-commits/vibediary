@@ -2,6 +2,27 @@ const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1'
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
 
+// Rate limiting: IP당 분당 최대 요청 수
+const RATE_LIMIT_PER_MINUTE = 30;
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+
+  if (entry.count >= RATE_LIMIT_PER_MINUTE) {
+    return true;
+  }
+
+  entry.count++;
+  return false;
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -17,6 +38,12 @@ Deno.serve(async (request: Request) => {
   const appSecret = Deno.env.get('APP_SECRET');
   if (!secret || secret !== appSecret) {
     return new Response('Unauthorized', { status: 401 });
+  }
+
+  // Rate limiting
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+  if (isRateLimited(ip)) {
+    return new Response('Too Many Requests', { status: 429 });
   }
 
   const url = new URL(request.url);
