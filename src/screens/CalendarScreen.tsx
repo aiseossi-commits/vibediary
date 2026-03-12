@@ -144,8 +144,14 @@ export default function CalendarScreen() {
   const { activeChild } = useChild();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [currentMonth, setCurrentMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [currentMonth, setCurrentMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [dailySummaries, setDailySummaries] = useState<DailyRecordSummary[]>([]);
   const [dayRecords, setDayRecords] = useState<RecordWithTags[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
