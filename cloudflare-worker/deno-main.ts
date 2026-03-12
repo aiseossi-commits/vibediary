@@ -1,3 +1,4 @@
+// v2: rate limiting + /embedding endpoint
 const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1', 'text-embedding-004'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
