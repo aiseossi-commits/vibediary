@@ -16,6 +16,7 @@ import RecordCard from '../components/RecordCard';
 import TagChip from '../components/TagChip';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
+import { generateEmbedding } from '../services/aiProcessor';
 import { getAllTags, isDatabaseReady } from '../db';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -124,9 +125,10 @@ export default function SearchScreen() {
     setIsSearching(true);
     setResult(null);
     try {
+      const queryEmbedding = await generateEmbedding(query.trim());
       const searchResult = await searchRecords(
         query.trim(),
-        null,
+        queryEmbedding,
         selectedTags.length > 0 ? selectedTags : undefined,
         activeChild?.id
       );

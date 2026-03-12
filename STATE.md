@@ -6,9 +6,9 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 스플래시 슬로건, 네비게이션 안정화, STT 이름 힌트, 버그 수정` (2026-03-12)
+**마지막 커밋**: `fix: AI 등대 쿼리 임베딩 생성, Worker 배포 프로젝트명 수정` (2026-03-13)
 
-**현재 브랜치**: ui-redesign
+**현재 브랜치**: main
 
 ---
 
@@ -40,6 +40,8 @@
 - [x] RecordingScreen: 기록중입니다... 텍스트를 WaveLoader 바로 아래로 이동
 - [x] 온보딩 타이틀 줄넘김 수정 ("바다의 이름을 / 지어주세요")
 - [x] 설정 화면 테스트 데이터 추가 버튼 (seedData.ts, 10일치 샘플)
+- [x] AI 등대 SearchScreen: 쿼리 임베딩 생성 추가 (generateEmbedding 호출)
+- [x] GitHub Actions deploy-deno.yml: 프로젝트명 vibediary-proxy → vibediary 수정
 
 ---
 
