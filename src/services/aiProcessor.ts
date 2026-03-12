@@ -166,6 +166,9 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
   if (!workerUrl || !workerSecret) return null;
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(`${workerUrl}/embedding`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
@@ -173,7 +176,10 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
         model: 'models/text-embedding-004',
         content: { parts: [{ text }] },
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) return null;
 
