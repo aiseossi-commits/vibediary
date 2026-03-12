@@ -28,7 +28,10 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.INTERNET",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
       ],
       "package": "com.aiseossi.vibediary"
     },
@@ -50,7 +53,15 @@
           "speechRecognitionPermission": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#070D1A",
+          "sounds": []
+        }
+      ]
     ],
     "extra": {
       "eas": {
