@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 기록 알림 기능 (굿모닝/굿나잇 + 커스텀 알람)` (2026-03-13)
+**마지막 커밋**: `fix: iOS 빌드 UMPromiseResolveBlock shim, expo-notifications 호환성` (2026-03-13)
 
 **현재 브랜치**: main
 
@@ -24,6 +24,11 @@
 - [x] CLAUDE.md, STATE.md 추가 (컨텍스트 엔지니어링)
 - [x] pre-commit hook: STATE.md 포함 여부 강제 검증 추가
 - [x] iOS 개발 빌드 성공: expo-modules-core 55.x 호환성 shim (Podfile post_install)
+- [x] iOS 빌드 수정: UMPromiseResolveBlock/UMPromiseRejectBlock typedef를 EXDefines.h에 shim (expo-av 16.x + expo-notifications)
+- [x] 기록 알림 기능: 굿모닝(오전9시)/굿나잇(오후9시) + 커스텀 알람, 설정 화면 슬라이드 토글 (expo-notifications)
+- [x] CalendarScreen 날짜 UTC 버그 수정: toISOString() → getFullYear/getMonth/getDate (한국 시간대)
+- [x] AI 등대 SearchScreen: 쿼리 임베딩 생성 추가 (generateEmbedding 호출)
+- [x] aiProcessor.ts generateEmbedding 8초 AbortController 타임아웃 추가
 - [x] 프리미엄 UI 리디자인 (다크/라이트 테마, 새 색상 팔레트, AppColors 확장)
 - [x] 앱 아이콘 교체: 바다 컨셉 (딥 네이비 + 진주 버튼 + 마이크 + 파도) — scripts/generate-icons.js
 - [x] 설정 화면 모드 토글: 씬 카드 → 슬라이드 토글로 교체
@@ -41,7 +46,8 @@
 - [x] 온보딩 타이틀 줄넘김 수정 ("바다의 이름을 / 지어주세요")
 - [x] 설정 화면 테스트 데이터 추가 버튼 (seedData.ts, 10일치 샘플)
 - [x] AI 등대 SearchScreen: 쿼리 임베딩 생성 추가 (generateEmbedding 호출)
-- [x] GitHub Actions deploy-deno.yml: 프로젝트명 vibediary-proxy → vibediary 수정
+- [x] GitHub Actions deploy-deno.yml 삭제: Deno Deploy from GitHub 자동배포로 대체
+- [x] deno-main.ts v5 주석으로 Deno Deploy 재배포 트리거
 
 ---
 
@@ -57,7 +63,9 @@
 - [x] 라이트 모드 색상 개선 (배경 #F8FAFC, 텍스트 슬레이트 표준화)
 - [x] 그림자 opacity 완화 (0.3~0.5 → 0.06~0.08, 소프트 카드 스타일)
 - [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시
-- [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결
+- [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결 (UMPromiseResolveBlock shim 포함)
+- [x] 캘린더 당일 표시 하루 전 오표시: toISOString() UTC 버그 수정 (한국 UTC+9)
+- [x] AI 등대 임베딩 null로 검색 실패: generateEmbedding 호출 누락 수정
 - [x] "permissions module not found" 오류 수정
 - [x] metro.config.js mock 제거
 - [x] AI 요약 → 정제 방식 전환

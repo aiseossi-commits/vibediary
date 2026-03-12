@@ -85,7 +85,23 @@ target 'VibeDiary' do
       File.write(path, content) unless File.exist?(path)
     end
 
-    # 3. EXDefines.h에 expo-av가 참조하는 삭제된 매크로 추가
+    # 3. UMCore → ExpoModulesCore 이름 변경 대응 shim
+    # expo-av가 <UMCore/UM*.h> 경로로 UM* 타입을 참조하므로 UMCore 디렉토리 생성
+    um_core_dir = File.join(installer.sandbox.root, 'Headers', 'Public', 'UMCore')
+    FileUtils.mkdir_p(um_core_dir)
+    um_utilities_path = File.join(um_core_dir, 'UMUtilities.h')
+    unless File.exist?(um_utilities_path)
+      File.write(um_utilities_path, <<~OBJC
+        #pragma once
+        #import <Foundation/Foundation.h>
+        typedef void (^UMPromiseResolveBlock)(id _Nullable result);
+        typedef void (^UMPromiseRejectBlock)(NSString * _Nonnull code, NSString * _Nullable message, NSError * _Nullable error);
+      OBJC
+      )
+      puts "Created UMCore/UMUtilities.h shim for UMPromiseResolveBlock/UMPromiseRejectBlock"
+    end
+
+    # 4. EXDefines.h에 expo-av가 참조하는 삭제된 매크로 추가
     # EXFatal, EXErrorWithMessage는 expo-modules-core 55.x에서 제거됨
     ex_defines_path = File.join(parent_dir, 'EXDefines.h')
     if File.exist?(ex_defines_path)
@@ -109,9 +125,16 @@ target 'VibeDiary' do
           #ifndef EXLogError
           #define EXLogError(...) NSLog(__VA_ARGS__)
           #endif
+          // UMCore → ExpoModulesCore 이름 변경: expo-av 16.x가 아직 UM-접두사 타입 사용
+          #ifndef UMPromiseResolveBlock
+          typedef void (^UMPromiseResolveBlock)(id _Nullable result);
+          #endif
+          #ifndef UMPromiseRejectBlock
+          typedef void (^UMPromiseRejectBlock)(NSString * _Nonnull code, NSString * _Nullable message, NSError * _Nullable error);
+          #endif
         OBJC
         File.write(ex_defines_path, content + macros)
-        puts "Patched EXDefines.h with EXFatal/EXErrorWithMessage macros"
+        puts "Patched EXDefines.h with EXFatal/EXErrorWithMessage/UMPromise macros"
       end
     end
   end
