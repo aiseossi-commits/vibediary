@@ -1,0 +1,118 @@
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
+require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
+
+require 'json'
+podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
+
+def ccache_enabled?(podfile_properties)
+  # Environment variable takes precedence
+  return ENV['USE_CCACHE'] == '1' if ENV['USE_CCACHE']
+
+  # Fall back to Podfile properties
+  podfile_properties['apple.ccacheEnabled'] == 'true'
+end
+
+ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
+ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
+ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
+ENV['RCT_HERMES_V1_ENABLED'] ||= '1' if podfile_properties['expo.useHermesV1'] == 'true'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
+
+prepare_react_native_project!
+
+target 'VibeDiary' do
+  use_expo_modules!
+
+  if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
+    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
+  else
+    config_command = [
+      'node',
+      '--no-warnings',
+      '--eval',
+      'require(\'expo/bin/autolinking\')',
+      'expo-modules-autolinking',
+      'react-native-config',
+      '--json',
+      '--platform',
+      'ios'
+    ]
+  end
+
+  config = use_native_modules!(config_command)
+
+  use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
+  use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/..",
+    :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
+  )
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      :ccache_enabled => ccache_enabled?(podfile_properties),
+    )
+
+    # ExpoModulesCore SDK 55에서 헤더가 하위 폴더로 이동 또는 삭제됨
+    # expo-av가 <ExpoModulesCore/EX*.h> 경로로 참조하므로 상위 폴더로 복사 + 삭제된 헤더 shim 생성
+    parent_dir = File.join(installer.sandbox.root, 'Headers', 'Public', 'ExpoModulesCore')
+    FileUtils.mkdir_p(parent_dir)
+
+    # 1. 하위 폴더에 있는 헤더를 상위로 복사
+    nested_dir = File.join(parent_dir, 'ExpoModulesCore')
+    if Dir.exist?(nested_dir)
+      Dir.glob(File.join(nested_dir, '*.h')).each do |header|
+        dest = File.join(parent_dir, File.basename(header))
+        FileUtils.cp(header, dest) unless File.exist?(dest)
+      end
+    end
+
+    # 2. 완전히 삭제된 헤더 shim 생성
+    removed_headers = {
+      'EXEventEmitter.h' => "#pragma once\n@protocol EXEventEmitter <NSObject>\n- (NSArray<NSString *> *)supportedEvents;\n- (void)startObserving;\n- (void)stopObserving;\n@end\n",
+      'EXLegacyExpoViewProtocol.h' => "#pragma once\n#import <UIKit/UIKit.h>\n@protocol EXLegacyExpoViewProtocol <NSObject>\n@end\n",
+      'EXEventEmitterService.h' => "#pragma once\n@protocol EXEventEmitterService <NSObject>\n- (void)sendEventWithName:(NSString *)name body:(id)body;\n@end\n"
+    }
+    removed_headers.each do |filename, content|
+      path = File.join(parent_dir, filename)
+      File.write(path, content) unless File.exist?(path)
+    end
+
+    # 3. EXDefines.h에 expo-av가 참조하는 삭제된 매크로 추가
+    # EXFatal, EXErrorWithMessage는 expo-modules-core 55.x에서 제거됨
+    ex_defines_path = File.join(parent_dir, 'EXDefines.h')
+    if File.exist?(ex_defines_path)
+      content = File.read(ex_defines_path)
+      unless content.include?('EXErrorWithMessage')
+        macros = <<~OBJC
+
+          // expo-av compatibility shims: removed in expo-modules-core 55.x
+          #ifndef EXErrorWithMessage
+          #define EXErrorWithMessage(message) [NSError errorWithDomain:@"EXErrorDomain" code:0 userInfo:@{NSLocalizedDescriptionKey: (message)}]
+          #endif
+          #ifndef EXFatal
+          #define EXFatal(error) do { NSLog(@"[Expo] Fatal: %@", (error).localizedDescription); abort(); } while(0)
+          #endif
+          #ifndef EXLogInfo
+          #define EXLogInfo(...) NSLog(__VA_ARGS__)
+          #endif
+          #ifndef EXLogWarn
+          #define EXLogWarn(...) NSLog(__VA_ARGS__)
+          #endif
+          #ifndef EXLogError
+          #define EXLogError(...) NSLog(__VA_ARGS__)
+          #endif
+        OBJC
+        File.write(ex_defines_path, content + macros)
+        puts "Patched EXDefines.h with EXFatal/EXErrorWithMessage macros"
+      end
+    end
+  end
+end

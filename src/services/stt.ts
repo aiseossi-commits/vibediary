@@ -1,8 +1,13 @@
 import { Platform } from 'react-native';
-import {
-  ExpoSpeechRecognitionModule,
-  type ExpoSpeechRecognitionResultEvent,
-} from 'expo-speech-recognition';
+import type { ExpoSpeechRecognitionResultEvent } from 'expo-speech-recognition';
+
+// Expo Go에서는 네이티브 모듈 미지원 → 동적 로드로 폴백
+let ExpoSpeechRecognitionModule: typeof import('expo-speech-recognition').ExpoSpeechRecognitionModule | null = null;
+try {
+  ExpoSpeechRecognitionModule = require('expo-speech-recognition').ExpoSpeechRecognitionModule;
+} catch {
+  // Expo Go 환경 — Whisper fallback 사용
+}
 import * as FileSystem from 'expo-file-system/legacy';
 import type { STTResult } from '../types/record';
 import { getNetworkState } from '../utils/network';
@@ -20,8 +25,8 @@ interface DeviceSTTResult {
 
 // 기기 내장 STT (expo-speech-recognition, iOS 전용)
 async function deviceSTT(audioUri: string): Promise<DeviceSTTResult> {
-  // Android는 파일 기반 STT 미지원 → 즉시 반환
-  if (DEVICE_STT_TIMEOUT === 0) {
+  // Android 또는 Expo Go 환경 → 즉시 반환
+  if (DEVICE_STT_TIMEOUT === 0 || !ExpoSpeechRecognitionModule) {
     return { text: '', confidence: 0 };
   }
 

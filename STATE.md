@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `23b88fd chore: TypeScript strict 강화 및 dead code 정리` (2026-03-10)
+**마지막 커밋**: `0879c3c feat: 홈화면 UI 개선, DB 안정성 강화, '바다' 용어 통일` (2026-03-12)
 
 **현재 브랜치**: main
 
@@ -23,6 +23,7 @@
 - [x] CalendarScreen loadAIAnalysis 선언 순서 버그 수정
 - [x] CLAUDE.md, STATE.md 추가 (컨텍스트 엔지니어링)
 - [x] pre-commit hook: STATE.md 포함 여부 강제 검증 추가
+- [x] iOS 개발 빌드 성공: expo-modules-core 55.x 호환성 shim (Podfile post_install)
 
 ---
 
@@ -38,6 +39,7 @@
 - [x] 라이트 모드 색상 개선 (배경 #F8FAFC, 텍스트 슬레이트 표준화)
 - [x] 그림자 opacity 완화 (0.3~0.5 → 0.06~0.08, 소프트 카드 스타일)
 - [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시 (`RecordingScreen.tsx`)
+- [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결 (Podfile shim: EXFatal, EXLogWarn/Error/Info, UMPromise* 등)
 
 ---
 
@@ -62,5 +64,6 @@
 | 2026-03-10 | pre-commit TypeScript hook 도입 | 코드 삭제 시 영향 범위 자동 감지 |
 | 2026-03-10 | noUnusedLocals/noUnusedParameters 활성화 | dead code 컴파일 타임 탐지 |
 | 2026-03-10 | 코드 삭제 시 완전 삭제 원칙 | 기술부채 방지 |
+| 2026-03-12 | Podfile post_install으로 expo-av 호환 shim | expo-av 16.x가 expo-modules-core 55.x와 빌드 충돌, 삭제된 헤더/매크로/타입 shimming |
 | 2026-03-07 | Deno Deploy를 기본 프록시로 | Cloudflare Worker 대비 설정 간편 |
 | 2026-03-04 | 모든 API 호출을 Worker 프록시 경유 | 클라이언트에 API 키 노출 방지 |
