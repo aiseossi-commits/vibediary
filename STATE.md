@@ -81,14 +81,13 @@
 
 ## 알려진 문제 / 기술부채
 
-- `openspec/changes/child-profile/` 변경이 구현됐지만 아카이브되지 않음
 - cloudflare-worker는 tsconfig에서 제외됨 (Deno 런타임 타입 충돌)
 
 ---
 
 ## 다음 계획
 
-- [ ] child-profile OpenSpec 변경 아카이브 → `/openspec-archive` 권장
+- [x] child-profile OpenSpec 변경 아카이브
 - [ ] 앱 전체 dead code 감사 (OpenSpec 도입 이전 코드) → `/openspec-explore` 권장
 - [x] 기록 알림 기능: 굿모닝/굿나잇 + 커스텀 알람, 설정 화면 토글 (expo-notifications)
 - [x] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면) → `/openspec-new` 권장
