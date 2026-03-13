@@ -208,7 +208,7 @@ export default function SettingsScreen() {
     setIsBackingUp(true);
     try {
       await exportBackup();
-    } catch {
+    } catch (e) {
       Alert.alert('오류', '백업 내보내기 중 문제가 발생했습니다.');
     } finally {
       setIsBackingUp(false);

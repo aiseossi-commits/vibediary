@@ -1,0 +1,24 @@
+diff --git a/node_modules/expo-sharing/android/src/main/java/expo/modules/sharing/SharingModule.kt b/node_modules/expo-sharing/android/src/main/java/expo/modules/sharing/SharingModule.kt
+index 69ccba6..c882ef4 100644
+--- a/node_modules/expo-sharing/android/src/main/java/expo/modules/sharing/SharingModule.kt
++++ b/node_modules/expo-sharing/android/src/main/java/expo/modules/sharing/SharingModule.kt
+@@ -10,6 +10,7 @@ import expo.modules.kotlin.Promise
+ import expo.modules.kotlin.exception.Exceptions
+ import expo.modules.kotlin.modules.Module
+ import expo.modules.kotlin.modules.ModuleDefinition
++import expo.modules.interfaces.filesystem.Permission
+ import expo.modules.kotlin.services.FilePermissionService
+ import java.io.File
+ import java.net.URLConnection
+@@ -110,7 +111,7 @@ class SharingModule : Module() {
+ 
+     return permissions
+       .getPathPermissions(context, url)
+-      .contains(FilePermissionService.Permission.READ)
++      .contains(Permission.READ)
+   }
+ 
+   private fun createSharingIntent(uri: Uri, mimeType: String?) =
+diff --git a/node_modules/expo-sharing/local-maven-repo/host/exp/exponent/expo.modules.sharing/55.0.11/expo.modules.sharing-55.0.11.aar b/node_modules/expo-sharing/local-maven-repo/host/exp/exponent/expo.modules.sharing/55.0.11/expo.modules.sharing-55.0.11.aar
+index d991bc2..7953e71 100644
+Binary files a/node_modules/expo-sharing/local-maven-repo/host/exp/exponent/expo.modules.sharing/55.0.11/expo.modules.sharing-55.0.11.aar and b/node_modules/expo-sharing/local-maven-repo/host/exp/exponent/expo.modules.sharing/55.0.11/expo.modules.sharing-55.0.11.aar differ

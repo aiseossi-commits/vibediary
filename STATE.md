@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 백업/복원 기능 (JSON 내보내기/가져오기, 덮어쓰기/병합)` (2026-03-13)
+**마지막 커밋**: `fix: expo-sharing 55.0.11 AAR 바이트코드 패치 (FilePermissionService$Permission → interfaces.filesystem.Permission)` (2026-03-13)
 
 **현재 브랜치**: main
 
@@ -38,6 +38,7 @@
 - [x] 할루시네이션 방지 강화: Whisper no_speech_prob 세그먼트별 체크, prompt 힌트, STT 빈 결과 저장 차단
 - [x] 미분류 기록 불러오기: 바다 삭제 시 기록 이동 옵션 + 설정 미분류 섹션
 - [x] Android release APK 빌드 (로컬, 서버 불필요)
+- [x] expo-sharing 55.0.11 AAR 바이트코드 패치: FilePermissionService$Permission → expo.modules.interfaces.filesystem.Permission (Python 스크립트로 classes.jar 직접 수정, patch-package 바이너리 diff 포함)
 - [x] 스플래시 화면: 슬로건 "기록에 치이지 말고, 그냥 말하세요" 표시 (scripts/generate-splash.js)
 - [x] NavigationContainer 단일화: 바다 삭제 시 네비게이션 리셋 버그 수정
 - [x] 바다 삭제 후 navigation.goBack() 추가
@@ -65,6 +66,7 @@
 - [x] 그림자 opacity 완화 (0.3~0.5 → 0.06~0.08, 소프트 카드 스타일)
 - [x] 녹음 완료 후 버튼 미사라짐: isProcessing 시 controls 숨기고 "기록중입니다..." 표시
 - [x] expo-av + expo-modules-core 55.x 빌드 충돌 해결 (UMPromiseResolveBlock shim 포함)
+- [x] expo-sharing 백업 내보내기 NoClassDefFoundError 수정: 사전 빌드된 AAR의 바이트코드를 Python으로 직접 패치
 - [x] 캘린더 당일 표시 하루 전 오표시: toISOString() UTC 버그 수정 (한국 UTC+9)
 - [x] AI 등대 임베딩 null로 검색 실패: generateEmbedding 호출 누락 수정
 - [x] "permissions module not found" 오류 수정
