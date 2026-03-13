@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: expo-sharing 55.0.11 AAR 바이트코드 패치 (FilePermissionService$Permission → interfaces.filesystem.Permission)` (2026-03-13)
+**마지막 커밋**: `fix: 백업 가져오기 파일 선택기 */* MIME 타입으로 변경 (카카오톡 다운로드 파일 접근)` (2026-03-13)
 
 **현재 브랜치**: main
 

@@ -57,12 +57,17 @@ export async function exportBackup(): Promise<void> {
 
 // 파일 선택 및 파싱 (유효성 검증 포함)
 export async function pickAndParseBackup(): Promise<BackupData> {
-  const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
+  const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
   if (result.canceled || !result.assets?.[0]) {
     throw new Error('CANCELED');
   }
 
-  const raw = await FileSystem.readAsStringAsync(result.assets[0].uri);
+  const asset = result.assets[0];
+  if (!asset.name.endsWith('.json')) {
+    throw new Error('INVALID_FORMAT');
+  }
+
+  const raw = await FileSystem.readAsStringAsync(asset.uri);
   let data: BackupData;
   try {
     data = JSON.parse(raw);
