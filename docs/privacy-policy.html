@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>개인정보 처리방침 — 바다</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      color: #1e293b;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 18px; font-weight: 600; margin-top: 40px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+    p { margin: 0 0 16px; color: #475569; }
+    ul { margin: 0 0 16px; padding-left: 24px; color: #475569; }
+    li { margin-bottom: 8px; }
+    .updated { font-size: 14px; color: #94a3b8; margin-bottom: 40px; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+
+  <h1>개인정보 처리방침</h1>
+  <p class="updated">최종 수정일: 2026년 3월 14일</p>
+
+  <p>
+    바다(이하 "앱")는 발달장애인 돌봄 가족을 위한 음성 기록 서비스입니다.
+    본 방침은 앱이 수집하는 정보, 사용 방식, 보관 방법에 대해 설명합니다.
+  </p>
+
+  <h2>1. 수집하는 정보</h2>
+  <ul>
+    <li><strong>음성 파일</strong>: 녹음 버튼 사용 시 기기에 임시 저장되며, 텍스트 변환 후 삭제됩니다.</li>
+    <li><strong>기록 텍스트</strong>: STT 변환된 텍스트 및 사용자가 직접 입력한 내용</li>
+    <li><strong>아이 프로필 정보</strong>: 사용자가 등록한 이름(별칭)</li>
+  </ul>
+  <p>앱은 이메일, 전화번호, 위치정보 등 식별 가능한 개인정보를 수집하지 않습니다.</p>
+
+  <h2>2. 정보의 사용 목적</h2>
+  <ul>
+    <li>음성 → 텍스트 변환(STT) 처리</li>
+    <li>AI 요약 및 구조화 (Google Gemini)</li>
+    <li>기록 검색을 위한 임베딩 생성</li>
+    <li>앱 기능 제공 및 오프라인 데이터 관리</li>
+  </ul>
+
+  <h2>3. 데이터 저장 위치</h2>
+  <ul>
+    <li><strong>음성 파일</strong>: 기기 로컬에만 저장. 외부 서버로 전송되지 않습니다.</li>
+    <li><strong>기록 데이터</strong>: 기기 내 SQLite 데이터베이스에 저장됩니다.</li>
+    <li><strong>STT 텍스트 / AI 처리</strong>: Google Gemini 및 OpenAI Whisper API를 통해 처리되며, 처리 후 외부 서버에 저장되지 않습니다.</li>
+  </ul>
+
+  <h2>4. 제3자 서비스</h2>
+  <p>앱은 다음 외부 서비스를 사용합니다:</p>
+  <ul>
+    <li><strong>OpenAI Whisper</strong>: 음성 → 텍스트 변환 (<a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI 개인정보 처리방침</a>)</li>
+    <li><strong>Google Gemini</strong>: AI 요약 및 임베딩 생성 (<a href="https://policies.google.com/privacy" target="_blank">Google 개인정보 처리방침</a>)</li>
+  </ul>
+  <p>모든 API 호출은 앱 자체 프록시 서버를 경유하며, 클라이언트에서 외부 API 키에 직접 접근하지 않습니다.</p>
+
+  <h2>5. 데이터 보관 및 삭제</h2>
+  <p>
+    모든 데이터는 사용자의 기기에 보관됩니다.
+    앱을 삭제하면 기기 내 모든 데이터가 함께 삭제됩니다.
+    백업 파일은 사용자가 직접 내보내기 한 경우에만 생성됩니다.
+  </p>
+
+  <h2>6. 아동 개인정보</h2>
+  <p>
+    앱은 돌봄 대상 아동의 정보를 다룰 수 있습니다.
+    아동 정보(이름, 행동 기록 등)는 보호자가 직접 입력하며, 외부로 전송되거나 제3자에게 제공되지 않습니다.
+  </p>
+
+  <h2>7. 권한 사용</h2>
+  <ul>
+    <li><strong>마이크</strong>: 음성 녹음에 사용됩니다.</li>
+    <li><strong>음성 인식</strong>: iOS 기기 내장 STT에 사용됩니다.</li>
+    <li><strong>알림</strong>: 기록 알림 기능에 사용됩니다.</li>
+    <li><strong>파일 접근</strong>: 백업 파일 내보내기/가져오기에 사용됩니다.</li>
+  </ul>
+
+  <h2>8. 방침 변경</h2>
+  <p>
+    본 방침이 변경될 경우 앱 내 공지 또는 이 페이지를 통해 안내합니다.
+    지속적인 앱 사용은 변경된 방침에 동의하는 것으로 간주됩니다.
+  </p>
+
+  <h2>9. 문의</h2>
+  <p>
+    개인정보 처리에 관한 문의사항은 아래로 연락해 주세요.<br>
+    이메일: <a href="mailto:aiseossi@gmail.com">aiseossi@gmail.com</a>
+  </p>
+
+</body>
+</html>

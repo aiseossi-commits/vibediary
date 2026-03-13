@@ -198,7 +198,6 @@ async function whisperSTT(audioUri: string, subjectName?: string): Promise<strin
     const highNoSpeechRatio = segments.filter((seg) => (seg.no_speech_prob ?? 0) > 0.7).length / segments.length;
     // 평균 0.45 초과이거나 70% 이상 세그먼트가 소음이면 무음 처리
     if (avgNoSpeech > 0.45 || highNoSpeechRatio >= 0.5) {
-      console.log('[STT] Whisper 소음 판정 — avg:', avgNoSpeech.toFixed(2), 'highRatio:', highNoSpeechRatio.toFixed(2));
       return '';
     }
   }
@@ -212,7 +211,6 @@ async function whisperSTT(audioUri: string, subjectName?: string): Promise<strin
 export async function processSTT(audioUri: string, subjectName?: string): Promise<STTResult> {
   // 0단계: 파일 크기 기반 무음 감지
   if (await isSilentAudio(audioUri)) {
-    console.log('[STT] 무음 감지 (파일 크기 기준) — STT 스킵');
     throw new Error('녹음된 내용이 없습니다.');
   }
 
@@ -226,7 +224,7 @@ export async function processSTT(audioUri: string, subjectName?: string): Promis
     ) {
       // 디바이스 STT 결과에도 환각 필터 적용
       if (isHallucination(deviceResult.text)) {
-        console.log('[STT] 디바이스 STT 환각 감지:', deviceResult.text);
+        // 환각 감지 — fallback 진행
       } else {
         return {
           text: deviceResult.text,
@@ -238,7 +236,6 @@ export async function processSTT(audioUri: string, subjectName?: string): Promis
 
     // 2단계: Whisper fallback
     const isOnline = await getNetworkState();
-    console.log('[STT] 온라인 상태:', isOnline);
     if (isOnline) {
       try {
         const whisperText = await whisperSTT(audioUri, subjectName);
