@@ -11,7 +11,6 @@ import {
   isDatabaseReady, createChild, updateChild, deleteChild,
   getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
 } from '../db';
-import { seedDemoData } from '../db/seedData';
 import {
   loadAlarms, toggleAlarm, updateAlarm, addAlarm, deleteAlarm,
   requestNotificationPermission, type AlarmSetting,
@@ -692,32 +691,6 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        {/* 테스트 데이터 */}
-        {activeChild && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>개발자 도구</Text>
-            <View style={styles.card}>
-              <Text style={styles.cardDescription}>10일치 샘플 데이터를 추가합니다.</Text>
-              <TouchableOpacity
-                style={styles.processButton}
-                onPress={() => {
-                  Alert.alert('샘플 데이터 추가', `"${activeChild.name}"에 10일치 데이터를 추가할까요?`, [
-                    { text: '취소', style: 'cancel' },
-                    {
-                      text: '추가',
-                      onPress: async () => {
-                        await seedDemoData(activeChild.id);
-                        Alert.alert('완료', '10일치 샘플 데이터가 추가되었습니다.');
-                      },
-                    },
-                  ]);
-                }}
-              >
-                <Text style={styles.processButtonText}>샘플 데이터 추가</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
 
         {/* 앱 정보 */}
         <View style={[styles.section, { marginBottom: SPACING.xxl }]}>
