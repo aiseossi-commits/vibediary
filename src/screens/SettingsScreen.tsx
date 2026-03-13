@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
-  Animated, ActivityIndicator,
+  Animated, ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -699,6 +699,12 @@ export default function SettingsScreen() {
             <Text style={styles.appName}>바다 vibediary</Text>
             <Text style={styles.slogan}>기록에 치이지 말고, 그냥 말하세요</Text>
             <Text style={styles.version}>버전 1.0.0</Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://aiseossi-commits.github.io/vibediary/privacy-policy.html')}
+              style={{ marginTop: SPACING.md }}
+            >
+              <Text style={[styles.version, { color: colors.primary }]}>개인정보 처리방침</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

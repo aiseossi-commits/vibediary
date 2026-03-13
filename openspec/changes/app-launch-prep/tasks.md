@@ -5,7 +5,7 @@
 ## 2. 개인정보 처리방침 링크
 
 - [x] 2.1 개인정보 처리방침 URL 확보 (GitHub Pages: https://aiseossi-commits.github.io/vibediary/privacy-policy.html)
-- [ ] 2.2 `SettingsScreen.tsx` 앱 정보 섹션에 "개인정보 처리방침" 링크 추가 (`Linking.openURL`)
+- [x] 2.2 `SettingsScreen.tsx` 앱 정보 섹션에 "개인정보 처리방침" 링크 추가 (`Linking.openURL`)
 
 ## 3. 앱 스토어 메타데이터
 
