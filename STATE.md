@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: 백업 복원 시 ai_pending=0 (AI 처리중 무한로딩 수정)` (2026-03-13)
+**마지막 커밋**: `chore: STATE.md 정리 — 다음 계획 완료 처리` (2026-03-13)
 
 **현재 브랜치**: main
 
@@ -91,7 +91,7 @@
 - [ ] 앱 전체 dead code 감사 (OpenSpec 도입 이전 코드) → `/openspec-explore` 권장
 - [x] 기록 알림 기능: 굿모닝/굿나잇 + 커스텀 알람, 설정 화면 토글 (expo-notifications)
 - [x] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면) → `/openspec-new` 권장
-- [ ] AI 등대 탭 구현 → `/openspec-new` 권장
+- [x] AI 등대 탭 구현 (SearchScreen — 이미 완성)
 
 ---
 
