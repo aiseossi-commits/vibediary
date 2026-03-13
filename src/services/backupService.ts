@@ -57,17 +57,12 @@ export async function exportBackup(): Promise<void> {
 
 // 파일 선택 및 파싱 (유효성 검증 포함)
 export async function pickAndParseBackup(): Promise<BackupData> {
-  const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+  const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
   if (result.canceled || !result.assets?.[0]) {
     throw new Error('CANCELED');
   }
 
-  const asset = result.assets[0];
-  if (!asset.name.endsWith('.json')) {
-    throw new Error('INVALID_FORMAT');
-  }
-
-  const raw = await FileSystem.readAsStringAsync(asset.uri);
+  const raw = await FileSystem.readAsStringAsync(result.assets[0].uri);
   let data: BackupData;
   try {
     data = JSON.parse(raw);
@@ -105,7 +100,7 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
   for (const r of data.records) {
     await db.runAsync(
       `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, is_synced, ai_pending, child_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 1, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
       r.id, r.created_at, r.audio_path, r.raw_text, r.summary,
       r.structured_data, r.mood, r.is_synced, r.child_id
     );
@@ -180,7 +175,7 @@ export async function restoreMerge(data: BackupData): Promise<void> {
     const mappedChildId = r.child_id ? (childIdMap.get(r.child_id) ?? r.child_id) : null;
     await db.runAsync(
       `INSERT OR IGNORE INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, is_synced, ai_pending, child_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 1, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
       r.id, r.created_at, r.audio_path, r.raw_text, r.summary,
       r.structured_data, r.mood, r.is_synced, mappedChildId
     );
