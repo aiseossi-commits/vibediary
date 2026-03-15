@@ -28,6 +28,37 @@ interface TagsScreenProps {
   navigation: any;
 }
 
+// 한국어 IME 깨짐 방지: 자체 로컬 상태로 관리하는 독립 컴포넌트
+function TagCreateInput({ onSubmit, onCancel, colors, styles }: {
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+  colors: AppColors;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const [value, setValue] = React.useState('');
+  return (
+    <View style={[styles.tagItem, styles.createInputContainer]}>
+      <TextInput
+        style={styles.createInput}
+        value={value}
+        onChangeText={setValue}
+        placeholder="#새 태그"
+        placeholderTextColor={colors.textTertiary}
+        autoFocus
+        onSubmitEditing={() => { const v = value.trim(); if (v) onSubmit(v); else onCancel(); }}
+        onBlur={() => { if (!value.trim()) onCancel(); }}
+        returnKeyType="done"
+      />
+      <TouchableOpacity
+        onPress={() => { const v = value.trim(); if (v) onSubmit(v); }}
+        style={styles.createConfirmButton}
+      >
+        <Text style={styles.createConfirmText}>추가</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 type TagWithCount = Tag & { count: number };
 
 function getTagColor(name: string, colors: AppColors): string {
@@ -69,6 +100,8 @@ function createStyles(colors: AppColors) {
     createInput: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary, padding: 0 },
     createConfirmButton: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.sm },
     createConfirmText: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textOnPrimary },
+    tagDeleteBtn: { paddingHorizontal: SPACING.xs, paddingVertical: 2, marginLeft: SPACING.xs },
+    tagDeleteBtnText: { fontSize: 18, color: colors.textTertiary, lineHeight: 20 },
     filterBar: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, marginBottom: SPACING.sm,
@@ -95,7 +128,6 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
 
   const loadTags = useCallback(async () => {
     if (!isDatabaseReady()) { setTags([]); setIsLoading(false); return; }
@@ -132,18 +164,16 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     });
   }, [loadFilteredRecords]);
 
-  const handleCreateTag = useCallback(async () => {
-    const name = newTagName.trim();
-    if (!name) { setShowCreateInput(false); return; }
+  const handleCreateTag = useCallback(async (name: string) => {
     try {
       await createTag(name);
-      setNewTagName(''); setShowCreateInput(false);
+      setShowCreateInput(false);
       await loadTags();
     } catch (error) {
       console.error('Failed to create tag:', error);
       Alert.alert('오류', '태그 생성에 실패했습니다');
     }
-  }, [newTagName, loadTags]);
+  }, [loadTags]);
 
   const handleDeleteTag = useCallback((tag: TagWithCount) => {
     Alert.alert('태그 삭제', `"${tag.name}" 태그를 삭제하시겠습니까?\n이 태그가 연결된 ${tag.count}개의 기록에서 태그가 제거됩니다.`, [
@@ -182,7 +212,6 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
             <TouchableOpacity
               key={tag.id}
               onPress={() => handleToggleTag(tag.id)}
-              onLongPress={() => handleDeleteTag(tag)}
               activeOpacity={0.7}
               style={[styles.tagItem, SHADOW.sm, isSelected && { borderColor: tagColor, borderWidth: 1.5 }]}
             >
@@ -193,28 +222,25 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
               <View style={styles.tagItemRight}>
                 <Text style={styles.tagCount}>{tag.count}</Text>
                 <Text style={styles.tagCountLabel}>건</Text>
+                <TouchableOpacity
+                  onPress={() => handleDeleteTag(tag)}
+                  style={styles.tagDeleteBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.tagDeleteBtnText}>×</Text>
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
         })}
 
         {showCreateInput ? (
-          <View style={[styles.tagItem, styles.createInputContainer]}>
-            <TextInput
-              style={styles.createInput}
-              value={newTagName}
-              onChangeText={setNewTagName}
-              placeholder="#새 태그"
-              placeholderTextColor={colors.textTertiary}
-              autoFocus
-              onSubmitEditing={handleCreateTag}
-              onBlur={() => { if (!newTagName.trim()) setShowCreateInput(false); }}
-              returnKeyType="done"
-            />
-            <TouchableOpacity onPress={handleCreateTag} style={styles.createConfirmButton}>
-              <Text style={styles.createConfirmText}>추가</Text>
-            </TouchableOpacity>
-          </View>
+          <TagCreateInput
+            onSubmit={handleCreateTag}
+            onCancel={() => setShowCreateInput(false)}
+            colors={colors}
+            styles={styles}
+          />
         ) : (
           <TouchableOpacity onPress={() => setShowCreateInput(true)} style={[styles.tagItem, styles.addTagButton]} activeOpacity={0.7}>
             <Text style={styles.addTagIcon}>+</Text>
@@ -237,7 +263,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
       {isLoadingRecords && <View style={styles.recordsLoading}><ActivityIndicator size="small" color={colors.primary} /></View>}
     </>
-  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, newTagName, isLoadingRecords, handleToggleTag, handleDeleteTag, handleCreateTag, handleClearSelection, styles, colors]);
+  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, handleToggleTag, handleDeleteTag, handleCreateTag, handleClearSelection, styles, colors]);
 
   if (isLoading) {
     return (

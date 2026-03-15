@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
+  PanResponder,
   Platform,
   Modal,
 } from 'react-native';
@@ -170,11 +171,21 @@ export default function CalendarScreen() {
 
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
+  const [kbHeight, setKbHeight] = useState(0);
+  const sheetScrollRef = useRef<ScrollView>(null);
 
   const currentMonthRef = useRef(currentMonth);
   const selectedDateRef = useRef(selectedDate);
   useEffect(() => { currentMonthRef.current = currentMonth; }, [currentMonth]);
   useEffect(() => { selectedDateRef.current = selectedDate; }, [selectedDate]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const openSheet = useCallback(() => {
     setIsSheetOpen(true);
@@ -257,11 +268,18 @@ export default function CalendarScreen() {
   const handleDayPress = useCallback(async (day: { dateString: string }) => {
     const date = day.dateString;
     setSelectedDate(date);
-    setAiResult(null);
     setIsAIStale(false);
+    // 캐시가 있으면 즉시 복원 (로딩 깜빡임 방지)
+    if (aiCache.current[date]) {
+      setAiResult(aiCache.current[date]);
+    } else {
+      setAiResult(null);
+    }
     const records = await loadDayRecords(date);
     openSheet();
-    loadAIAnalysis(date, records ?? []);
+    if (!aiCache.current[date]) {
+      loadAIAnalysis(date, records ?? []);
+    }
   }, [loadDayRecords, openSheet, loadAIAnalysis]);
 
   const handleMonthChange = useCallback((month: { year: number; month: number }) => {
@@ -269,6 +287,31 @@ export default function CalendarScreen() {
     setCurrentMonth(yearMonth);
     loadMonthData(yearMonth);
   }, [loadMonthData]);
+
+  // 날짜 이동 (스와이프용) — ref로 최신 상태 참조
+  const navigateDayRef = useRef<(delta: number) => void>(() => {});
+  useEffect(() => {
+    navigateDayRef.current = (delta: number) => {
+      const d = new Date(selectedDateRef.current + 'T00:00:00');
+      d.setDate(d.getDate() + delta);
+      const newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      handleDayPress({ dateString: newDate });
+      if (newMonth !== currentMonthRef.current) {
+        setCurrentMonth(newMonth);
+        loadMonthData(newMonth);
+      }
+    };
+  }, [handleDayPress, loadMonthData]);
+
+  const swipePan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) =>
+      Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+    onPanResponderRelease: (_, g) => {
+      if (g.dx < -60) navigateDayRef.current(1);   // 왼쪽 → 다음날
+      else if (g.dx > 60) navigateDayRef.current(-1); // 오른쪽 → 전날
+    },
+  })).current;
 
   const handleRecordPress = useCallback((recordId: string) => {
     navigation.navigate('RecordDetail', { recordId });
@@ -286,7 +329,7 @@ export default function CalendarScreen() {
     try {
       const hadAiResult = aiResult !== null;
       const hadRecords = dayRecords.length > 0;
-      await processTextRecord(trimmed, activeChild?.id);
+      await processTextRecord(trimmed, activeChild?.id, selectedDate);
       setTextInput('');
       Alert.alert('저장 완료', '기록이 저장되었습니다.');
       delete aiCache.current[selectedDate];
@@ -302,7 +345,7 @@ export default function CalendarScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth, aiResult, dayRecords, loadAIAnalysis]);
+  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth, aiResult, dayRecords.length, loadAIAnalysis]);
 
   const summaryMap = useMemo(() => {
     const map: Record<string, DailyRecordSummary> = {};
@@ -405,107 +448,116 @@ export default function CalendarScreen() {
       )}
 
       {isSheetOpen && (
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetAnim }] }]}>
+        <Animated.View
+          style={[styles.sheet, { transform: [{ translateY: sheetAnim }], bottom: kbHeight }]}
+          {...swipePan.panHandlers}
+        >
           <View style={styles.sheetHandle} />
 
           <Text style={styles.sheetDate}>{formattedDate}</Text>
 
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {dayRecords.length > 0 && (
-                <View style={styles.aiCards}>
-                  {isLoadingAI ? (
-                    <View style={styles.aiLoading}>
-                      <WaveLoader size={0.7} color={colors.primary} />
-                      <Text style={styles.aiLoadingText}>바다가 분석 중...</Text>
-                    </View>
-                  ) : aiResult ? (
-                    <>
-                      {isAIStale && (
-                        <TouchableOpacity onPress={handleRefreshAI} style={styles.staleBar}>
-                          <Text style={styles.staleBarText}>최신 기록이 반영되지 않았어요 · 새로고침</Text>
-                        </TouchableOpacity>
-                      )}
-                      <View style={styles.aiCardRow}>
-                        <View style={[styles.aiCard, styles.aiCardRational]}>
-                          <Text style={styles.aiCardLabel}>T의 하루 요약</Text>
-                          <Text style={styles.aiCardText}>{aiResult.rational}</Text>
-                        </View>
-                        <View style={[styles.aiCard, styles.aiCardEmotional]}>
-                          <Text style={styles.aiCardLabel}>F의 하루 공감</Text>
-                          <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
-                        </View>
+          <ScrollView
+            ref={sheetScrollRef}
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {dayRecords.length > 0 && (
+              <View style={styles.aiCards}>
+                {isLoadingAI ? (
+                  <View style={styles.aiLoading}>
+                    <WaveLoader size={0.7} color={colors.primary} />
+                    <Text style={styles.aiLoadingText}>바다가 분석 중...</Text>
+                  </View>
+                ) : aiResult ? (
+                  <>
+                    {isAIStale && (
+                      <TouchableOpacity onPress={handleRefreshAI} style={styles.staleBar}>
+                        <Text style={styles.staleBarText}>최신 기록이 반영되지 않았어요 · 새로고침</Text>
+                      </TouchableOpacity>
+                    )}
+                    <View style={styles.aiCardRow}>
+                      <View style={[styles.aiCard, styles.aiCardRational]}>
+                        <Text style={styles.aiCardLabel}>T의 하루 요약</Text>
+                        <Text style={styles.aiCardText}>{aiResult.rational}</Text>
                       </View>
-                    </>
-                  ) : null}
-                </View>
-              )}
+                      <View style={[styles.aiCard, styles.aiCardEmotional]}>
+                        <Text style={styles.aiCardLabel}>F의 하루 공감</Text>
+                        <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
+                      </View>
+                    </View>
+                  </>
+                ) : null}
+              </View>
+            )}
 
-              {isLoadingRecords ? (
-                <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
-              ) : dayRecords.length === 0 ? (
-                <View style={styles.emptyDay}>
-                  <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
-                  <TouchableOpacity onPress={handleStartRecording} style={styles.recordButton}>
-                    <Text style={styles.recordButtonText}>녹음 시작하기</Text>
-                  </TouchableOpacity>
-                  <View style={styles.inputDivider}>
-                    <View style={styles.inputDividerLine} />
-                    <Text style={styles.inputDividerText}>또는</Text>
-                    <View style={styles.inputDividerLine} />
-                  </View>
-                  <View style={styles.textInputContainer}>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="텍스트로 기록하기..."
-                      placeholderTextColor={colors.textTertiary}
-                      value={textInput}
-                      onChangeText={setTextInput}
-                      multiline
-                    />
-                    <TouchableOpacity
-                      onPress={handleSaveText}
-                      style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
-                      disabled={!textInput.trim() || isSaving}
-                    >
-                      <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
-                    </TouchableOpacity>
-                  </View>
+            {isLoadingRecords ? (
+              <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
+            ) : dayRecords.length === 0 ? (
+              <View style={styles.emptyDay}>
+                <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
+                <TouchableOpacity onPress={handleStartRecording} style={styles.recordButton}>
+                  <Text style={styles.recordButtonText}>녹음 시작하기</Text>
+                </TouchableOpacity>
+                <View style={styles.inputDivider}>
+                  <View style={styles.inputDividerLine} />
+                  <Text style={styles.inputDividerText}>또는</Text>
+                  <View style={styles.inputDividerLine} />
                 </View>
-              ) : (
-                <>
-                  {dayRecords.map((item) => (
-                    <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} />
-                  ))}
-                  <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
-                    <Text style={styles.recordButtonText}>녹음 추가하기</Text>
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="텍스트로 기록하기..."
+                    placeholderTextColor={colors.textTertiary}
+                    value={textInput}
+                    onChangeText={setTextInput}
+                    multiline
+                    onFocus={() => setTimeout(() => sheetScrollRef.current?.scrollToEnd({ animated: true }), 150)}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveText}
+                    style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
+                    disabled={!textInput.trim() || isSaving}
+                  >
+                    <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
                   </TouchableOpacity>
-                  <View style={styles.inputDivider}>
-                    <View style={styles.inputDividerLine} />
-                    <Text style={styles.inputDividerText}>또는</Text>
-                    <View style={styles.inputDividerLine} />
-                  </View>
-                  <View style={styles.textInputContainer}>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="텍스트로 추가 기록하기..."
-                      placeholderTextColor={colors.textTertiary}
-                      value={textInput}
-                      onChangeText={setTextInput}
-                      multiline
-                    />
-                    <TouchableOpacity
-                      onPress={handleSaveText}
-                      style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
-                      disabled={!textInput.trim() || isSaving}
-                    >
-                      <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-            </ScrollView>
-          </KeyboardAvoidingView>
+                </View>
+              </View>
+            ) : (
+              <>
+                {dayRecords.map((item) => (
+                  <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} />
+                ))}
+                <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
+                  <Text style={styles.recordButtonText}>녹음 추가하기</Text>
+                </TouchableOpacity>
+                <View style={styles.inputDivider}>
+                  <View style={styles.inputDividerLine} />
+                  <Text style={styles.inputDividerText}>또는</Text>
+                  <View style={styles.inputDividerLine} />
+                </View>
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="텍스트로 추가 기록하기..."
+                    placeholderTextColor={colors.textTertiary}
+                    value={textInput}
+                    onChangeText={setTextInput}
+                    multiline
+                    onFocus={() => setTimeout(() => sheetScrollRef.current?.scrollToEnd({ animated: true }), 150)}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveText}
+                    style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
+                    disabled={!textInput.trim() || isSaving}
+                  >
+                    <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </ScrollView>
 
           <TouchableOpacity onPress={closeSheet} style={styles.sheetClose}>
             <Text style={styles.sheetCloseText}>✕</Text>

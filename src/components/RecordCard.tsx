@@ -17,6 +17,15 @@ interface RecordCardProps {
   onPress: () => void;
 }
 
+function getAgeOpacity(timestamp: number): number {
+  const ageDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
+  if (ageDays < 1) return 1;
+  if (ageDays < 4) return 0.85;
+  if (ageDays < 8) return 0.7;
+  if (ageDays < 15) return 0.6;
+  return 0.5;
+}
+
 function formatDateTime(timestamp: number): string {
   const date = new Date(timestamp);
   const now = new Date();
@@ -116,7 +125,7 @@ function RecordCard({ record, onPress }: RecordCardProps) {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={[styles.card, SHADOW.sm]}
+      style={[styles.card, SHADOW.sm, { opacity: getAgeOpacity(record.createdAt) }]}
     >
       <View style={styles.header}>
         <Text style={styles.dateText}>{formatDateTime(record.createdAt)}</Text>
