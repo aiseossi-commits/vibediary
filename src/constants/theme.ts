@@ -65,7 +65,7 @@ export const LIGHT_COLORS = {
   recordingRedLight: '#FEF2F2',
   micBg: '#EFF6FF',
   micBorder: '#BFDBFE',
-  micIcon: '#2563EB',
+  micIcon: '#BFDBFE',
   micLabel: '#4B5563',
   tabBg: '#FFFFFF',
   tabBorder: '#E5E7EB',
