@@ -18,13 +18,19 @@ interface RecordCardProps {
 }
 
 // 회색 오버레이 불투명도: dark/light 양쪽에서 명확히 보이는 "바랜" 효과
+// 캘린더 날짜 기준(자정 경계)으로 오늘/어제 명확히 구분
 function getAgeOverlayOpacity(timestamp: number): number {
-  const ageDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
-  if (ageDays < 1) return 0;
-  if (ageDays < 4) return 0.12;
-  if (ageDays < 8) return 0.25;
-  if (ageDays < 15) return 0.38;
-  return 0.5;
+  const now = new Date();
+  const then = new Date(timestamp);
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const thenMidnight = new Date(then.getFullYear(), then.getMonth(), then.getDate()).getTime();
+  const ageDays = Math.round((nowMidnight - thenMidnight) / (1000 * 60 * 60 * 24));
+  if (ageDays === 0) return 0;       // 오늘
+  if (ageDays === 1) return 0.18;    // 어제 (명확히 구분)
+  if (ageDays <= 3) return 0.28;     // 2-3일
+  if (ageDays <= 7) return 0.38;     // 4-7일
+  if (ageDays <= 14) return 0.48;    // 8-14일
+  return 0.58;                       // 15일+
 }
 
 function formatDateTime(timestamp: number): string {
