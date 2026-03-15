@@ -175,7 +175,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     useCallback(() => {
       setIsLoading(true);
       loadRecords(true);
-      processOfflineQueue().then((count) => { if (count > 0) loadRecords(true); }).catch(() => {});
+      processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
       return () => setShowEmptyState(false);
     }, [loadRecords])
   );
