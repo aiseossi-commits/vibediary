@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,9 +31,10 @@ interface TagsScreenProps {
 }
 
 // 한국어 IME 깨짐 방지: 자체 로컬 상태로 관리하는 독립 컴포넌트
-function TagCreateInput({ onSubmit, onCancel, colors, styles }: {
+function TagCreateInput({ onSubmit, onCancel, onFocus, colors, styles }: {
   onSubmit: (name: string) => void;
   onCancel: () => void;
+  onFocus?: () => void;
   colors: AppColors;
   styles: ReturnType<typeof createStyles>;
 }) {
@@ -45,6 +48,7 @@ function TagCreateInput({ onSubmit, onCancel, colors, styles }: {
         placeholder="#새 태그"
         placeholderTextColor={colors.textTertiary}
         autoFocus
+        onFocus={onFocus}
         onSubmitEditing={() => { const v = value.trim(); if (v) onSubmit(v); else onCancel(); }}
         onBlur={() => { if (!value.trim()) onCancel(); }}
         returnKeyType="done"
@@ -128,6 +132,10 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
+  const flatListRef = useRef<FlatList<RecordWithTags>>(null);
+  const scrollToInput = useCallback(() => {
+    setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 150);
+  }, []);
 
   const loadTags = useCallback(async () => {
     if (!isDatabaseReady()) { setTags([]); setIsLoading(false); return; }
@@ -238,6 +246,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
           <TagCreateInput
             onSubmit={handleCreateTag}
             onCancel={() => setShowCreateInput(false)}
+            onFocus={scrollToInput}
             colors={colors}
             styles={styles}
           />
@@ -263,7 +272,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
       {isLoadingRecords && <View style={styles.recordsLoading}><ActivityIndicator size="small" color={colors.primary} /></View>}
     </>
-  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, handleToggleTag, handleDeleteTag, handleCreateTag, handleClearSelection, styles, colors]);
+  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, handleToggleTag, handleDeleteTag, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
 
   if (isLoading) {
     return (
@@ -281,19 +290,22 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
         <Text style={styles.subtitle}>{tags.length}개</Text>
       </View>
 
-      <FlatList
-        data={selectedTagIds.length > 0 ? filteredRecords : []}
-        renderItem={renderRecordItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderListHeader}
-        ListEmptyComponent={
-          selectedTagIds.length > 0 && !isLoadingRecords ? (
-            <View style={styles.emptyRecords}><Text style={styles.emptyRecordsText}>선택한 태그에 해당하는 기록이 없습니다</Text></View>
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <FlatList
+          ref={flatListRef}
+          data={selectedTagIds.length > 0 ? filteredRecords : []}
+          renderItem={renderRecordItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={
+            selectedTagIds.length > 0 && !isLoadingRecords ? (
+              <View style={styles.emptyRecords}><Text style={styles.emptyRecordsText}>선택한 태그에 해당하는 기록이 없습니다</Text></View>
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
