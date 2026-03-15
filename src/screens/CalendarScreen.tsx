@@ -21,6 +21,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
 import WaveLoader from '../components/WaveLoader';
 import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady } from '../db';
+import { getDailyAICache, setDailyAICache, deleteDailyAICache } from '../db/aiCacheDao';
 import { processTextRecord } from '../services/recordPipeline';
 import { analyzeDailySummary } from '../services/aiProcessor';
 import { useTheme } from '../context/ThemeContext';
@@ -240,6 +241,15 @@ export default function CalendarScreen() {
   const loadAIAnalysis = useCallback(async (date: string, records: RecordWithTags[]) => {
     if (records.length === 0) return;
     if (aiCache.current[date]) { setAiResult(aiCache.current[date]); return; }
+    // DB 캐시 확인 (앱 재시작 후에도 유지)
+    try {
+      const cached = await getDailyAICache(date, activeChild?.id);
+      if (cached) {
+        aiCache.current[date] = cached;
+        setAiResult(cached);
+        return;
+      }
+    } catch { /* DB 캐시 실패 시 AI 호출로 fallback */ }
     setIsLoadingAI(true);
     try {
       // 시간순(오전→오후)으로 정렬하여 AI에 전달
@@ -252,19 +262,22 @@ export default function CalendarScreen() {
       const result = await analyzeDailySummary(summaries, tags, date);
       aiCache.current[date] = result;
       setAiResult(result);
+      // DB에 영속화
+      setDailyAICache(date, activeChild?.id, result.rational, result.emotional).catch(() => {});
     } catch {
       setAiResult(null);
     } finally {
       setIsLoadingAI(false);
     }
-  }, []);
+  }, [activeChild?.id]);
 
   const handleRefreshAI = useCallback(async () => {
     delete aiCache.current[selectedDate];
+    deleteDailyAICache(selectedDate, activeChild?.id).catch(() => {});
     setIsAIStale(false);
     setAiResult(null);
     loadAIAnalysis(selectedDate, dayRecords);
-  }, [selectedDate, dayRecords, loadAIAnalysis]);
+  }, [selectedDate, dayRecords, loadAIAnalysis, activeChild?.id]);
 
   useFocusEffect(useCallback(() => { loadMonthData(currentMonthRef.current); }, [loadMonthData]));
 

@@ -6,6 +6,7 @@ import {
   CREATE_TAGS_TABLE,
   CREATE_RECORD_TAGS_TABLE,
   CREATE_OFFLINE_QUEUE_TABLE,
+  CREATE_DAILY_AI_CACHE_TABLE,
   CREATE_INDEXES,
   DEFAULT_TAGS,
 } from './schema';
@@ -49,6 +50,7 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_TAGS_TABLE);
     await database.execAsync(CREATE_RECORD_TAGS_TABLE);
     await database.execAsync(CREATE_OFFLINE_QUEUE_TABLE);
+    await database.execAsync(CREATE_DAILY_AI_CACHE_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
@@ -79,6 +81,12 @@ export async function initializeDatabase(): Promise<void> {
         // 이미 컬럼이 있으면 무시
       }
       await database.execAsync('PRAGMA user_version = 1');
+    }
+
+    if (currentVersion < 2) {
+      // v1 → v2: daily_ai_cache 테이블 추가
+      await database.execAsync(CREATE_DAILY_AI_CACHE_TABLE);
+      await database.execAsync('PRAGMA user_version = 2');
     }
 
     dbInitialized = true;

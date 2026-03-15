@@ -49,6 +49,17 @@ export const CREATE_OFFLINE_QUEUE_TABLE = `
   );
 `;
 
+export const CREATE_DAILY_AI_CACHE_TABLE = `
+  CREATE TABLE IF NOT EXISTS daily_ai_cache (
+    date TEXT NOT NULL,
+    child_id TEXT NOT NULL DEFAULT '',
+    rational TEXT NOT NULL,
+    emotional TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (date, child_id)
+  );
+`;
+
 // 인덱스
 export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_records_created ON records(created_at);`,
