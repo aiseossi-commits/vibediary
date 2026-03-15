@@ -121,6 +121,12 @@ async function generateAnswer(query: string, records: RecordWithTags[]): Promise
               parts: [{ text: `<user_query>\n${query}\n</user_query>\n\n<context>\n${context}\n</context>` }],
             },
           ],
+          safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+          ],
           generationConfig: {
             maxOutputTokens: 300,
             temperature: 0.3,

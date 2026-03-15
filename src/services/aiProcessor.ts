@@ -59,6 +59,12 @@ async function callGeminiAPI(text: string): Promise<AIProcessingResult> {
             parts: [{ text: userMessage }],
           },
         ],
+        safetySettings: [
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        ],
         generationConfig: {
           maxOutputTokens: 256,
           temperature: 0.3,
@@ -147,6 +153,12 @@ export async function analyzeDailySummary(
         role: 'user',
         parts: [{ text: `분석 날짜: ${dateLabel}\n돌봄 기록 (태그: ${tagStr}):\n${context}\n\nJSON으로 응답:\n{"rational": "이 날 하루를 한 문장으로 핵심만 요약. 사실 나열 금지, 전체적인 흐름이나 특이사항을 자연스러운 문장으로.", "emotional": "따뜻한 위로와 응원 메시지 (1-2문장)"}` }],
       }],
+      safetySettings: [
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+      ],
       generationConfig: { maxOutputTokens: 300, temperature: 0.4, responseMimeType: 'application/json' },
     }),
   });
