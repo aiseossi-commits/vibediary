@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: 홈/캘린더/태그 화면 UX 개선 6종` (2026-03-15)
+**마지막 커밋**: `refactor: mood 필드 완전 제거` (2026-03-15)
 
 **현재 브랜치**: main
 
@@ -51,6 +51,7 @@
 - [x] GitHub Actions deploy-deno.yml 삭제: Deno Deploy from GitHub 자동배포로 대체
 - [x] deno-main.ts v5 주석으로 Deno Deploy 재배포 트리거
 - [x] 알림 기능 완전 제거: alarmService.ts 삭제, SettingsScreen.tsx 알람 관련 코드 전체 삭제, app.json expo-notifications 플러그인/권한 제거, package.json 의존성 제거
+- [x] mood 필드 완전 제거: types, aiProcessor 프롬프트, recordPipeline, recordsDao, queries, offlineQueue, backupService, RecordCard, RecordDetailScreen (DB 컬럼은 NULL로 유지)
 - [x] UX 개선 6종: RecordCard 날짜별 opacity, 캘린더 키보드 시트 이동, 텍스트 입력 selectedDate 적용, 태그 한국어 IME 수정+삭제버튼, AI 캐시 즉시 복원, 캘린더 스와이프 날짜 이동
 
 ---

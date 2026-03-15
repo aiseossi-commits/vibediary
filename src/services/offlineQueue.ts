@@ -54,7 +54,6 @@ export async function processOfflineQueue(): Promise<number> {
         await updateRecord(item.record_id, {
           summary: result.summary,
           structuredData: result.structuredData,
-          mood: result.mood,
           aiPending: false,
         });
 

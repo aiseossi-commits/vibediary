@@ -7,7 +7,6 @@ export interface DiaryRecord {
   rawText: string | null;
   summary: string;
   structuredData: StructuredData | null;
-  mood: string | null;
   embedding: number[] | null; // Float32Array as number[]
   isSynced: boolean;
   aiPending: boolean; // AI 처리 대기 상태
@@ -36,7 +35,6 @@ export interface AIProcessingResult {
   summary: string;
   tags: string[];
   structuredData: StructuredData;
-  mood: string;
 }
 
 // STT 결과 타입

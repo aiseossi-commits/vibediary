@@ -204,7 +204,6 @@ function mapRow(row: any, tags: Tag[]): RecordWithTags {
       try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
       catch { return null; }
     })(),
-    mood: row.mood,
     embedding: null, // 목록 조회 시 임베딩은 로드하지 않음 (성능)
     isSynced: row.is_synced === 1,
     aiPending: row.ai_pending === 1,

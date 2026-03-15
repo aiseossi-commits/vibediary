@@ -20,7 +20,6 @@ export interface BackupData {
     raw_text: string | null;
     summary: string;
     structured_data: string | null;
-    mood: string | null;
     is_synced: number;
     child_id: string | null;
   }[];
@@ -99,10 +98,10 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
 
   for (const r of data.records) {
     await db.runAsync(
-      `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, is_synced, ai_pending, child_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
+      `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
       r.id, r.created_at, r.audio_path, r.raw_text, r.summary,
-      r.structured_data, r.mood, r.is_synced, r.child_id
+      r.structured_data, r.is_synced, r.child_id
     );
   }
 
@@ -174,10 +173,10 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   for (const r of data.records) {
     const mappedChildId = r.child_id ? (childIdMap.get(r.child_id) ?? r.child_id) : null;
     await db.runAsync(
-      `INSERT OR IGNORE INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, is_synced, ai_pending, child_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
+      `INSERT OR IGNORE INTO records (id, created_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
       r.id, r.created_at, r.audio_path, r.raw_text, r.summary,
-      r.structured_data, r.mood, r.is_synced, mappedChildId
+      r.structured_data, r.is_synced, mappedChildId
     );
   }
 

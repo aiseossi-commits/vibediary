@@ -19,7 +19,6 @@ export async function createRecord(params: {
   rawText?: string | null;
   summary: string;
   structuredData?: StructuredData | null;
-  mood?: string | null;
   embedding?: number[] | null;
   aiPending?: boolean;
   createdAt?: number;
@@ -30,15 +29,14 @@ export async function createRecord(params: {
   const now = params.createdAt ?? Date.now();
 
   await db.runAsync(
-    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, mood, embedding, ai_pending, child_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, embedding, ai_pending, child_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     now,
     params.audioPath ?? null,
     params.rawText ?? null,
     params.summary,
     params.structuredData ? JSON.stringify(params.structuredData) : null,
-    params.mood ?? null,
     params.embedding ? float32ToBlob(params.embedding) : null,
     params.aiPending ? 1 : 0,
     params.childId ?? null
@@ -92,20 +90,19 @@ export async function getAllRecordsForBackup(): Promise<{
   raw_text: string | null;
   summary: string;
   structured_data: string | null;
-  mood: string | null;
   is_synced: number;
   child_id: string | null;
 }[]> {
   const db = await getDatabase();
   return db.getAllAsync<any>(
-    'SELECT id, created_at, audio_path, raw_text, summary, structured_data, mood, is_synced, child_id FROM records ORDER BY created_at ASC'
+    'SELECT id, created_at, audio_path, raw_text, summary, structured_data, is_synced, child_id FROM records ORDER BY created_at ASC'
   );
 }
 
 // 기록 수정
 export async function updateRecord(
   id: string,
-  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'mood' | 'embedding' | 'aiPending'>>
+  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'embedding' | 'aiPending'>>
 ): Promise<void> {
   const db = await getDatabase();
   const sets: string[] = [];
@@ -122,10 +119,6 @@ export async function updateRecord(
   if (updates.structuredData !== undefined) {
     sets.push('structured_data = ?');
     values.push(updates.structuredData ? JSON.stringify(updates.structuredData) : null);
-  }
-  if (updates.mood !== undefined) {
-    sets.push('mood = ?');
-    values.push(updates.mood);
   }
   if (updates.embedding !== undefined) {
     sets.push('embedding = ?');
@@ -203,7 +196,6 @@ function mapRowToRecordWithTags(row: any, tags: Tag[]): RecordWithTags {
       try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
       catch { return null; }
     })(),
-    mood: row.mood,
     embedding: row.embedding ? blobToFloat32(row.embedding) : null,
     isSynced: row.is_synced === 1,
     aiPending: row.ai_pending === 1,

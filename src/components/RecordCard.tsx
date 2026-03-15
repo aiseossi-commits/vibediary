@@ -104,11 +104,6 @@ function createStyles(colors: AppColors) {
       lineHeight: 24,
       marginBottom: 10,
     },
-    mood: {
-      fontSize: 12,
-      color: colors.textTertiary,
-      marginBottom: 8,
-    },
     tagsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -140,10 +135,6 @@ function RecordCard({ record, onPress }: RecordCardProps) {
       <Text style={styles.summary} numberOfLines={3}>
         {record.summary}
       </Text>
-
-      {record.mood && (
-        <Text style={styles.mood}>{record.mood}</Text>
-      )}
 
       {record.tags.length > 0 && (
         <View style={styles.tagsRow}>

@@ -84,7 +84,6 @@ function createStyles(colors: AppColors) {
       fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: FONT_SIZE.md * 1.6,
       borderWidth: 1, borderColor: colors.primary, borderRadius: BORDER_RADIUS.sm, padding: SPACING.sm, minHeight: 80,
     },
-    moodText: { fontSize: FONT_SIZE.lg, color: colors.textPrimary },
     table: { borderRadius: BORDER_RADIUS.sm, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
     tableRow: { flexDirection: 'row', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2 },
     tableRowEven: { backgroundColor: colors.surfaceSecondary },
@@ -148,7 +147,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
     try {
       let aiResult;
       try { aiResult = await processWithAI(trimmed); } catch { aiResult = createFallbackResult(trimmed); }
-      await updateRecord(record.id, { rawText: trimmed, summary: aiResult.summary, structuredData: aiResult.structuredData, mood: aiResult.mood, aiPending: false });
+      await updateRecord(record.id, { rawText: trimmed, summary: aiResult.summary, structuredData: aiResult.structuredData, aiPending: false });
       await setTagsForRecord(record.id, aiResult.tags);
       await loadRecord();
     } catch (error) {
@@ -262,13 +261,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           <Text style={styles.sectionTitle}>요약</Text>
           <Text style={styles.summaryText}>{record.summary}</Text>
         </View>
-
-        {record.mood && (
-          <View style={[styles.section, SHADOW.sm]}>
-            <Text style={styles.sectionTitle}>기분</Text>
-            <Text style={styles.moodText}>{record.mood}</Text>
-          </View>
-        )}
 
         {record.structuredData && Object.keys(record.structuredData).length > 0 && (
           <View style={[styles.section, SHADOW.sm]}>
