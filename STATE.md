@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: HomeScreen AI 처리 중 무한 로딩 (count>0 조건 제거)` (2026-03-15)
+**마지막 커밋**: `fix: CalendarScreen AI 처리 완료 후 dayRecords 갱신 누락` (2026-03-15)
 
 **현재 브랜치**: main
 

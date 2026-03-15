@@ -179,7 +179,9 @@ export default function CalendarScreen() {
 
   const currentMonthRef = useRef(currentMonth);
   const selectedDateRef = useRef(selectedDate);
+  const isSheetOpenRef = useRef(isSheetOpen);
   useEffect(() => { currentMonthRef.current = currentMonth; }, [currentMonth]);
+  useEffect(() => { isSheetOpenRef.current = isSheetOpen; }, [isSheetOpen]);
   useEffect(() => { selectedDateRef.current = selectedDate; }, [selectedDate]);
 
   useEffect(() => {
@@ -289,8 +291,10 @@ export default function CalendarScreen() {
     if (isSheetOpen) {
       loadDayRecords(selectedDateRef.current);
     }
-    // AI 처리 중인 기록 있으면 큐 처리 시도
-    processOfflineQueue().catch(() => {});
+    // AI 처리 중인 기록 큐 처리 후 시트 기록 갱신
+    processOfflineQueue()
+      .then(() => { if (isSheetOpenRef.current) loadDayRecords(selectedDateRef.current); })
+      .catch(() => {});
   }, [loadMonthData, loadDayRecords, isSheetOpen]));
 
   useEffect(() => { loadMonthData(currentMonthRef.current); }, [activeChild?.id, loadMonthData]);
