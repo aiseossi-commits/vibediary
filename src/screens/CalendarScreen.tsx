@@ -532,7 +532,7 @@ export default function CalendarScreen() {
             ) : (
               <>
                 {dayRecords.map((item) => (
-                  <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} />
+                  <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} showAgeOverlay={false} />
                 ))}
                 <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
                   <Text style={styles.recordButtonText}>녹음 추가하기</Text>

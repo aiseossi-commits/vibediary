@@ -15,6 +15,7 @@ import TagChip from './TagChip';
 interface RecordCardProps {
   record: RecordWithTags;
   onPress: () => void;
+  showAgeOverlay?: boolean;
 }
 
 // 회색 오버레이 불투명도: dark/light 양쪽에서 명확히 보이는 "바랜" 효과
@@ -119,10 +120,10 @@ function createStyles(colors: AppColors) {
   });
 }
 
-function RecordCard({ record, onPress }: RecordCardProps) {
+function RecordCard({ record, onPress, showAgeOverlay = true }: RecordCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const overlayOpacity = getAgeOverlayOpacity(record.createdAt);
+  const overlayOpacity = showAgeOverlay ? getAgeOverlayOpacity(record.createdAt) : 0;
 
   return (
     <TouchableOpacity
