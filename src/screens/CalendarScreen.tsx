@@ -368,6 +368,9 @@ export default function CalendarScreen() {
       Alert.alert('저장 완료', '기록이 저장되었습니다.');
       delete aiCache.current[selectedDate];
       const updatedRecords = await loadDayRecords(selectedDate);
+      processOfflineQueue()
+        .then(() => loadDayRecords(selectedDate))
+        .catch(() => {});
       await loadMonthData(currentMonth);
       if (hadAiResult) {
         setIsAIStale(true);

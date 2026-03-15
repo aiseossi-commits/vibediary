@@ -41,38 +41,47 @@ async function callGeminiAPI(text: string): Promise<AIProcessingResult> {
 
   const userMessage = USER_PROMPT_TEMPLATE.replace('{subjectLine}', '').replace('{text}', text);
 
-  const response = await fetch(
-    `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-App-Secret': workerSecret,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SYSTEM_PROMPT }],
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Secret': workerSecret,
         },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: userMessage }],
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: SYSTEM_PROMPT }],
           },
-        ],
-        safetySettings: [
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ],
-        generationConfig: {
-          maxOutputTokens: 256,
-          temperature: 0.3,
-          responseMimeType: 'application/json',
-        },
-      }),
-    }
-  );
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: userMessage }],
+            },
+          ],
+          safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+          ],
+          generationConfig: {
+            maxOutputTokens: 256,
+            temperature: 0.3,
+            responseMimeType: 'application/json',
+          },
+        }),
+        signal: controller.signal,
+      }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

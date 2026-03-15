@@ -182,7 +182,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   useEffect(() => { loadRecords(true); }, [activeChild?.id]);
 
-  const handleRefresh = useCallback(() => { setIsRefreshing(true); loadRecords(true); }, [loadRecords]);
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    loadRecords(true);
+    processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
+  }, [loadRecords]);
   const handleLoadMore = useCallback(() => { if (!isLoading && hasMore) loadRecords(false); }, [isLoading, hasMore, loadRecords]);
   const handleRecordPress = useCallback((record: RecordWithTags) => { navigation.navigate('RecordDetail', { recordId: record.id }); }, [navigation]);
   const handlePearlPress = useCallback(() => { navigation.navigate('Recording'); }, [navigation]);
@@ -192,7 +196,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     if (!text || isSaving) return;
     setIsSaving(true);
     setTextInput('');
-    try { await processTextRecord(text, activeChild?.id); loadRecords(true); }
+    try {
+      await processTextRecord(text, activeChild?.id);
+      loadRecords(true);
+      processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
+    }
     catch (e) { Alert.alert('저장 실패', '기록 저장 중 오류가 발생했습니다.'); console.error('텍스트 저장 오류:', e); }
     finally { setIsSaving(false); }
   }, [textInput, isSaving, loadRecords, activeChild?.id]);
