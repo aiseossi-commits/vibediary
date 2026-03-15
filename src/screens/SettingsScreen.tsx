@@ -11,37 +11,10 @@ import {
   isDatabaseReady, createChild, updateChild, deleteChild,
   getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
 } from '../db';
-import {
-  loadAlarms, toggleAlarm, updateAlarm, addAlarm, deleteAlarm,
-  requestNotificationPermission, type AlarmSetting,
-} from '../services/alarmService';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, type AppColors } from '../constants/theme';
-
-function AlarmToggle({ enabled, onToggle, colors, styles }: {
-  enabled: boolean;
-  onToggle: (v: boolean) => void;
-  colors: AppColors;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  const anim = useRef(new Animated.Value(enabled ? 1 : 0)).current;
-  useEffect(() => {
-    Animated.spring(anim, { toValue: enabled ? 1 : 0, useNativeDriver: true, bounciness: 4 }).start();
-  }, [enabled, anim]);
-  return (
-    <TouchableOpacity onPress={() => onToggle(!enabled)} activeOpacity={0.8}>
-      <Animated.View style={[styles.toggleTrack, {
-        backgroundColor: anim.interpolate({ inputRange: [0, 1], outputRange: ['#CBD5E1', colors.primary] }),
-      }]}>
-        <Animated.View style={[styles.toggleThumb, {
-          transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }) }],
-        }]} />
-      </Animated.View>
-    </TouchableOpacity>
-  );
-}
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -74,23 +47,6 @@ function createStyles(colors: AppColors) {
     modalConfirm: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     modalCancelText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     modalConfirmText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
-    // 알람
-    alarmRow: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingVertical: SPACING.md,
-      borderBottomWidth: 1, borderBottomColor: colors.divider,
-    },
-    alarmInfo: { flex: 1 },
-    alarmLabel: { fontSize: FONT_SIZE.md, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium },
-    alarmTime: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginTop: 2 },
-    alarmMessage: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginTop: 2 },
-    alarmActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-    alarmEditBtn: { paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs },
-    alarmEditText: { fontSize: FONT_SIZE.sm, color: colors.primary },
-    alarmDeleteBtn: { paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs },
-    alarmDeleteText: { fontSize: FONT_SIZE.sm, color: colors.error ?? '#EF4444' },
-    addAlarmButton: { marginTop: SPACING.sm, paddingVertical: SPACING.sm, alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.sm, borderStyle: 'dashed' },
-    addAlarmText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     // 백업/복원
     backupRow: { flexDirection: 'row', gap: SPACING.sm },
     backupButton: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
@@ -126,78 +82,6 @@ export default function SettingsScreen() {
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orphanedCount, setOrphanedCount] = useState(0);
-
-  // 알람 상태
-  const [alarms, setAlarms] = useState<AlarmSetting[]>([]);
-  const [alarmModalVisible, setAlarmModalVisible] = useState(false);
-  const [editingAlarm, setEditingAlarm] = useState<AlarmSetting | null>(null);
-  const [alarmLabelInput, setAlarmLabelInput] = useState('');
-  const [alarmMessageInput, setAlarmMessageInput] = useState('');
-  const [alarmHourInput, setAlarmHourInput] = useState('');
-  const [alarmMinuteInput, setAlarmMinuteInput] = useState('');
-
-  useEffect(() => { loadAlarms().then(setAlarms); }, []);
-
-  const handleToggleAlarm = useCallback(async (alarmId: string, enabled: boolean) => {
-    if (enabled) {
-      const granted = await requestNotificationPermission();
-      if (!granted) {
-        Alert.alert('알림 권한 필요', '설정 앱에서 알림 권한을 허용해주세요.');
-        return;
-      }
-    }
-    const updated = await toggleAlarm(alarmId, enabled);
-    setAlarms(updated);
-  }, []);
-
-  const openAlarmModal = useCallback((alarm?: AlarmSetting) => {
-    if (alarm) {
-      setEditingAlarm(alarm);
-      setAlarmLabelInput(alarm.label);
-      setAlarmMessageInput(alarm.message);
-      setAlarmHourInput(String(alarm.hour));
-      setAlarmMinuteInput(String(alarm.minute).padStart(2, '0'));
-    } else {
-      setEditingAlarm(null);
-      setAlarmLabelInput('');
-      setAlarmMessageInput('');
-      setAlarmHourInput('9');
-      setAlarmMinuteInput('00');
-    }
-    setAlarmModalVisible(true);
-  }, []);
-
-  const handleSaveAlarm = useCallback(async () => {
-    const hour = parseInt(alarmHourInput, 10);
-    const minute = parseInt(alarmMinuteInput, 10);
-    if (isNaN(hour) || hour < 0 || hour > 23 || isNaN(minute) || minute < 0 || minute > 59) {
-      Alert.alert('올바른 시간을 입력해주세요', '시: 0-23, 분: 0-59');
-      return;
-    }
-    const label = alarmLabelInput.trim() || '알람';
-    const message = alarmMessageInput.trim() || '기록할 시간이에요!';
-    let updated: AlarmSetting[];
-    if (editingAlarm) {
-      updated = await updateAlarm(editingAlarm.id, hour, minute, message, label);
-    } else {
-      updated = await addAlarm(hour, minute, message, label);
-    }
-    setAlarms(updated);
-    setAlarmModalVisible(false);
-  }, [editingAlarm, alarmLabelInput, alarmMessageInput, alarmHourInput, alarmMinuteInput]);
-
-  const handleDeleteAlarm = useCallback((alarm: AlarmSetting) => {
-    Alert.alert('알람 삭제', `"${alarm.label}" 알람을 삭제할까요?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제', style: 'destructive',
-        onPress: async () => {
-          const updated = await deleteAlarm(alarm.id);
-          setAlarms(updated);
-        },
-      },
-    ]);
-  }, []);
 
   // 백업/복원 상태
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -441,58 +325,6 @@ export default function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* 알람 편집 모달 */}
-      <Modal visible={alarmModalVisible} transparent animationType="fade" onRequestClose={() => setAlarmModalVisible(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{editingAlarm ? '알람 수정' : '알람 추가'}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={alarmLabelInput}
-              onChangeText={setAlarmLabelInput}
-              placeholder="알람 이름 (예: 점심 기록)"
-              placeholderTextColor={colors.textTertiary}
-            />
-            <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
-              <TextInput
-                style={[styles.modalInput, { flex: 1 }]}
-                value={alarmHourInput}
-                onChangeText={setAlarmHourInput}
-                placeholder="시 (0-23)"
-                placeholderTextColor={colors.textTertiary}
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-              <TextInput
-                style={[styles.modalInput, { flex: 1 }]}
-                value={alarmMinuteInput}
-                onChangeText={setAlarmMinuteInput}
-                placeholder="분 (0-59)"
-                placeholderTextColor={colors.textTertiary}
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-            </View>
-            <TextInput
-              style={[styles.modalInput, { minHeight: 60, textAlignVertical: 'top' }]}
-              value={alarmMessageInput}
-              onChangeText={setAlarmMessageInput}
-              placeholder="알림 문구"
-              placeholderTextColor={colors.textTertiary}
-              multiline
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setAlarmModalVisible(false)}>
-                <Text style={styles.modalCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirm} onPress={handleSaveAlarm}>
-                <Text style={styles.modalConfirmText}>저장</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>설정</Text>
@@ -512,38 +344,6 @@ export default function SettingsScreen() {
             ))}
             <TouchableOpacity style={styles.addChildButton} onPress={handleAddChild}>
               <Text style={styles.addChildText}>+ 바다 추가</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 알림 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>알림</Text>
-          <View style={styles.card}>
-            {alarms.map((alarm) => (
-              <View key={alarm.id} style={styles.alarmRow}>
-                <View style={styles.alarmInfo}>
-                  <Text style={styles.alarmLabel}>{alarm.label}</Text>
-                  <Text style={styles.alarmTime}>
-                    {String(alarm.hour).padStart(2, '0')}:{String(alarm.minute).padStart(2, '0')}
-                  </Text>
-                  <Text style={styles.alarmMessage}>{alarm.message}</Text>
-                </View>
-                <View style={styles.alarmActions}>
-                  <TouchableOpacity style={styles.alarmEditBtn} onPress={() => openAlarmModal(alarm)}>
-                    <Text style={styles.alarmEditText}>수정</Text>
-                  </TouchableOpacity>
-                  {alarm.id !== 'morning' && alarm.id !== 'night' && (
-                    <TouchableOpacity style={styles.alarmDeleteBtn} onPress={() => handleDeleteAlarm(alarm)}>
-                      <Text style={styles.alarmDeleteText}>삭제</Text>
-                    </TouchableOpacity>
-                  )}
-                  <AlarmToggle enabled={alarm.enabled} onToggle={(v) => handleToggleAlarm(alarm.id, v)} colors={colors} styles={styles} />
-                </View>
-              </View>
-            ))}
-            <TouchableOpacity style={styles.addAlarmButton} onPress={() => openAlarmModal()}>
-              <Text style={styles.addAlarmText}>+ 알람 추가</Text>
             </TouchableOpacity>
           </View>
         </View>

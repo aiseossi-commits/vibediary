@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 설정 화면 개인정보 처리방침 링크 추가` (2026-03-14)
+**마지막 커밋**: `feat: 알림 기능 완전 제거` (2026-03-15)
 
 **현재 브랜치**: main
 
@@ -50,6 +50,7 @@
 - [x] AI 등대 SearchScreen: 쿼리 임베딩 생성 추가 (generateEmbedding 호출)
 - [x] GitHub Actions deploy-deno.yml 삭제: Deno Deploy from GitHub 자동배포로 대체
 - [x] deno-main.ts v5 주석으로 Deno Deploy 재배포 트리거
+- [x] 알림 기능 완전 제거: alarmService.ts 삭제, SettingsScreen.tsx 알람 관련 코드 전체 삭제, app.json expo-notifications 플러그인/권한 제거, package.json 의존성 제거
 
 ---
 
