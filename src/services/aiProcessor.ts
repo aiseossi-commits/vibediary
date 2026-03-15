@@ -119,7 +119,8 @@ export async function processWithAI(text: string): Promise<AIProcessingResult> {
 // 일별 기록 분석 (이성 요약 + 감성 위로)
 export async function analyzeDailySummary(
   summaries: string[],
-  tags: string[]
+  tags: string[],
+  date: string // 'YYYY-MM-DD'
 ): Promise<{ rational: string; emotional: string }> {
   const isOnline = await getNetworkState();
   if (!isOnline) throw new Error('OFFLINE');
@@ -131,16 +132,20 @@ export async function analyzeDailySummary(
   const context = summaries.map((s, i) => `${i + 1}. ${s}`).join('\n');
   const tagStr = [...new Set(tags)].join(', ');
 
+  const d = new Date(date + 'T00:00:00');
+  const DAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+  const dateLabel = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${DAY_KO[d.getDay()]}요일)`;
+
   const response = await fetch(`${workerUrl}/ai?model=gemini-2.5-flash-lite`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: '당신은 발달장애인 돌봄 가족을 위한 AI 비서입니다. 하루 기록을 분석하여 JSON으로 응답하세요.' }],
+        parts: [{ text: `당신은 발달장애인 돌봄 가족을 위한 AI 비서입니다. 하루 기록을 분석하여 JSON으로 응답하세요.\n\n중요: 각 기록 앞의 [HH:mm]은 내용이 발생한 시각이 아니라 기록자가 입력한 시각입니다. 기록 내용에 '어제', '아까', '지난밤' 같은 상대적 시간 표현이 있으면 분석 날짜를 기준으로 해석하세요.` }],
       },
       contents: [{
         role: 'user',
-        parts: [{ text: `오늘의 돌봄 기록 (태그: ${tagStr}):\n${context}\n\nJSON으로 응답:\n{"rational": "오늘 하루를 한 문장으로 핵심만 요약. 사실 나열 금지, 오늘의 전체적인 흐름이나 특이사항을 자연스러운 문장으로.", "emotional": "따뜻한 위로와 응원 메시지 (1-2문장)"}` }],
+        parts: [{ text: `분석 날짜: ${dateLabel}\n돌봄 기록 (태그: ${tagStr}):\n${context}\n\nJSON으로 응답:\n{"rational": "이 날 하루를 한 문장으로 핵심만 요약. 사실 나열 금지, 전체적인 흐름이나 특이사항을 자연스러운 문장으로.", "emotional": "따뜻한 위로와 응원 메시지 (1-2문장)"}` }],
       }],
       generationConfig: { maxOutputTokens: 300, temperature: 0.4, responseMimeType: 'application/json' },
     }),

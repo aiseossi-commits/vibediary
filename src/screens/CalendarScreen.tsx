@@ -249,7 +249,7 @@ export default function CalendarScreen() {
         return `[${time}] ${r.summary}`;
       });
       const tags = chronological.flatMap((r) => r.tags.map((t) => t.name));
-      const result = await analyzeDailySummary(summaries, tags);
+      const result = await analyzeDailySummary(summaries, tags, date);
       aiCache.current[date] = result;
       setAiResult(result);
     } catch {
