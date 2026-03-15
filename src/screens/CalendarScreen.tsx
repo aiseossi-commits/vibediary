@@ -23,6 +23,7 @@ import WaveLoader from '../components/WaveLoader';
 import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady } from '../db';
 import { getDailyAICache, setDailyAICache, deleteDailyAICache } from '../db/aiCacheDao';
 import { processTextRecord } from '../services/recordPipeline';
+import { processOfflineQueue } from '../services/offlineQueue';
 import { analyzeDailySummary } from '../services/aiProcessor';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -169,6 +170,7 @@ export default function CalendarScreen() {
   const [calendarKey, setCalendarKey] = useState(0);
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
   const aiCache = useRef<Record<string, { rational: string; emotional: string }>>({});
+  const currentAnalysisDateRef = useRef<string>('');
 
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
@@ -240,19 +242,20 @@ export default function CalendarScreen() {
 
   const loadAIAnalysis = useCallback(async (date: string, records: RecordWithTags[]) => {
     if (records.length === 0) return;
+    currentAnalysisDateRef.current = date;
     if (aiCache.current[date]) { setAiResult(aiCache.current[date]); return; }
     // DB 캐시 확인 (앱 재시작 후에도 유지)
     try {
       const cached = await getDailyAICache(date, activeChild?.id);
       if (cached) {
         aiCache.current[date] = cached;
-        setAiResult(cached);
+        if (currentAnalysisDateRef.current === date) setAiResult(cached);
         return;
       }
     } catch { /* DB 캐시 실패 시 AI 호출로 fallback */ }
+    if (currentAnalysisDateRef.current !== date) return;
     setIsLoadingAI(true);
     try {
-      // 시간순(오전→오후)으로 정렬하여 AI에 전달
       const chronological = [...records].sort((a, b) => a.createdAt - b.createdAt);
       const summaries = chronological.map((r) => {
         const time = new Date(r.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -261,13 +264,14 @@ export default function CalendarScreen() {
       const tags = chronological.flatMap((r) => r.tags.map((t) => t.name));
       const result = await analyzeDailySummary(summaries, tags, date);
       aiCache.current[date] = result;
-      setAiResult(result);
-      // DB에 영속화
-      setDailyAICache(date, activeChild?.id, result.rational, result.emotional).catch(() => {});
+      if (currentAnalysisDateRef.current === date) {
+        setAiResult(result);
+        setDailyAICache(date, activeChild?.id, result.rational, result.emotional).catch(() => {});
+      }
     } catch {
-      setAiResult(null);
+      if (currentAnalysisDateRef.current === date) setAiResult(null);
     } finally {
-      setIsLoadingAI(false);
+      if (currentAnalysisDateRef.current === date) setIsLoadingAI(false);
     }
   }, [activeChild?.id]);
 
@@ -279,7 +283,15 @@ export default function CalendarScreen() {
     loadAIAnalysis(selectedDate, dayRecords);
   }, [selectedDate, dayRecords, loadAIAnalysis, activeChild?.id]);
 
-  useFocusEffect(useCallback(() => { loadMonthData(currentMonthRef.current); }, [loadMonthData]));
+  useFocusEffect(useCallback(() => {
+    loadMonthData(currentMonthRef.current);
+    // RecordDetail에서 삭제/수정 후 복귀 시 시트 기록 갱신
+    if (isSheetOpen) {
+      loadDayRecords(selectedDateRef.current);
+    }
+    // AI 처리 중인 기록 있으면 큐 처리 시도
+    processOfflineQueue().catch(() => {});
+  }, [loadMonthData, loadDayRecords, isSheetOpen]));
 
   useEffect(() => { loadMonthData(currentMonthRef.current); }, [activeChild?.id, loadMonthData]);
 
