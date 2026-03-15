@@ -133,8 +133,9 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
   const flatListRef = useRef<FlatList<RecordWithTags>>(null);
+  const headerHeightRef = useRef(0);
   const scrollToInput = useCallback(() => {
-    setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 150);
+    setTimeout(() => flatListRef.current?.scrollToOffset({ offset: headerHeightRef.current, animated: true }), 150);
   }, []);
 
   const loadTags = useCallback(async () => {
@@ -212,7 +213,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
   const renderListHeader = useCallback(() => (
     <>
-      <View style={styles.tagGrid}>
+      <View style={styles.tagGrid} onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
         {tags.map((tag) => {
           const isSelected = selectedTagIds.includes(tag.id);
           const tagColor = getTagColor(tag.name, colors);
