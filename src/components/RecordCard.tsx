@@ -17,12 +17,13 @@ interface RecordCardProps {
   onPress: () => void;
 }
 
-function getAgeOpacity(timestamp: number): number {
+// 회색 오버레이 불투명도: dark/light 양쪽에서 명확히 보이는 "바랜" 효과
+function getAgeOverlayOpacity(timestamp: number): number {
   const ageDays = (Date.now() - timestamp) / (1000 * 60 * 60 * 24);
-  if (ageDays < 1) return 1;
-  if (ageDays < 4) return 0.85;
-  if (ageDays < 8) return 0.7;
-  if (ageDays < 15) return 0.6;
+  if (ageDays < 1) return 0;
+  if (ageDays < 4) return 0.12;
+  if (ageDays < 8) return 0.25;
+  if (ageDays < 15) return 0.38;
   return 0.5;
 }
 
@@ -115,12 +116,13 @@ function createStyles(colors: AppColors) {
 function RecordCard({ record, onPress }: RecordCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const overlayOpacity = getAgeOverlayOpacity(record.createdAt);
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={[styles.card, SHADOW.sm, { opacity: getAgeOpacity(record.createdAt) }]}
+      style={[styles.card, SHADOW.sm]}
     >
       <View style={styles.header}>
         <Text style={styles.dateText}>{formatDateTime(record.createdAt)}</Text>
@@ -142,6 +144,13 @@ function RecordCard({ record, onPress }: RecordCardProps) {
             <TagChip key={tag.id} name={tag.name} size="sm" />
           ))}
         </View>
+      )}
+
+      {overlayOpacity > 0 && (
+        <View style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: `rgba(128,128,128,${overlayOpacity})`, borderRadius: 20 },
+        ]} pointerEvents="none" />
       )}
     </TouchableOpacity>
   );

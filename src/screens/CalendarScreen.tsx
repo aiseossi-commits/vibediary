@@ -242,8 +242,13 @@ export default function CalendarScreen() {
     if (aiCache.current[date]) { setAiResult(aiCache.current[date]); return; }
     setIsLoadingAI(true);
     try {
-      const summaries = records.map((r) => r.summary);
-      const tags = records.flatMap((r) => r.tags.map((t) => t.name));
+      // 시간순(오전→오후)으로 정렬하여 AI에 전달
+      const chronological = [...records].sort((a, b) => a.createdAt - b.createdAt);
+      const summaries = chronological.map((r) => {
+        const time = new Date(r.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+        return `[${time}] ${r.summary}`;
+      });
+      const tags = chronological.flatMap((r) => r.tags.map((t) => t.name));
       const result = await analyzeDailySummary(summaries, tags);
       aiCache.current[date] = result;
       setAiResult(result);
