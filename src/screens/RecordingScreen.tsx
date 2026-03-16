@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRecording } from '../hooks/useRecording';
@@ -51,8 +51,24 @@ function createStyles(colors: AppColors) {
       fontSize: 22,
       fontWeight: '600' as const,
       color: colors.textPrimary,
-      marginBottom: 32,
+      marginBottom: 8,
       letterSpacing: 2,
+    },
+    progressBarTrack: {
+      width: 180,
+      height: 3,
+      borderRadius: BORDER_RADIUS.full,
+      backgroundColor: colors.divider,
+      marginBottom: 24,
+      overflow: 'hidden' as const,
+    },
+    progressBarFill: {
+      height: 3,
+      borderRadius: BORDER_RADIUS.full,
+      backgroundColor: colors.primary,
+    },
+    progressBarFillWarning: {
+      backgroundColor: colors.recordingRed,
     },
     buttonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xl },
     recordButton: {
@@ -106,6 +122,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
   }, [isRecording, isPaused, isStarting, start, pause, resume]);
 
   const MIN_DURATION = 3;
+  const MAX_DURATION = 30;
   const SILENCE_THRESHOLD = 0.08;
   const LOW_AUDIO_THRESHOLD = 0.15;
 
@@ -131,6 +148,13 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       Alert.alert('오류', '녹음 저장에 실패했습니다');
     }
   }, [duration, stop, getAverageAudioLevel, onRecordingComplete, onCancel]);
+
+  // 30초 자동 종료
+  useEffect(() => {
+    if (isRecording && !isPaused && duration >= MAX_DURATION) {
+      handleStop();
+    }
+  }, [duration, isRecording, isPaused, handleStop]);
 
   const handleCancel = useCallback(() => {
     if (isRecording) {
@@ -183,7 +207,16 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       <View style={styles.controls}>
         {isProcessing ? null : (
           <>
-            <Text style={styles.timer}>{formatDuration(duration)}</Text>
+            <Text style={[styles.timer, duration >= 20 && { color: colors.recordingRed }]}>
+              {formatDuration(duration)}
+            </Text>
+            <View style={styles.progressBarTrack}>
+              <View style={[
+                styles.progressBarFill,
+                { width: `${Math.min((duration / MAX_DURATION) * 100, 100)}%` },
+                duration >= 20 && styles.progressBarFillWarning,
+              ]} />
+            </View>
             <View style={styles.buttonRow}>
               {isRecording && (
                 <TouchableOpacity onPress={handleStop} style={styles.stopButton}>

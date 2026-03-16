@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: AI 무한로딩 근본 원인 수정` (2026-03-15)
+**마지막 커밋**: `feat: 녹음 30초 제한` (2026-03-16)
 
 **현재 브랜치**: main
 
@@ -55,6 +55,7 @@
 - [x] UX 개선 6종: RecordCard 날짜별 opacity, 캘린더 키보드 시트 이동, 텍스트 입력 selectedDate 적용, 태그 한국어 IME 수정+삭제버튼, AI 캐시 즉시 복원, 캘린더 스와이프 날짜 이동
 - [x] TagsScreen: 태그 추가 입력창 키보드에 가려지는 문제 수정 (KeyboardAvoidingView + scrollToOffset)
 - [x] AI 무한로딩 근본 원인 수정: callGeminiAPI 15초 타임아웃, 기록 생성 직후 + pull-to-refresh 시 processOfflineQueue 즉시 실행
+- [x] 녹음 30초 제한: 자동 종료 + 프로그레스 바 + 20초부터 빨간색 경고
 
 ---
 
