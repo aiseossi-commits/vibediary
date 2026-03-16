@@ -1,4 +1,4 @@
-// v6.1: 환경변수 재배포 트리거
+// v6.2: GROQ_API_KEY 환경변수명 수정 재배포
 const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1', 'text-embedding-004'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
