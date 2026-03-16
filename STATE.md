@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: GROQ_API_KEY 환경변수명 수정 재배포` (2026-03-17)
+**마지막 커밋**: `chore: groq-whisper 아카이브, STATE.md 정리` (2026-03-17)
 
 **현재 브랜치**: main
 
@@ -90,7 +90,7 @@
 ## 알려진 문제 / 기술부채
 
 - cloudflare-worker는 tsconfig에서 제외됨 (Deno 런타임 타입 충돌)
-- **gemini-2.5-flash-lite 무료 티어 일 20회 한도** — 100명 × 15회 사용 시 초과. gemini-2.0-flash-lite(일 1,500회)로 교체하거나 유료 플랜 필요 (월 ~$4/100명)
+- **Gemini 유료 플랜 전환 완료** (2026-03-17, aiseossi@gmail.com Individual 계정)
 
 ---
 
