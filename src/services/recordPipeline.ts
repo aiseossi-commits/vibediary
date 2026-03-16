@@ -18,7 +18,8 @@ export async function processRecording(audioUri: string, createdAt?: number, chi
 
   try {
     aiResult = await processWithAI(sttResult.text);
-  } catch {
+  } catch (e) {
+    console.error('[Pipeline] AI 처리 실패:', e);
     aiResult = createFallbackResult(sttResult.text);
     aiPending = true;
   }
@@ -70,7 +71,8 @@ export async function processFromText(audioUri: string, text: string, createdAt?
 
   try {
     aiResult = await processWithAI(text);
-  } catch {
+  } catch (e) {
+    console.error('[Pipeline] AI 처리 실패 (fromText):', e);
     aiResult = createFallbackResult(text);
     aiPending = true;
   }
@@ -105,7 +107,8 @@ export async function processTextRecord(text: string, childId?: string, date?: s
 
   try {
     aiResult = await processWithAI(text);
-  } catch {
+  } catch (e) {
+    console.error('[Pipeline] AI 처리 실패 (textRecord):', e);
     aiResult = createFallbackResult(text);
     aiPending = true;
   }

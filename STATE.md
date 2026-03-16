@@ -56,6 +56,7 @@
 - [x] TagsScreen: 태그 추가 입력창 키보드에 가려지는 문제 수정 (KeyboardAvoidingView + scrollToOffset)
 - [x] AI 무한로딩 근본 원인 수정: callGeminiAPI 15초 타임아웃, 기록 생성 직후 + pull-to-refresh 시 processOfflineQueue 즉시 실행
 - [x] 녹음 30초 제한: 자동 종료 + 프로그레스 바 + 20초부터 빨간색 경고
+- [x] AI 에러 디버그 로깅 추가 (aiProcessor, recordPipeline)
 
 ---
 

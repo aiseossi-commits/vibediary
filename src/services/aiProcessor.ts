@@ -85,6 +85,7 @@ async function callGeminiAPI(text: string): Promise<AIProcessingResult> {
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error(`[AI] Gemini 오류 ${response.status}:`, errorText.substring(0, 300));
     throw new Error(`Gemini API 오류 (${response.status}): ${errorText}`);
   }
 
