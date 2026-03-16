@@ -16,7 +16,8 @@
 
 - [x] 온보딩 플로우 추가 (OnboardingScreen, ChildContext.isLoaded)
 - [x] 아이 이름 STT/AI 컨텍스트 적용 (Whisper 힌트, Gemini 프롬프트)
-- [x] CalendarScreen: 월 선택 피커, AI stale 표시
+- [x] CalendarScreen: 월 선택 피커 (AI 분석 기능 완전 제거)
+- [x] CalendarScreen AI 분석 완전 제거: aiCacheDao.ts 삭제, analyzeDailySummary 제거, 관련 state/함수/UI/스타일 전부 삭제
 - [x] RecordDetailScreen: KeyboardAvoidingView, 편집 시 자동 스크롤
 - [x] TypeScript strict 강화 (noUnusedLocals, noUnusedParameters)
 - [x] pre-commit TypeScript 타입 체크 hook 설정

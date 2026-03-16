@@ -19,12 +19,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
-import WaveLoader from '../components/WaveLoader';
 import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady } from '../db';
-import { getDailyAICache, setDailyAICache, deleteDailyAICache } from '../db/aiCacheDao';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
-import { analyzeDailySummary } from '../services/aiProcessor';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import {
@@ -84,15 +81,6 @@ function createStyles(colors: AppColors) {
     sheetDate: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
     sheetScroll: { flex: 1 },
     sheetContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xxl },
-    aiCards: { marginBottom: SPACING.md },
-    aiLoading: { alignItems: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
-    aiLoadingText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
-    aiCardRow: { flexDirection: 'row', gap: SPACING.sm },
-    aiCard: { flex: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, ...SHADOW.sm },
-    aiCardRational: { backgroundColor: colors.surfaceSecondary, borderLeftWidth: 3, borderLeftColor: colors.primary },
-    aiCardEmotional: { backgroundColor: colors.surfaceSecondary, borderLeftWidth: 3, borderLeftColor: colors.accent },
-    aiCardLabel: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.textTertiary, marginBottom: SPACING.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
-    aiCardText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, lineHeight: 20 },
     emptyDay: { alignItems: 'center', paddingVertical: SPACING.xxl, gap: SPACING.md },
     emptyText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     recordButton: {
@@ -114,14 +102,6 @@ function createStyles(colors: AppColors) {
     inputDividerText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
     calendarMonthBtn: { paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, alignSelf: 'center' },
     calendarMonthText: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary },
-    staleBar: {
-      backgroundColor: colors.accent + '33',
-      borderRadius: BORDER_RADIUS.sm,
-      padding: SPACING.sm,
-      marginBottom: SPACING.sm,
-      alignItems: 'center',
-    },
-    staleBarText: { fontSize: FONT_SIZE.sm, color: colors.accent, fontWeight: FONT_WEIGHT.medium },
     pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
     pickerContainer: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.lg, width: '85%' },
     pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', marginBottom: SPACING.md },
@@ -159,19 +139,13 @@ export default function CalendarScreen() {
   const [dayRecords, setDayRecords] = useState<RecordWithTags[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
-  const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [textInput, setTextInput] = useState('')
   const [isSaving, setIsSaving] = useState(false);
-  const [aiResult, setAiResult] = useState<{ rational: string; emotional: string } | null>(null);
-  const [isAIStale, setIsAIStale] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
   const [calendarKey, setCalendarKey] = useState(0);
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
-  const aiCache = useRef<Record<string, { rational: string; emotional: string }>>({});
-  const currentAnalysisDateRef = useRef<string>('');
-
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
   const [kbHeight, setKbHeight] = useState(0);
@@ -242,49 +216,6 @@ export default function CalendarScreen() {
     setShowDatePicker(false);
   }, [pickerYear, pickerMonth, loadMonthData]);
 
-  const loadAIAnalysis = useCallback(async (date: string, records: RecordWithTags[]) => {
-    if (records.length === 0) return;
-    currentAnalysisDateRef.current = date;
-    if (aiCache.current[date]) { setAiResult(aiCache.current[date]); return; }
-    // DB 캐시 확인 (앱 재시작 후에도 유지)
-    try {
-      const cached = await getDailyAICache(date, activeChild?.id);
-      if (cached) {
-        aiCache.current[date] = cached;
-        if (currentAnalysisDateRef.current === date) setAiResult(cached);
-        return;
-      }
-    } catch { /* DB 캐시 실패 시 AI 호출로 fallback */ }
-    if (currentAnalysisDateRef.current !== date) return;
-    setIsLoadingAI(true);
-    try {
-      const chronological = [...records].sort((a, b) => a.createdAt - b.createdAt);
-      const summaries = chronological.map((r) => {
-        const time = new Date(r.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-        return `[${time}] ${r.summary}`;
-      });
-      const tags = chronological.flatMap((r) => r.tags.map((t) => t.name));
-      const result = await analyzeDailySummary(summaries, tags, date);
-      aiCache.current[date] = result;
-      if (currentAnalysisDateRef.current === date) {
-        setAiResult(result);
-        setDailyAICache(date, activeChild?.id, result.rational, result.emotional).catch(() => {});
-      }
-    } catch {
-      if (currentAnalysisDateRef.current === date) setAiResult(null);
-    } finally {
-      if (currentAnalysisDateRef.current === date) setIsLoadingAI(false);
-    }
-  }, [activeChild?.id]);
-
-  const handleRefreshAI = useCallback(async () => {
-    delete aiCache.current[selectedDate];
-    deleteDailyAICache(selectedDate, activeChild?.id).catch(() => {});
-    setIsAIStale(false);
-    setAiResult(null);
-    loadAIAnalysis(selectedDate, dayRecords);
-  }, [selectedDate, dayRecords, loadAIAnalysis, activeChild?.id]);
-
   useFocusEffect(useCallback(() => {
     loadMonthData(currentMonthRef.current);
     // RecordDetail에서 삭제/수정 후 복귀 시 시트 기록 갱신
@@ -302,19 +233,9 @@ export default function CalendarScreen() {
   const handleDayPress = useCallback(async (day: { dateString: string }) => {
     const date = day.dateString;
     setSelectedDate(date);
-    setIsAIStale(false);
-    // 캐시가 있으면 즉시 복원 (로딩 깜빡임 방지)
-    if (aiCache.current[date]) {
-      setAiResult(aiCache.current[date]);
-    } else {
-      setAiResult(null);
-    }
-    const records = await loadDayRecords(date);
+    await loadDayRecords(date);
     openSheet();
-    if (!aiCache.current[date]) {
-      loadAIAnalysis(date, records ?? []);
-    }
-  }, [loadDayRecords, openSheet, loadAIAnalysis]);
+  }, [loadDayRecords, openSheet]);
 
   const handleMonthChange = useCallback((month: { year: number; month: number }) => {
     const yearMonth = `${month.year}-${String(month.month).padStart(2, '0')}`;
@@ -361,28 +282,20 @@ export default function CalendarScreen() {
     if (!trimmed) return;
     setIsSaving(true);
     try {
-      const hadAiResult = aiResult !== null;
-      const hadRecords = dayRecords.length > 0;
       await processTextRecord(trimmed, activeChild?.id, selectedDate);
       setTextInput('');
       Alert.alert('저장 완료', '기록이 저장되었습니다.');
-      delete aiCache.current[selectedDate];
-      const updatedRecords = await loadDayRecords(selectedDate);
+      await loadDayRecords(selectedDate);
       processOfflineQueue()
         .then(() => loadDayRecords(selectedDate))
         .catch(() => {});
       await loadMonthData(currentMonth);
-      if (hadAiResult) {
-        setIsAIStale(true);
-      } else if (!hadRecords) {
-        loadAIAnalysis(selectedDate, updatedRecords ?? []);
-      }
-    } catch (error) {
+    } catch {
       Alert.alert('저장 실패', '기록 저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
-  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth, aiResult, dayRecords.length, loadAIAnalysis]);
+  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth]);
 
   const summaryMap = useMemo(() => {
     const map: Record<string, DailyRecordSummary> = {};
@@ -500,35 +413,6 @@ export default function CalendarScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {dayRecords.length > 0 && (
-              <View style={styles.aiCards}>
-                {isLoadingAI ? (
-                  <View style={styles.aiLoading}>
-                    <WaveLoader size={0.7} color={colors.primary} />
-                    <Text style={styles.aiLoadingText}>바다가 분석 중...</Text>
-                  </View>
-                ) : aiResult ? (
-                  <>
-                    {isAIStale && (
-                      <TouchableOpacity onPress={handleRefreshAI} style={styles.staleBar}>
-                        <Text style={styles.staleBarText}>최신 기록이 반영되지 않았어요 · 새로고침</Text>
-                      </TouchableOpacity>
-                    )}
-                    <View style={styles.aiCardRow}>
-                      <View style={[styles.aiCard, styles.aiCardRational]}>
-                        <Text style={styles.aiCardLabel}>T의 하루 요약</Text>
-                        <Text style={styles.aiCardText}>{aiResult.rational}</Text>
-                      </View>
-                      <View style={[styles.aiCard, styles.aiCardEmotional]}>
-                        <Text style={styles.aiCardLabel}>F의 하루 공감</Text>
-                        <Text style={styles.aiCardText}>{aiResult.emotional}</Text>
-                      </View>
-                    </View>
-                  </>
-                ) : null}
-              </View>
-            )}
-
             {isLoadingRecords ? (
               <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
             ) : dayRecords.length === 0 ? (
