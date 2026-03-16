@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 녹음 30초 제한` (2026-03-16)
+**마지막 커밋**: `feat: Groq Whisper STT 교체` (2026-03-16)
 
 **현재 브랜치**: main
 
@@ -57,12 +57,13 @@
 - [x] AI 무한로딩 근본 원인 수정: callGeminiAPI 15초 타임아웃, 기록 생성 직후 + pull-to-refresh 시 processOfflineQueue 즉시 실행
 - [x] 녹음 30초 제한: 자동 종료 + 프로그레스 바 + 20초부터 빨간색 경고
 - [x] AI 에러 디버그 로깅 추가 (aiProcessor, recordPipeline)
+- [x] Groq Whisper STT 교체: deno-main.ts STT 핸들러를 OpenAI → Groq API로 전환 (비용 9배 절감)
 
 ---
 
 ## 진행 중인 작업
 
-없음
+없음 (groq-whisper 코드 구현 완료, 배포/검증 대기 중)
 
 ## 최근 버그 수정
 

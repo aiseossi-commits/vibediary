@@ -1,4 +1,4 @@
-// v5: rate limiting + /embedding endpoint
+// v6: Groq Whisper STT 교체
 const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1', 'text-embedding-004'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
@@ -75,11 +75,15 @@ async function handleSTT(request: Request) {
   if (model && model !== 'whisper-1') {
     return new Response('Invalid STT model', { status: 400 });
   }
-  const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
-  const upstreamResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  // 클라이언트의 whisper-1 요청을 Groq 모델명으로 변환
+  formData.set('model', 'whisper-large-v3-turbo');
+
+  const groqKey = Deno.env.get('GROQ_API_KEY');
+
+  const upstreamResponse = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${openaiKey}` },
+    headers: { Authorization: `Bearer ${groqKey}` },
     body: formData,
   });
 
