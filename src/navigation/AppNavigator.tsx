@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { Alert, ActivityIndicator, View, Text } from 'react-native';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { Alert, ActivityIndicator, View, Text, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
+import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 
@@ -67,7 +68,73 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { colors } = useTheme();
-  const { children: childList, isLoaded } = useChild();
+  const { children: childList, isLoaded, refreshChildren } = useChild();
+  const pendingFileUrl = useRef<string | null>(null);
+
+  const handleIncomingFile = useCallback(async (url: string) => {
+    if (!url.includes('.json') && !url.includes('json')) return;
+    try {
+      const data = await parseBackupFromUri(url);
+      Alert.alert(
+        '백업 파일',
+        '복원 방식을 선택하세요.',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '병합 (기존 유지 + 신규 추가)',
+            onPress: async () => {
+              await restoreMerge(data);
+              await refreshChildren();
+              Alert.alert('완료', '병합 복원이 완료되었습니다.');
+            },
+          },
+          {
+            text: '덮어쓰기 (전체 교체)',
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert('주의', '기존 데이터가 모두 삭제됩니다. 계속하시겠습니까?', [
+                { text: '취소', style: 'cancel' },
+                {
+                  text: '덮어쓰기',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await restoreOverwrite(data);
+                    await refreshChildren();
+                    Alert.alert('완료', '덮어쓰기 복원이 완료되었습니다.');
+                  },
+                },
+              ]);
+            },
+          },
+        ]
+      );
+    } catch {
+      Alert.alert('오류', '유효하지 않은 백업 파일입니다.');
+    }
+  }, [refreshChildren]);
+
+  // 앱이 파일로 열렸을 때 처리
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url) pendingFileUrl.current = url;
+    });
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (isLoaded) {
+        handleIncomingFile(url);
+      } else {
+        pendingFileUrl.current = url;
+      }
+    });
+    return () => sub.remove();
+  }, [handleIncomingFile, isLoaded]);
+
+  // DB 준비 완료 후 대기 중인 파일 처리
+  useEffect(() => {
+    if (isLoaded && pendingFileUrl.current) {
+      handleIncomingFile(pendingFileUrl.current);
+      pendingFileUrl.current = null;
+    }
+  }, [isLoaded, handleIncomingFile]);
 
   if (!isLoaded) {
     return (

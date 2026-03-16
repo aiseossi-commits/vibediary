@@ -16,7 +16,14 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "음성 녹음을 위해 마이크 접근이 필요합니다.",
-        "NSSpeechRecognitionUsageDescription": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다."
+        "NSSpeechRecognitionUsageDescription": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다.",
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "VibeDiary Backup",
+            "CFBundleTypeRole": "Editor",
+            "LSItemContentTypes": ["public.json"]
+          }
+        ]
       }
     },
     "android": {
@@ -31,7 +38,14 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE"
       ],
-      "package": "com.aiseossi.vibediary"
+      "package": "com.aiseossi.vibediary",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [{ "mimeType": "application/json" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

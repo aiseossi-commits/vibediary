@@ -76,6 +76,21 @@ export async function pickAndParseBackup(): Promise<BackupData> {
   return data;
 }
 
+// URI에서 직접 읽어서 파싱 (Open with 흐름용)
+export async function parseBackupFromUri(uri: string): Promise<BackupData> {
+  const raw = await FileSystem.readAsStringAsync(uri);
+  let data: BackupData;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error('INVALID_JSON');
+  }
+  if (!data.version || !Array.isArray(data.children) || !Array.isArray(data.records)) {
+    throw new Error('INVALID_FORMAT');
+  }
+  return data;
+}
+
 // 덮어쓰기 복원: 기존 DB 전체 삭제 후 백업 데이터로 교체
 export async function restoreOverwrite(data: BackupData): Promise<void> {
   const db = await getDatabase();
