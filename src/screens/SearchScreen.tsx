@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
-import TagChip from '../components/TagChip';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { generateEmbedding } from '../services/aiProcessor';
-import { getAllTags, isDatabaseReady } from '../db';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import {
@@ -28,14 +27,14 @@ import {
   SHADOW,
   type AppColors,
 } from '../constants/theme';
-import type { SearchResult, Tag } from '../types/record';
+import type { SearchResult } from '../types/record';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     flex: { flex: 1 },
-    header: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.lg, paddingBottom: SPACING.xl },
-    title: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginBottom: SPACING.sm },
+    header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.lg },
+    title: { fontSize: FONT_SIZE.title, fontWeight: FONT_WEIGHT.bold, fontFamily: 'Pretendard-Bold', color: colors.textPrimary, letterSpacing: -0.6, marginBottom: SPACING.sm },
     subtitle: { fontSize: FONT_SIZE.md, color: colors.textSecondary, lineHeight: 26, letterSpacing: 0.2 },
     results: { flex: 1 },
     resultsContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xl },
@@ -67,10 +66,7 @@ function createStyles(colors: AppColors) {
       marginTop: SPACING.sm,
     },
     emptyState: { alignItems: 'center', paddingTop: SPACING.xxl * 2, gap: SPACING.lg },
-    emptyIcon: { fontSize: 48 },
     emptyDescription: { fontSize: FONT_SIZE.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 26 },
-    tagFilter: { maxHeight: 44, borderTopWidth: 1, borderTopColor: colors.border },
-    tagFilterContent: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs },
     inputArea: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -81,15 +77,6 @@ function createStyles(colors: AppColors) {
       paddingVertical: SPACING.sm,
       gap: SPACING.sm,
     },
-    filterButton: {
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: SPACING.xs,
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: colors.surfaceSecondary,
-    },
-    filterButtonActive: { backgroundColor: colors.primaryLight },
-    filterText: { fontSize: FONT_SIZE.xs, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
-    filterTextActive: { color: colors.primary },
     input: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary, paddingVertical: SPACING.sm },
     searchButton: {
       paddingHorizontal: SPACING.md,
@@ -111,14 +98,6 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [allTags, setAllTags] = useState<Tag[]>([]);
-  const [showTagFilter, setShowTagFilter] = useState(false);
-
-  useEffect(() => {
-    if (!isDatabaseReady()) return;
-    getAllTags().then(setAllTags).catch(() => {});
-  }, []);
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
@@ -126,23 +105,14 @@ export default function SearchScreen() {
     setResult(null);
     try {
       const queryEmbedding = await generateEmbedding(query.trim());
-      const searchResult = await searchRecords(
-        query.trim(),
-        queryEmbedding,
-        selectedTags.length > 0 ? selectedTags : undefined,
-        activeChild?.id
-      );
+      const searchResult = await searchRecords(query.trim(), queryEmbedding, undefined, activeChild?.id);
       setResult(searchResult);
     } catch {
       setResult({ answer: '검색 중 오류가 발생했어요. 다시 시도해 주세요.', sourceRecords: [] });
     } finally {
       setIsSearching(false);
     }
-  }, [query, selectedTags, activeChild?.id]);
-
-  const handleTagToggle = useCallback((tagName: string) => {
-    setSelectedTags((prev) => prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]);
-  }, []);
+  }, [query, activeChild?.id]);
 
   const handleRecordPress = useCallback((recordId: string) => {
     navigation.navigate('RecordDetail', { recordId });
@@ -183,31 +153,17 @@ export default function SearchScreen() {
 
           {!result && !isSearching && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔦</Text>
+              <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
               <Text style={styles.emptyDescription}>
-                예: "지난번 열이 얼마나 올랐었지?"{'\n'}
-                "이번 달에 약은 잘 먹었어?"{'\n'}
-                "최근 행동 변화가 있었어?"
+                기록된 내용을 바탕으로 무엇이든 물어보세요.{'\n'}
+                대화 내용은 저장되지 않아요.{'\n'}
+                매번 새로운 질문으로 시작됩니다.
               </Text>
             </View>
           )}
         </ScrollView>
 
-        {showTagFilter && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagFilter} contentContainerStyle={styles.tagFilterContent}>
-            {allTags.map((tag) => (
-              <TagChip key={tag.id} name={tag.name} tag={tag} selected={selectedTags.includes(tag.name)} onPress={() => handleTagToggle(tag.name)} size="md" />
-            ))}
-          </ScrollView>
-        )}
-
         <View style={styles.inputArea}>
-          <TouchableOpacity onPress={() => setShowTagFilter(!showTagFilter)} style={[styles.filterButton, showTagFilter && styles.filterButtonActive]}>
-            <Text style={[styles.filterText, showTagFilter && styles.filterTextActive]}>
-              {selectedTags.length > 0 ? `태그 ${selectedTags.length}` : '태그'}
-            </Text>
-          </TouchableOpacity>
-
           <TextInput
             style={styles.input}
             placeholder="기록에 대해 물어보세요..."

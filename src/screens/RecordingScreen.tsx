@@ -143,12 +143,6 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
 
   React.useEffect(() => { start(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const MIN_DURATION = 3;
   const MAX_DURATION = 30;
   const SILENCE_THRESHOLD = 0.08;
@@ -226,9 +220,6 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       <View style={styles.controls}>
         {isProcessing ? null : (
           <>
-            <Text style={[styles.timer, duration >= 25 && { color: colors.recordingRed }]}>
-              {formatDuration(duration)}
-            </Text>
             {isRecording && duration >= 25 ? (
               <Text style={styles.countdown}>{MAX_DURATION - duration}</Text>
             ) : (

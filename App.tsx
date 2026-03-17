@@ -46,14 +46,12 @@ function AppContent() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  useFonts({
     'Pretendard-Regular': require('./assets/fonts/Pretendard-Regular.otf'),
     'Pretendard-Medium': require('./assets/fonts/Pretendard-Medium.otf'),
     'Pretendard-SemiBold': require('./assets/fonts/Pretendard-SemiBold.otf'),
     'Pretendard-Bold': require('./assets/fonts/Pretendard-Bold.otf'),
   });
-
-  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>

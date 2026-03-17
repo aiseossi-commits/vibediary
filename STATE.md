@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 후원 계좌, 백업 UX 개선, 파일 연동` (2026-03-17)
+**마지막 커밋**: `feat: UI 개선, 커스텀 태그 자동 적용, 등대 탭 정리` (2026-03-18)
 
 **현재 브랜치**: feat/pretendard-blob
 
@@ -90,6 +90,18 @@
 - [x] RecordingScreen: 일시정지 버튼 제거, 종료 버튼만 유지
 - [x] 컬러 팔레트 교체: 세이지 그린 (#86A789) — "기록이 쌓여 성장이 되는" 컨셉
 - [x] 팔레트 후보 5종 보관 (docs/colorcode.md)
+
+## 최근 완료된 작업 (feat/pretendard-blob, 2026-03-18)
+
+- [x] Pretendard 폰트 4종 적용 (App.tsx useFonts, FONT_FAMILY 상수, TYPOGRAPHY fontFamily)
+- [x] babel.config.js 추가 (babel-preset-expo, Metro TypeScript 처리 정상화)
+- [x] RecordingScreen: 바 시각화 → OrganicBlob (RN Animated, borderRadius oscillation + audioLevel spring)
+- [x] RecordingScreen: 타이머 제거, 마지막 5초 카운트다운만 유지
+- [x] 커스텀 태그 AI 자동 적용: buildSystemPrompt(extraTags)로 프롬프트 동적 생성, recordPipeline/offlineQueue에서 DB 커스텀 태그 조회 후 전달
+- [x] 3개 탭 헤더 통일: paddingHorizontal 24, fontSize 28 (FONT_SIZE.title), Pretendard-Bold
+- [x] SearchScreen 등대 아이콘: 🔦 → MaterialCommunityIcons lighthouse-on
+- [x] SearchScreen 빈 상태 안내 문구 교체 (사용법 + 휘발 안내)
+- [x] SearchScreen 태그 필터 완전 제거 (버튼, 패널, state, 스타일)
 
 ## 진행 중인 작업
 

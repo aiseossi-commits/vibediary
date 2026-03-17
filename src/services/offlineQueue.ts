@@ -1,7 +1,7 @@
 import { getDatabase } from '../db/database';
 import { processWithAI, generateEmbedding } from './aiProcessor';
 import { updateRecord, getRecordById } from '../db/recordsDao';
-import { setTagsForRecord } from '../db/tagsDao';
+import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
 
 // 오프라인 큐에 추가
@@ -57,8 +57,11 @@ export async function processOfflineQueue(): Promise<number> {
           continue;
         }
 
-        // AI 처리
-        const result = await processWithAI(item.raw_text);
+        // AI 처리 (커스텀 태그 포함)
+        const baseTags = ['#의료', '#투약', '#행동', '#일상', '#치료'];
+        const allTagNames = (await getAllTags().catch(() => [])).map((t) => t.name);
+        const customTags = allTagNames.filter((n) => !baseTags.includes(n));
+        const result = await processWithAI(item.raw_text, customTags);
 
         // embedding 생성 (실패해도 큐 처리 계속)
         let embedding: number[] | null = null;
