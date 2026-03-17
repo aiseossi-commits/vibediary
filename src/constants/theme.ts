@@ -150,6 +150,13 @@ export const FONT_WEIGHT = {
   bold: '700' as const,
 };
 
+export const FONT_FAMILY = {
+  regular: 'Pretendard-Regular',
+  medium: 'Pretendard-Medium',
+  semibold: 'Pretendard-SemiBold',
+  bold: 'Pretendard-Bold',
+} as const;
+
 export const BORDER_RADIUS = {
   sm: 8,
   md: 12,
@@ -192,13 +199,13 @@ export const TOUCH_TARGET = {
 export const TYPOGRAPHY = {
   h1: {
     fontSize: FONT_SIZE.title,
-    fontWeight: '700' as const,
+    fontFamily: 'Pretendard-Bold',
     lineHeight: FONT_SIZE.title * 1.45,
     letterSpacing: -0.5,
   },
   h2: {
     fontSize: FONT_SIZE.xxl,
-    fontWeight: '600' as const,
+    fontFamily: 'Pretendard-SemiBold',
     lineHeight: FONT_SIZE.xxl * 1.55,
     letterSpacing: -0.3,
   },

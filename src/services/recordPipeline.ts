@@ -1,9 +1,20 @@
 import { processSTT } from './stt';
 import { processWithAI, createFallbackResult, generateEmbedding } from './aiProcessor';
 import { createRecord } from '../db/recordsDao';
-import { setTagsForRecord } from '../db/tagsDao';
+import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
 import { getDatabase } from '../db/database';
+
+const BASE_TAG_NAMES = ['#의료', '#투약', '#행동', '#일상', '#치료'];
+
+async function getCustomTagNames(): Promise<string[]> {
+  try {
+    const all = await getAllTags();
+    return all.map((t) => t.name).filter((n) => !BASE_TAG_NAMES.includes(n));
+  } catch {
+    return [];
+  }
+}
 
 // 전체 녹음 → 기록 생성 파이프라인
 export async function processRecording(audioUri: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
@@ -16,9 +27,10 @@ export async function processRecording(audioUri: string, createdAt?: number, chi
   // 2. AI 처리 시도
   let aiResult;
   let aiPending = false;
+  const customTags = await getCustomTagNames();
 
   try {
-    aiResult = await processWithAI(sttResult.text);
+    aiResult = await processWithAI(sttResult.text, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패:', e);
     aiResult = createFallbackResult(sttResult.text);
@@ -70,8 +82,9 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     throw new Error('NO_SPEECH');
   }
 
+  const customTags = await getCustomTagNames();
   try {
-    aiResult = await processWithAI(text);
+    aiResult = await processWithAI(text, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패 (fromText):', e);
     aiResult = createFallbackResult(text);
@@ -108,8 +121,9 @@ export async function processTextRecord(text: string, childId?: string, date?: s
   let aiResult;
   let aiPending = false;
 
+  const customTags = await getCustomTagNames();
   try {
-    aiResult = await processWithAI(text);
+    aiResult = await processWithAI(text, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패 (textRecord):', e);
     aiResult = createFallbackResult(text);

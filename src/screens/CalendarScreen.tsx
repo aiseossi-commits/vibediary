@@ -52,8 +52,8 @@ function hasMedical(tags: string[]): boolean {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-    title: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
+    header: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
+    title: { fontSize: FONT_SIZE.title, fontWeight: FONT_WEIGHT.bold, fontFamily: 'Pretendard-Bold', color: colors.textPrimary, letterSpacing: -0.6 },
     calendar: { backgroundColor: colors.background },
     dayCell: { width: 36, height: 36, borderRadius: BORDER_RADIUS.sm, alignItems: 'center', justifyContent: 'center', margin: 2 },
     dayCellSelected: { borderWidth: 1.5, borderColor: colors.primary },
