@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as FileSystem from 'expo-file-system';
 import { useRecording } from '../hooks/useRecording';
 import WaveLoader from '../components/WaveLoader';
 import { useTheme } from '../context/ThemeContext';
@@ -115,12 +116,13 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       const result = await stop();
       if (avgLevel <= SILENCE_THRESHOLD) {
         Alert.alert('녹음된 내용이 없습니다', '음성이 감지되지 않았습니다. 마이크 가까이에서 다시 녹음해 주세요.');
+        FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => {});
         onCancel();
         return;
       }
       if (avgLevel <= LOW_AUDIO_THRESHOLD) {
         Alert.alert('녹음 음량이 낮습니다', '음성이 잘 들리지 않을 수 있습니다. 저장할까요?', [
-          { text: '취소', style: 'cancel', onPress: onCancel },
+          { text: '취소', style: 'cancel', onPress: () => { FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => {}); onCancel(); } },
           { text: '저장', onPress: () => onRecordingComplete(result.uri, result.duration) },
         ]);
       } else {

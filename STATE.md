@@ -104,6 +104,7 @@
 - [x] `USER_PROMPT_TEMPLATE` `{subjectLine}` 플레이스홀더 제거 (`aiProcessor.ts`)
 - [x] whisperSTT 30초 AbortController 타임아웃 추가 (`stt.ts`)
 - [x] recordPipeline DB 저장 구간 트랜잭션 적용 (createRecord + setTagsForRecord + addToOfflineQueue)
+- [x] RecordingScreen 무음/저음량 취소 시 임시 오디오 파일 삭제 (스토리지 누수 수정)
 
 ## 최근 버그 수정
 
