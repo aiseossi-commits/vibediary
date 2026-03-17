@@ -95,6 +95,14 @@
 
 (없음)
 
+## 최근 완료된 작업 (dead-code-cleanup)
+
+- [x] `STTReviewScreen.tsx` 삭제 (고아 파일)
+- [x] `getRecordsByTagNames()` 삭제 (`src/db/queries.ts`)
+- [x] `RecordTag` interface 삭제 (`src/types/record.ts`)
+- [x] `COLORS` export 삭제 (`src/constants/theme.ts`)
+- [x] `USER_PROMPT_TEMPLATE` `{subjectLine}` 플레이스홀더 제거 (`aiProcessor.ts`)
+
 ## 최근 버그 수정
 
 - [x] 연속 녹음 시 "only one recording object can be prepared" 에러 수정 (`audioRecorder.ts`)

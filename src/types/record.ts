@@ -21,11 +21,6 @@ export interface Tag {
   name: string; // "#의료", "#투약" 등
 }
 
-export interface RecordTag {
-  recordId: string;
-  tagId: number;
-}
-
 export interface RecordWithTags extends DiaryRecord {
   tags: Tag[];
 }

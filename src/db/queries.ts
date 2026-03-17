@@ -138,32 +138,6 @@ export async function getRecordsByTags(
   return results;
 }
 
-// 태그 이름으로 필터링
-export async function getRecordsByTagNames(
-  tagNames: string[],
-  limit = 50,
-  offset = 0,
-  childId?: string
-): Promise<RecordWithTags[]> {
-  if (tagNames.length === 0) return [];
-
-  const db = await getDatabase();
-  const placeholders = tagNames.map(() => '?').join(',');
-
-  const tagRows = await db.getAllAsync<Tag>(
-    `SELECT id, name FROM tags WHERE name IN (${placeholders})`,
-    ...tagNames
-  );
-
-  if (tagRows.length === 0) return [];
-  return getRecordsByTags(
-    tagRows.map((t) => t.id),
-    limit,
-    offset,
-    childId
-  );
-}
-
 // 임베딩이 있는 전체 기록 조회 (벡터 검색용)
 export async function getRecordsWithEmbeddings(tagIds?: number[], childId?: string): Promise<
   { id: string; summary: string; structuredData: string | null; embedding: Uint8Array; createdAt: number }[]

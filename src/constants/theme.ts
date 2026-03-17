@@ -108,9 +108,6 @@ export interface AppColors {
   tabInactive: string;
 }
 
-// 하위 호환용 (직접 import 하는 곳 있을 경우 대비)
-export const COLORS = DARK_COLORS;
-
 export const DARK_DENSITY_COLORS = [
   'transparent',
   '#2A312B',
