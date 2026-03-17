@@ -76,6 +76,8 @@
 - [x] Whisper temperature=0 설정 (deno-main.ts v6.3, 환각 전반 감소)
 - [x] RecordingScreen: 프로그레스 바 제거, 25초부터 5초 카운트다운
 - [x] RecordingScreen: 일시정지 버튼 제거, 종료 버튼만 유지
+- [x] 컬러 팔레트 교체: 세이지 그린 (#86A789) — "기록이 쌓여 성장이 되는" 컨셉
+- [x] 팔레트 후보 5종 보관 (docs/colorcode.md)
 
 ## 진행 중인 작업
 
