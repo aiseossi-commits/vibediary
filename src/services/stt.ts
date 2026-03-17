@@ -213,13 +213,22 @@ async function whisperSTT(audioUri: string, subjectName?: string): Promise<strin
     : '';
   formData.append('prompt', basePrompt + nameHint);
 
-  const response = await fetch(`${workerUrl}/stt`, {
-    method: 'POST',
-    headers: {
-      'X-App-Secret': workerSecret,
-    },
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let response: Response;
+  try {
+    response = await fetch(`${workerUrl}/stt`, {
+      method: 'POST',
+      headers: {
+        'X-App-Secret': workerSecret,
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');

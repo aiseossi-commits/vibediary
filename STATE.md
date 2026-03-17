@@ -102,6 +102,7 @@
 - [x] `RecordTag` interface 삭제 (`src/types/record.ts`)
 - [x] `COLORS` export 삭제 (`src/constants/theme.ts`)
 - [x] `USER_PROMPT_TEMPLATE` `{subjectLine}` 플레이스홀더 제거 (`aiProcessor.ts`)
+- [x] whisperSTT 30초 AbortController 타임아웃 추가 (`stt.ts`)
 
 ## 최근 버그 수정
 
