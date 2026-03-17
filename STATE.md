@@ -103,6 +103,8 @@
 - [x] SearchScreen 빈 상태 안내 문구 교체 (사용법 + 휘발 안내)
 - [x] SearchScreen 태그 필터 완전 제거 (버튼, 패널, state, 스타일)
 
+- [x] HomeScreen 바다 선택 chevron: 텍스트 `⌄` → Ionicons `chevron-down` 아이콘 (발견성 개선)
+
 ## 진행 중인 작업
 
 (없음)

@@ -47,6 +47,8 @@ function createStyles(colors: AppColors) {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       paddingHorizontal: 24, paddingVertical: 20,
     },
+    titleRow: { flexDirection: 'row', alignItems: 'center' },
+    titleChevron: { marginLeft: 4, marginTop: 2 },
     title: { fontSize: 30, fontWeight: '700' as const, color: colors.textPrimary, letterSpacing: -0.6 },
     subtitle: { fontSize: 13, color: colors.textTertiary, marginTop: 4, letterSpacing: 0.2 },
     headerRight: { flexDirection: 'row', gap: SPACING.sm },
@@ -262,11 +264,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               setChildModalVisible(true);
             }}
             activeOpacity={childList.length >= 2 ? 0.7 : 1}
+            style={styles.titleRow}
           >
             <Text style={styles.title}>
               {activeChild ? `${activeChild.name}의 ${isDark ? '밤바다' : '바다'}` : (isDark ? '밤바다' : '바다')}
-              {childList.length >= 2 ? ' ⌄' : ''}
             </Text>
+            {childList.length >= 2 && (
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} style={styles.titleChevron} />
+            )}
           </TouchableOpacity>
           <Text style={styles.subtitle}>작은 기록이 큰 추억이 됩니다</Text>
         </View>
