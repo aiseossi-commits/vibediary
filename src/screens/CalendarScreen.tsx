@@ -418,15 +418,15 @@ export default function CalendarScreen() {
             ) : dayRecords.length === 0 ? (
               <View style={styles.emptyDay}>
                 <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
-                <TouchableOpacity onPress={handleStartRecording} style={styles.recordButton}>
+                <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { alignSelf: 'stretch' }]}>
                   <Text style={styles.recordButtonText}>녹음 시작하기</Text>
                 </TouchableOpacity>
-                <View style={styles.inputDivider}>
+                <View style={[styles.inputDivider, { alignSelf: 'stretch' }]}>
                   <View style={styles.inputDividerLine} />
                   <Text style={styles.inputDividerText}>또는</Text>
                   <View style={styles.inputDividerLine} />
                 </View>
-                <View style={styles.textInputContainer}>
+                <View style={[styles.textInputContainer, { alignSelf: 'stretch' }]}>
                   <TextInput
                     style={styles.textInput}
                     placeholder="텍스트로 기록하기..."

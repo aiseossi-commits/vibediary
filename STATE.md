@@ -65,6 +65,18 @@
 
 ---
 
+## 최근 완료된 작업 (이번 세션)
+
+- [x] APK 빌드 파일명에 날짜+시간 포함 (bada-releaseMMDDHHmm.apk)
+- [x] 앱 소개 문서 생성 (docs/bada-intro.md)
+- [x] 미구현 기능 검토 목록 생성 (docs/future-features.md)
+- [x] CalendarScreen 텍스트 입력 UI 통일 (빈 날/기록 있는 날 동일 너비)
+- [x] STT 환각 필터 강화: 한글 비율 체크, trailing strip, 세그먼트별 재조합
+- [x] STT 반복 단어 감지: 같은 단어 3회 연속 반복 → 환각 차단
+- [x] Whisper temperature=0 설정 (deno-main.ts v6.3, 환각 전반 감소)
+- [x] RecordingScreen: 프로그레스 바 제거, 25초부터 5초 카운트다운
+- [x] RecordingScreen: 일시정지 버튼 제거, 종료 버튼만 유지
+
 ## 진행 중인 작업
 
 없음

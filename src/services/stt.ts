@@ -110,7 +110,7 @@ function generateNameVariants(name: string): string[] {
   return [...variants];
 }
 
-// STT 환각 패턴 블랙리스트 (Whisper + 디바이스 STT 공통)
+// STT 환각 패턴 블랙리스트 — 전체 텍스트가 이 패턴이면 완전 차단
 const HALLUCINATION_PATTERNS = [
   '시청해주셔서 감사합니다',
   '구독과 좋아요',
@@ -129,9 +129,49 @@ const HALLUCINATION_PATTERNS = [
   '자막 제공',
 ];
 
+// 끝에 붙는 환각 패턴 — 실제 내용 뒤에 추가된 경우만 제거
+const TRAILING_HALLUCINATION_PATTERNS = [
+  '감사합니다',
+  '감사해요',
+  '시청해주셔서',
+  '구독해주세요',
+  'thank you',
+  'thanks for watching',
+  '다음에 또 만나요',
+  '안녕히 계세요',
+];
+
+// 마지막 문장이 환각 패턴이면 제거 (실제 내용은 보존)
+function stripTrailingHallucination(text: string): string {
+  // 문장 단위로 분리 (.!? 기준)
+  const parts = text.split(/(?<=[.!?])\s+/);
+  while (parts.length > 1) {
+    const last = parts[parts.length - 1].toLowerCase().trim();
+    if (TRAILING_HALLUCINATION_PATTERNS.some((p) => last.includes(p.toLowerCase()))) {
+      parts.pop();
+    } else {
+      break;
+    }
+  }
+  return parts.join(' ').trim();
+}
+
 function isHallucination(text: string): boolean {
   const lower = text.toLowerCase().trim();
-  return HALLUCINATION_PATTERNS.some((p) => lower.includes(p.toLowerCase()));
+  if (HALLUCINATION_PATTERNS.some((p) => lower.includes(p.toLowerCase()))) return true;
+
+  // 한글이 없고 외국어만 있으면 환각 처리 (예: "quizas un mens Hispanic")
+  const koreanChars = (text.match(/[\uAC00-\uD7A3\u3131-\u318E]/g) ?? []).length;
+  const latinChars = (text.match(/[a-zA-Z]/g) ?? []).length;
+  if (koreanChars === 0 && latinChars > 2) return true;
+
+  // 같은 단어 3회 이상 연속 반복 → 환각 (예: "비싼 비싼 비싼")
+  const words = text.trim().split(/\s+/);
+  for (let i = 0; i < words.length - 2; i++) {
+    if (words[i] === words[i + 1] && words[i] === words[i + 2]) return true;
+  }
+
+  return false;
 }
 
 // 오디오 파일 크기로 무음 여부 판단
@@ -188,23 +228,26 @@ async function whisperSTT(audioUri: string, subjectName?: string): Promise<strin
   }
 
   const data = await response.json();
-  const text: string = data.text || '';
-  const trimmed = text.trim();
+  const segments: { text?: string; no_speech_prob?: number }[] = data.segments ?? [];
 
-  // no_speech_prob: 세그먼트별 개별 체크 (평균 대신 비율로 판단)
-  const segments: { no_speech_prob?: number }[] = data.segments ?? [];
+  // 세그먼트가 있으면 no_speech_prob 낮은 것만 골라 재조합 (중간 환각 제거)
+  let trimmed: string;
   if (segments.length > 0) {
-    const avgNoSpeech = segments.reduce((s, seg) => s + (seg.no_speech_prob ?? 0), 0) / segments.length;
-    const highNoSpeechRatio = segments.filter((seg) => (seg.no_speech_prob ?? 0) > 0.7).length / segments.length;
-    // 평균 0.45 초과이거나 70% 이상 세그먼트가 소음이면 무음 처리
-    if (avgNoSpeech > 0.45 || highNoSpeechRatio >= 0.5) {
-      return '';
-    }
+    const validSegments = segments.filter((seg) => (seg.no_speech_prob ?? 0) < 0.5);
+    // 유효 세그먼트가 전혀 없으면 무음 처리
+    if (validSegments.length === 0) return '';
+    trimmed = validSegments.map((seg) => (seg.text ?? '').trim()).join(' ').trim();
+  } else {
+    trimmed = (data.text || '').trim();
   }
 
   // 10자 미만이거나 환각 패턴이면 빈 텍스트 반환
   if (trimmed.length < 10 || isHallucination(trimmed)) return '';
-  return trimmed;
+
+  // 끝에 붙은 환각 패턴 제거 (실제 내용은 보존)
+  const stripped = stripTrailingHallucination(trimmed);
+  if (stripped.length < 10) return '';
+  return stripped;
 }
 
 // 통합 STT 파이프라인

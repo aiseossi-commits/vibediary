@@ -54,22 +54,14 @@ function createStyles(colors: AppColors) {
       marginBottom: 8,
       letterSpacing: 2,
     },
-    progressBarTrack: {
-      width: 180,
-      height: 3,
-      borderRadius: BORDER_RADIUS.full,
-      backgroundColor: colors.divider,
-      marginBottom: 24,
-      overflow: 'hidden' as const,
+    countdown: {
+      fontSize: 64,
+      fontWeight: '700' as const,
+      color: colors.recordingRed,
+      marginBottom: 16,
+      letterSpacing: -2,
     },
-    progressBarFill: {
-      height: 3,
-      borderRadius: BORDER_RADIUS.full,
-      backgroundColor: colors.primary,
-    },
-    progressBarFillWarning: {
-      backgroundColor: colors.recordingRed,
-    },
+    countdownSpacer: { height: 40, marginBottom: 24 },
     buttonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xl },
     recordButton: {
       width: TOUCH_TARGET.recordButton,
@@ -81,10 +73,7 @@ function createStyles(colors: AppColors) {
       borderWidth: 2,
       borderColor: colors.micBorder,
     },
-    recordButtonActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
     recordDot: { width: 32, height: 32, borderRadius: BORDER_RADIUS.full, backgroundColor: colors.primary },
-    resumeIcon: { fontSize: 24, color: colors.primary },
-    pauseIcon: { fontSize: 20, color: colors.textSecondary, letterSpacing: 4 },
     stopButton: {
       width: TOUCH_TARGET.min,
       height: TOUCH_TARGET.min,
@@ -104,7 +93,7 @@ function createStyles(colors: AppColors) {
 export default function RecordingScreen({ onRecordingComplete, onCancel, isProcessing = false }: RecordingScreenProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { isRecording, isPaused, isStarting, duration, audioLevel, getAverageAudioLevel, start, stop, pause, resume, error } = useRecording();
+  const { isRecording, isStarting, duration, audioLevel, getAverageAudioLevel, start, stop, error } = useRecording();
 
   React.useEffect(() => { start(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -113,13 +102,6 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const handleToggleRecording = useCallback(async () => {
-    if (isStarting) return;
-    if (!isRecording) { await start(); }
-    else if (isPaused) { await resume(); }
-    else { await pause(); }
-  }, [isRecording, isPaused, isStarting, start, pause, resume]);
 
   const MIN_DURATION = 3;
   const MAX_DURATION = 30;
@@ -151,10 +133,10 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
 
   // 30초 자동 종료
   useEffect(() => {
-    if (isRecording && !isPaused && duration >= MAX_DURATION) {
+    if (isRecording && duration >= MAX_DURATION) {
       handleStop();
     }
-  }, [duration, isRecording, isPaused, handleStop]);
+  }, [duration, isRecording, handleStop]);
 
   const handleCancel = useCallback(() => {
     if (isRecording) {
@@ -192,14 +174,11 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
               {[0.5, 0.75, 1.0, 0.75, 0.5, 0.85, 0.6].map((factor, i) => (
                 <View
                   key={i}
-                  style={[
-                    styles.waveBar,
-                    { height: isPaused ? 4 : Math.max(4, audioLevel * factor * 56), opacity: isPaused ? 0.3 : 0.7 + factor * 0.3 },
-                  ]}
+                  style={[styles.waveBar, { height: Math.max(4, audioLevel * factor * 56), opacity: 0.7 + factor * 0.3 }]}
                 />
               ))}
             </View>
-            <Text style={styles.statusText}>{isPaused ? '일시중지' : '녹음 중...'}</Text>
+            <Text style={styles.statusText}>녹음 중...</Text>
           </>
         )}
       </View>
@@ -207,37 +186,29 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       <View style={styles.controls}>
         {isProcessing ? null : (
           <>
-            <Text style={[styles.timer, duration >= 20 && { color: colors.recordingRed }]}>
+            <Text style={[styles.timer, duration >= 25 && { color: colors.recordingRed }]}>
               {formatDuration(duration)}
             </Text>
-            <View style={styles.progressBarTrack}>
-              <View style={[
-                styles.progressBarFill,
-                { width: `${Math.min((duration / MAX_DURATION) * 100, 100)}%` },
-                duration >= 20 && styles.progressBarFillWarning,
-              ]} />
-            </View>
+            {isRecording && duration >= 25 ? (
+              <Text style={styles.countdown}>{MAX_DURATION - duration}</Text>
+            ) : (
+              <View style={styles.countdownSpacer} />
+            )}
             <View style={styles.buttonRow}>
-              {isRecording && (
+              {!isRecording ? (
+                <TouchableOpacity
+                  onPress={start}
+                  disabled={isStarting}
+                  style={[styles.recordButton, isStarting && { opacity: 0.5 }]}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.recordDot} />
+                </TouchableOpacity>
+              ) : (
                 <TouchableOpacity onPress={handleStop} style={styles.stopButton}>
                   <View style={styles.stopIcon} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                onPress={handleToggleRecording}
-                disabled={isStarting}
-                style={[styles.recordButton, isRecording && !isPaused && styles.recordButtonActive, isStarting && { opacity: 0.5 }]}
-                activeOpacity={0.7}
-              >
-                {!isRecording ? (
-                  <View style={styles.recordDot} />
-                ) : isPaused ? (
-                  <Text style={styles.resumeIcon}>▶</Text>
-                ) : (
-                  <Text style={styles.pauseIcon}>❚❚</Text>
-                )}
-              </TouchableOpacity>
-              {isRecording && <View style={{ width: TOUCH_TARGET.min }} />}
             </View>
             {error && <Text style={styles.errorText}>{error}</Text>}
           </>
