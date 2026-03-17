@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useCallback, useMemo, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import { useRecording } from '../hooks/useRecording';
@@ -91,6 +91,51 @@ function createStyles(colors: AppColors) {
   });
 }
 
+function OrganicBlob({ audioLevel, color }: { audioLevel: number; color: string }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const r1 = useRef(new Animated.Value(60)).current;
+  const r2 = useRef(new Animated.Value(60)).current;
+  const r3 = useRef(new Animated.Value(60)).current;
+  const r4 = useRef(new Animated.Value(60)).current;
+
+  useEffect(() => {
+    const makeLoop = (anim: Animated.Value, a: number, b: number, dur: number) =>
+      Animated.loop(Animated.sequence([
+        Animated.timing(anim, { toValue: a, duration: dur, useNativeDriver: false }),
+        Animated.timing(anim, { toValue: b, duration: dur, useNativeDriver: false }),
+      ]));
+
+    const l1 = makeLoop(r1, 52, 70, 900);
+    const l2 = makeLoop(r2, 72, 50, 1100);
+    const l3 = makeLoop(r3, 58, 74, 1300);
+    const l4 = makeLoop(r4, 68, 52, 950);
+    l1.start(); l2.start(); l3.start(); l4.start();
+
+    return () => { l1.stop(); l2.stop(); l3.stop(); l4.stop(); };
+  }, []);
+
+  useEffect(() => {
+    const target = audioLevel > 0.05 ? 1 + audioLevel * 0.5 : 1;
+    Animated.spring(scale, { toValue: target, useNativeDriver: true, damping: 8, stiffness: 120 }).start();
+  }, [audioLevel]);
+
+  return (
+    <View style={{ width: 160, height: 160, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Animated.View style={{
+          width: 120, height: 120,
+          backgroundColor: color,
+          opacity: 0.85,
+          borderTopLeftRadius: r1,
+          borderTopRightRadius: r2,
+          borderBottomRightRadius: r3,
+          borderBottomLeftRadius: r4,
+        }} />
+      </Animated.View>
+    </View>
+  );
+}
+
 export default function RecordingScreen({ onRecordingComplete, onCancel, isProcessing = false }: RecordingScreenProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -172,14 +217,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
         {!isRecording && !isProcessing && null}
         {isRecording && (
           <>
-            <View style={styles.waveform}>
-              {[0.5, 0.75, 1.0, 0.75, 0.5, 0.85, 0.6].map((factor, i) => (
-                <View
-                  key={i}
-                  style={[styles.waveBar, { height: Math.max(4, audioLevel * factor * 56), opacity: 0.7 + factor * 0.3 }]}
-                />
-              ))}
-            </View>
+            <OrganicBlob audioLevel={audioLevel} color={colors.primary} />
             <Text style={styles.statusText}>녹음 중...</Text>
           </>
         )}
