@@ -76,6 +76,7 @@
 - [x] CalendarScreen: 텍스트 기록 → "직접 입력", 음성 기록 → "음성 기록" 라벨
 - [x] CalendarScreen: 오늘 날짜 filled circle (primary 배경 + 흰 숫자) — 밀도색과 겹침 방지
 - [x] recordsDao: audioPath || null (빈 문자열 → NULL 저장)
+- [x] 캘린더 기록이 홈에 안 뜨는 문제 → 의도된 동작으로 결론, 디버그 로그 제거
 
 - [x] APK 빌드 파일명에 날짜+시간 포함 (bada-releaseMMDDHHmm.apk)
 - [x] 앱 소개 문서 생성 (docs/bada-intro.md)
@@ -91,11 +92,7 @@
 
 ## 진행 중인 작업
 
-- [ ] **[미해결]** 캘린더에서 추가한 기록이 홈화면에 안 뜨는 문제 (음성/텍스트 둘 다)
-  - HomeScreen에 디버그 console.log 추가해둔 상태 (`[Home] loadRecords called`, `[Home] loadRecords error`)
-  - AppNavigator에도 `[Recording] dateStr: ...` 로그 추가
-  - 원인 파악 후 로그 제거 필요
-  - 확인 방법: `cd /Users/jhouse/Documents/newbada/vibediary && npx expo start` 실행 후 터미널에서 로그 확인
+(없음)
 
 ## 최근 버그 수정
 

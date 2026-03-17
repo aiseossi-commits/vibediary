@@ -153,7 +153,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   useEffect(() => { activeChildIdRef.current = activeChild?.id; }, [activeChild?.id]);
 
   const loadRecords = useCallback(async (reset = false) => {
-    console.log('[Home] loadRecords called, reset:', reset, 'childId:', activeChildIdRef.current);
     try {
       if (!isDatabaseReady()) { setRecords([]); setHasMore(false); return; }
       const offset = reset ? 0 : records.length;
@@ -164,7 +163,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       else { setRecords((prev) => [...prev, ...data]); }
       setHasMore(data.length === PAGE_SIZE);
     } catch (e) {
-      console.log('[Home] loadRecords error:', e);
+      console.error('[Home] loadRecords error:', e);
       if (reset) { setRecords([]); setShowEmptyState(true); }
       setHasMore(false);
     } finally {

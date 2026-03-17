@@ -214,7 +214,6 @@ function RecordingScreenWrapper({ navigation, route }: any) {
       }
       const dateStr: string | undefined = route.params?.date;
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
-      console.log('[Recording] dateStr:', dateStr, 'createdAt:', createdAt, 'childId:', activeChild?.id);
       await processFromText(uri, text, createdAt, activeChild?.id);
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
