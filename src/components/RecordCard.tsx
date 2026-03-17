@@ -5,7 +5,6 @@ import {
   FONT_SIZE,
   FONT_WEIGHT,
   BORDER_RADIUS,
-  SHADOW,
   type AppColors,
 } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
@@ -16,6 +15,8 @@ interface RecordCardProps {
   record: RecordWithTags;
   onPress: () => void;
   showAgeOverlay?: boolean;
+  timeOnly?: boolean;
+  customLabel?: string;
 }
 
 // 회색 오버레이 불투명도: dark/light 양쪽에서 명확히 보이는 "바랜" 효과
@@ -71,13 +72,19 @@ function createStyles(colors: AppColors) {
       padding: 18,
       marginHorizontal: 16,
       marginBottom: 10,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderBottomWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.15)',
+      borderLeftColor: colors.border,
+      borderRightColor: colors.border,
+      borderBottomColor: colors.border,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 12,
-      elevation: 6,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.10,
+      shadowRadius: 1,
+      elevation: 2,
     },
     header: {
       flexDirection: 'row',
@@ -120,19 +127,23 @@ function createStyles(colors: AppColors) {
   });
 }
 
-function RecordCard({ record, onPress, showAgeOverlay = true }: RecordCardProps) {
+function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, customLabel }: RecordCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const overlayOpacity = showAgeOverlay ? getAgeOverlayOpacity(record.createdAt) : 0;
+  const dateLabel = customLabel
+    ?? (timeOnly
+      ? new Date(record.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })
+      : formatDateTime(record.createdAt));
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={[styles.card, SHADOW.sm]}
+      style={styles.card}
     >
       <View style={styles.header}>
-        <Text style={styles.dateText}>{formatDateTime(record.createdAt)}</Text>
+        <Text style={styles.dateText}>{dateLabel}</Text>
         {record.aiPending && (
           <View style={styles.pendingBadge}>
             <ActivityIndicator size="small" color={colors.accent} />

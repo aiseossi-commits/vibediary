@@ -42,7 +42,7 @@ export const CREATE_RECORD_TAGS_TABLE = `
 export const CREATE_OFFLINE_QUEUE_TABLE = `
   CREATE TABLE IF NOT EXISTS offline_queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    record_id TEXT REFERENCES records(id) ON DELETE CASCADE,
+    record_id TEXT UNIQUE REFERENCES records(id) ON DELETE CASCADE,
     raw_text TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     status TEXT DEFAULT 'pending'

@@ -8,6 +8,7 @@ const MIN_HEIGHT = 8;
 const BAR_WIDTH = 5;
 const STAGGER_DELAY = 110;
 const DURATION = 380;
+const SCALE_MIN = MIN_HEIGHT / MAX_HEIGHT;
 
 interface WaveLoaderProps {
   color?: string;
@@ -19,7 +20,7 @@ export default function WaveLoader({ color, size = 1 }: WaveLoaderProps) {
   const barColor = color ?? colors.secondary;
 
   const animations = useRef(
-    Array.from({ length: BAR_COUNT }, () => new Animated.Value(MIN_HEIGHT))
+    Array.from({ length: BAR_COUNT }, () => new Animated.Value(SCALE_MIN))
   ).current;
 
   useEffect(() => {
@@ -27,8 +28,8 @@ export default function WaveLoader({ color, size = 1 }: WaveLoaderProps) {
       const loop = Animated.loop(
         Animated.sequence([
           Animated.delay(i * STAGGER_DELAY),
-          Animated.timing(anim, { toValue: MAX_HEIGHT, duration: DURATION, useNativeDriver: false }),
-          Animated.timing(anim, { toValue: MIN_HEIGHT, duration: DURATION, useNativeDriver: false }),
+          Animated.timing(anim, { toValue: 1, duration: DURATION, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: SCALE_MIN, duration: DURATION, useNativeDriver: true }),
         ])
       );
       loop.start();
@@ -46,12 +47,10 @@ export default function WaveLoader({ color, size = 1 }: WaveLoaderProps) {
             styles.bar,
             {
               width: BAR_WIDTH * size,
-              height: anim.interpolate({
-                inputRange: [MIN_HEIGHT, MAX_HEIGHT],
-                outputRange: [MIN_HEIGHT * size, MAX_HEIGHT * size],
-              }),
+              height: MAX_HEIGHT * size,
               backgroundColor: barColor,
               borderRadius: (BAR_WIDTH * size) / 2,
+              transform: [{ scaleY: anim }],
             },
           ]}
         />

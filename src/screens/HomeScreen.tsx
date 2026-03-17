@@ -51,7 +51,7 @@ function createStyles(colors: AppColors) {
     subtitle: { fontSize: 13, color: colors.textTertiary, marginTop: 4, letterSpacing: 0.2 },
     headerRight: { flexDirection: 'row', gap: SPACING.sm },
     headerIcon: { padding: SPACING.sm },
-    listContent: { paddingTop: 8, paddingBottom: 16, paddingHorizontal: 0 },
+    listContent: { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 0 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: SPACING.xxl },
     listFooter: { paddingVertical: SPACING.xl, alignItems: 'center' },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -70,7 +70,7 @@ function createStyles(colors: AppColors) {
       width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2,
       backgroundColor: colors.micBg, alignItems: 'center', justifyContent: 'center',
       borderWidth: 1.5, borderColor: colors.micBorder,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 24, elevation: 12,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 1, elevation: 2,
     },
     pearlLabel: { fontSize: 15, fontWeight: '500' as const, color: colors.micLabel, marginTop: 16, opacity: 0.85, letterSpacing: 0.2 },
     typingInput: { flex: 1, fontSize: 15, color: colors.textPrimary, paddingVertical: SPACING.sm },
@@ -153,6 +153,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   useEffect(() => { activeChildIdRef.current = activeChild?.id; }, [activeChild?.id]);
 
   const loadRecords = useCallback(async (reset = false) => {
+    console.log('[Home] loadRecords called, reset:', reset, 'childId:', activeChildIdRef.current);
     try {
       if (!isDatabaseReady()) { setRecords([]); setHasMore(false); return; }
       const offset = reset ? 0 : records.length;
@@ -162,7 +163,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       if (reset) { setRecords(data); setShowEmptyState(data.length === 0); }
       else { setRecords((prev) => [...prev, ...data]); }
       setHasMore(data.length === PAGE_SIZE);
-    } catch {
+    } catch (e) {
+      console.log('[Home] loadRecords error:', e);
       if (reset) { setRecords([]); setShowEmptyState(true); }
       setHasMore(false);
     } finally {
@@ -307,7 +309,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={styles.pearlCenter}>
           {PearlButton}
-          <Text style={styles.pearlLabel}>지금 말하기</Text>
         </View>
 
         {!hasRecords && showEmptyState ? (

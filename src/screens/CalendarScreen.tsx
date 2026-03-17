@@ -58,7 +58,7 @@ function createStyles(colors: AppColors) {
     dayCell: { width: 36, height: 36, borderRadius: BORDER_RADIUS.sm, alignItems: 'center', justifyContent: 'center', margin: 2 },
     dayCellSelected: { borderWidth: 1.5, borderColor: colors.primary },
     dayText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary },
-    dayTextToday: { color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
+    dayTextToday: { color: '#fff', fontWeight: FONT_WEIGHT.semibold },
     dayTextSelected: { fontWeight: FONT_WEIGHT.bold },
     dayTextDisabled: { color: colors.textTertiary },
     pearlDot: { position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.secondary },
@@ -196,7 +196,7 @@ export default function CalendarScreen() {
     setIsLoadingRecords(true);
     try {
       const records = await getRecordsByDate(date, activeChild?.id);
-      setDayRecords(records);
+setDayRecords(records);
       return records;
     } catch {
       setDayRecords([]);
@@ -315,14 +315,13 @@ export default function CalendarScreen() {
     return (
       <TouchableOpacity
         onPress={() => handleDayPress({ dateString: dateStr })}
-        style={[styles.dayCell, { backgroundColor: bgColor }, isSelected && styles.dayCellSelected]}
+        style={[styles.dayCell, { backgroundColor: isToday ? colors.primary : bgColor }, isSelected && styles.dayCellSelected]}
         activeOpacity={0.7}
       >
         {isMedical && <View style={styles.pearlDot} />}
         <Text style={[
           styles.dayText,
-          isToday && styles.dayTextToday,
-          isSelected && styles.dayTextSelected,
+          isToday ? styles.dayTextToday : isSelected && styles.dayTextSelected,
           state === 'disabled' && styles.dayTextDisabled,
         ]}>
           {date?.day}
@@ -448,7 +447,14 @@ export default function CalendarScreen() {
             ) : (
               <>
                 {dayRecords.map((item) => (
-                  <RecordCard key={item.id} record={item} onPress={() => handleRecordPress(item.id)} showAgeOverlay={false} />
+                  <RecordCard
+                    key={item.id}
+                    record={item}
+                    onPress={() => handleRecordPress(item.id)}
+                    showAgeOverlay={false}
+                    customLabel={!item.audioPath ? '직접 입력' : '음성 기록'}
+                    timeOnly={false}
+                  />
                 ))}
                 <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
                   <Text style={styles.recordButtonText}>녹음 추가하기</Text>

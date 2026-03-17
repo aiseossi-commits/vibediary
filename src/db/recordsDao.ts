@@ -33,7 +33,7 @@ export async function createRecord(params: {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     now,
-    params.audioPath ?? null,
+    params.audioPath || null,
     params.rawText ?? null,
     params.summary,
     params.structuredData ? JSON.stringify(params.structuredData) : null,

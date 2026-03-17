@@ -1,6 +1,6 @@
 import { getDatabase } from '../db/database';
 import { processWithAI } from './aiProcessor';
-import { updateRecord } from '../db/recordsDao';
+import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
 
@@ -8,7 +8,7 @@ import { getNetworkState } from '../utils/network';
 export async function addToOfflineQueue(recordId: string, rawText: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    'INSERT INTO offline_queue (record_id, raw_text, created_at, status) VALUES (?, ?, ?, ?)',
+    'INSERT OR IGNORE INTO offline_queue (record_id, raw_text, created_at, status) VALUES (?, ?, ?, ?)',
     recordId,
     rawText,
     Date.now(),
@@ -26,10 +26,13 @@ export async function getPendingQueueCount(): Promise<number> {
 }
 
 let isProcessingQueue = false;
+let apiErrorCooldownUntil = 0;
+const API_ERROR_COOLDOWN_MS = 5 * 60 * 1000; // 429 등 API 오류 시 5분 대기
 
 // 오프라인 큐 일괄 처리 (네트워크 복구 시)
 export async function processOfflineQueue(): Promise<number> {
   if (isProcessingQueue) return 0;
+  if (Date.now() < apiErrorCooldownUntil) return 0;
   const isOnline = await getNetworkState();
   if (!isOnline) return 0;
 
@@ -47,6 +50,13 @@ export async function processOfflineQueue(): Promise<number> {
 
     for (const item of pendingItems) {
       try {
+        // 이미 처리된 기록이면 큐에서만 제거
+        const record = await getRecordById(item.record_id);
+        if (!record || !record.aiPending) {
+          await db.runAsync("UPDATE offline_queue SET status = 'done' WHERE id = ?", item.id);
+          continue;
+        }
+
         // AI 처리
         const result = await processWithAI(item.raw_text);
 
@@ -68,8 +78,14 @@ export async function processOfflineQueue(): Promise<number> {
 
         processed++;
       } catch (error) {
-        // 개별 실패는 건너뛰고 다음 항목 처리
         console.warn(`오프라인 큐 처리 실패 (record: ${item.record_id}):`, error);
+
+        const errMsg = error instanceof Error ? error.message : '';
+        // API 할당량 초과 → 쿨다운 후 중단 (재시도해도 의미없음)
+        if (errMsg.includes('429')) {
+          apiErrorCooldownUntil = Date.now() + API_ERROR_COOLDOWN_MS;
+          break;
+        }
 
         // 네트워크 오류면 중단
         const stillOnline = await getNetworkState();

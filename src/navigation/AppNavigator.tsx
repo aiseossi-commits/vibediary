@@ -214,6 +214,7 @@ function RecordingScreenWrapper({ navigation, route }: any) {
       }
       const dateStr: string | undefined = route.params?.date;
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
+      console.log('[Recording] dateStr:', dateStr, 'createdAt:', createdAt, 'childId:', activeChild?.id);
       await processFromText(uri, text, createdAt, activeChild?.id);
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
@@ -224,7 +225,8 @@ function RecordingScreenWrapper({ navigation, route }: any) {
         Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');
       }
     } finally {
-      navigation.navigate('Main', { screen: 'Home' });
+      const returnTab = route.params?.date ? 'Calendar' : 'Home';
+      navigation.navigate('Main', { screen: returnTab });
     }
   }, [navigation, route.params?.date, activeChild?.id]);
 
