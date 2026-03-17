@@ -1,5 +1,5 @@
 import { getDatabase } from '../db/database';
-import { processWithAI } from './aiProcessor';
+import { processWithAI, generateEmbedding } from './aiProcessor';
 import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
@@ -60,11 +60,20 @@ export async function processOfflineQueue(): Promise<number> {
         // AI 처리
         const result = await processWithAI(item.raw_text);
 
+        // embedding 생성 (실패해도 큐 처리 계속)
+        let embedding: number[] | null = null;
+        try {
+          embedding = await generateEmbedding(result.summary);
+        } catch {
+          // embedding 생성 실패 시 null 유지
+        }
+
         // 기록 업데이트
         await updateRecord(item.record_id, {
           summary: result.summary,
           structuredData: result.structuredData,
           aiPending: false,
+          embedding,
         });
 
         // 태그 업데이트

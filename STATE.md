@@ -82,6 +82,7 @@
 - [x] 앱 소개 문서 생성 (docs/bada-intro.md)
 - [x] 미구현 기능 검토 목록 생성 (docs/future-features.md)
 - [x] CalendarScreen 텍스트 입력 UI 통일 (빈 날/기록 있는 날 동일 너비)
+- [x] AI 등대 검색 개선: offlineQueue embedding 누락 수정, vectorSearch threshold 기반(0.3, max 50건), 패턴 분석 프롬프트, maxOutputTokens 600, compact context 포맷
 - [x] STT 환각 필터 강화: 한글 비율 체크, trailing strip, 세그먼트별 재조합
 - [x] STT 반복 단어 감지: 같은 단어 3회 연속 반복 → 환각 차단
 - [x] Whisper temperature=0 설정 (deno-main.ts v6.3, 환각 전반 감소)

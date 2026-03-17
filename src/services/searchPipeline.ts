@@ -11,7 +11,9 @@ const SEARCH_SYSTEM_PROMPT = `당신은 발달장애인 돌봄 기록을 검색�
 1. 기록에 있는 사실만 답변하세요
 2. 답변은 따뜻하고 간결하게 작성하세요
 3. 관련 기록의 날짜를 언급하세요
-4. 기록에 없는 내용은 추측하지 마세요`;
+4. 기록에 없는 내용은 추측하지 마세요
+5. 여러 기록에서 반복되는 패턴이나 빈도가 있으면 반드시 언급하세요 (예: "돼지고기 6회, 땅콩 5회")
+6. 첫 문장에 분석한 총 기록 건수를 자연스럽게 포함하세요 (예: "관련 기록 11건을 살펴봤어요.")`;
 
 // 3단계 검색 파이프라인
 export async function searchRecords(
@@ -29,7 +31,7 @@ export async function searchRecords(
   let topRecordIds: string[] = [];
 
   if (queryEmbedding) {
-    const vectorResults = await vectorSearch(queryEmbedding, 5, filterTagIds, childId);
+    const vectorResults = await vectorSearch(queryEmbedding, filterTagIds, childId);
     topRecordIds = vectorResults.map((r) => r.id);
   }
 
@@ -72,7 +74,7 @@ export async function searchRecords(
     };
   }
 
-  const answer = await generateAnswer(query, sourceRecords);
+  const answer = await generateAnswer(query, sourceRecords, topRecordIds.length);
 
   return {
     answer,
@@ -81,24 +83,25 @@ export async function searchRecords(
 }
 
 // LLM 답변 생성 (Gemini 2.5 Flash Lite via Worker proxy)
-async function generateAnswer(query: string, records: RecordWithTags[]): Promise<string> {
+async function generateAnswer(query: string, records: RecordWithTags[], recordCount: number): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
   if (!workerUrl || !workerSecret) {
     return '기록을 찾았지만 AI 답변을 생성할 수 없습니다.';
   }
 
-  // 컨텍스트 구성 (토큰 절약: summary + structured_data만)
+  // 컨텍스트 구성 (compact 포맷: MM-DD #태그 요약 [키:값])
   const context = records
     .map((r) => {
-      const date = new Date(r.createdAt).toLocaleDateString('ko-KR');
-      const tags = r.tags.map((t) => t.name).join(' ');
+      const d = new Date(r.createdAt);
+      const date = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const tags = r.tags.map((t) => t.name).join('');
       const data = r.structuredData
         ? Object.entries(r.structuredData)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ')
+            .map(([k, v]) => `${k}:${v}`)
+            .join(',')
         : '';
-      return `[${date}] ${tags} ${r.summary}${data ? ` (${data})` : ''}`;
+      return `${date} ${tags} ${r.summary}${data ? ` [${data}]` : ''}`;
     })
     .join('\n');
 
@@ -118,7 +121,7 @@ async function generateAnswer(query: string, records: RecordWithTags[]): Promise
           contents: [
             {
               role: 'user',
-              parts: [{ text: `<user_query>\n${query}\n</user_query>\n\n<context>\n${context}\n</context>` }],
+              parts: [{ text: `<user_query>\n${query}\n</user_query>\n\n<record_count>${recordCount}건 분석</record_count>\n\n<context>\n${context}\n</context>` }],
             },
           ],
           safetySettings: [
@@ -128,7 +131,7 @@ async function generateAnswer(query: string, records: RecordWithTags[]): Promise
             { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
           ],
           generationConfig: {
-            maxOutputTokens: 300,
+            maxOutputTokens: 600,
             temperature: 0.3,
           },
         }),

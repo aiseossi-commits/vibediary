@@ -1,6 +1,9 @@
 import { getRecordsWithEmbeddings } from '../db/queries';
 import { getAllTags } from '../db/tagsDao';
 
+const SIMILARITY_THRESHOLD = 0.3;
+const MAX_RESULTS = 50;
+
 // 코사인 유사도 계산
 export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
@@ -48,10 +51,9 @@ export function detectTagsFromQuery(query: string): string[] {
   return detectedTags;
 }
 
-// 벡터 유사도 검색 (태그 필터 후 top-k)
+// 벡터 유사도 검색 (threshold 이상, 최대 MAX_RESULTS건)
 export async function vectorSearch(
   queryEmbedding: number[],
-  topK: number = 5,
   filterTagIds?: number[],
   childId?: string
 ): Promise<{ id: string; summary: string; structuredData: string | null; score: number; createdAt: number }[]> {
@@ -69,10 +71,10 @@ export async function vectorSearch(
     };
   });
 
-  // 유사도 높은 순 정렬
+  // 유사도 높은 순 정렬 → threshold 필터 → cap 적용
   scored.sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, topK);
+  return scored.filter((r) => r.score >= SIMILARITY_THRESHOLD).slice(0, MAX_RESULTS);
 }
 
 // 태그 이름 → ID 변환
