@@ -90,11 +90,11 @@ async function generateAnswer(query: string, records: RecordWithTags[], recordCo
     return '기록을 찾았지만 AI 답변을 생성할 수 없습니다.';
   }
 
-  // 컨텍스트 구성 (compact 포맷: MM-DD #태그 요약 [키:값])
+  // 컨텍스트 구성 (compact 포맷: YYYY-MM-DD #태그 요약 [키:값])
   const context = records
     .map((r) => {
       const d = new Date(r.createdAt);
-      const date = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const tags = r.tags.map((t) => t.name).join('');
       const data = r.structuredData
         ? Object.entries(r.structuredData)

@@ -45,6 +45,15 @@ export interface SearchResult {
   sourceRecords: RecordWithTags[];
 }
 
+// 항해일지 (AI 등대 검색 로그)
+export interface SearchLog {
+  id: number;
+  childId: string | null;
+  query: string;
+  answer: string;
+  createdAt: number;
+}
+
 // 날짜별 기록 요약 (캘린더용)
 export interface DailyRecordSummary {
   date: string; // YYYY-MM-DD

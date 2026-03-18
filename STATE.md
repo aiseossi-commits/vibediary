@@ -105,6 +105,23 @@
 
 - [x] HomeScreen 바다 선택 chevron: 텍스트 `⌄` → Ionicons `chevron-down` 아이콘 (발견성 개선)
 
+## 최근 완료된 작업 (gitnew, 2026-03-18)
+
+- [x] 전체 코드 점검: 실제 수정 필요 이슈 2건 확인 (offlineQueue race condition, deno-main.ts fetch try-catch)
+- [x] 항해일지 기능 구현 (voyage-log OpenSpec 변경):
+  - DB: `search_logs` 테이블 + `searchLogsDao.ts` (create/getAll/delete)
+  - SearchScreen: 헤더 우상단 항해일지 토글 버튼, 검색 답변 저장 버튼, 항해일지 뷰
+  - activeChild 기준 분리, 삭제 확인 Alert 포함
+- [x] 기능 점검 3원칙 수립 (앱 안전성 / 유저 친화성 / 토큰 효율성) → memory 저장
+- [x] SearchScreen 버그 수정 다수:
+  - 항해일지 모드에서 하단 검색 입력창 숨김 (UI 겹침 해결)
+  - SafeAreaView edges에 bottom 추가 (Android 네비게이션 바 겹침 수정)
+  - CalendarScreen 동일 수정
+  - searchPipeline.ts context 날짜 형식 MM-DD → YYYY-MM-DD (AI 연도 오추론 수정)
+  - 항해일지 카드 날짜 형식 `M/D` → `YYYY.M.D`
+- [x] Recording 화면 전환 애니메이션 slide_from_bottom → none (탭 전환과 통일)
+- [x] Recording 모달 다크모드 흰 배경 플래시 수정 (contentStyle backgroundColor 추가)
+
 ## 진행 중인 작업
 
 (없음)
@@ -163,6 +180,11 @@
 - [x] 기록 알림 기능: 굿모닝/굿나잇 + 커스텀 알람, 설정 화면 토글 (expo-notifications)
 - [x] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면) → `/openspec-new` 권장
 - [x] AI 등대 탭 구현 (SearchScreen — 이미 완성)
+
+## 검토 보류
+
+- [ ] AI 등대 로컬 LLM 전환 (react-native-rag / llama.rn): 기록 휘발 방지 + 오프라인 인사이트 목적. 모델 다운로드 500MB~1GB 부담으로 보류. 참고: llama.rn, react-native-executorch, react-native-rag, callstackincubator/ai
+- [ ] 잠금화면 위젯 / 빠른 녹음 트리거: iOS WidgetKit 잠금화면 위젯 + Android 홈 위젯. 설정 화면에서 안내+딥링크 제공 방식. 나중에 구현.
 
 ---
 

@@ -160,7 +160,7 @@ export default function AppNavigator() {
             <Stack.Screen
               name="Recording"
               component={RecordingScreenWrapper}
-              options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+              options={{ presentation: 'fullScreenModal', animation: 'none', contentStyle: { backgroundColor: colors.background } }}
             />
             <Stack.Screen
               name="RecordDetail"
