@@ -124,7 +124,7 @@
 
 ## 진행 중인 작업
 
-- [ ] voyage-log 수동 테스트 (저장→목록→삭제, activeChild 전환) 후 `/opsx:archive voyage-log`
+(없음)
 
 ## 최근 완료된 작업 (dead-code-cleanup)
 
