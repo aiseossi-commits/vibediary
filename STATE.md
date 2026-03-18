@@ -127,6 +127,8 @@
 - [x] AI 항해사 웹 내보내기 포맷 준비: `exportForWeb()` + `WebExportData` 타입 (버튼 미노출)
   - ISO 8601 타임스탬프, refined_text, 태그 인라인, structured_data 객체화
   - 기존 `exportBackup()` 복원 로직 무손상 유지
+  - 웹 팀 확정: structured_data는 웹 최초 업로드 시 Gemini 1.5 Flash로 일괄 파싱 → IndexedDB 캐싱
+  - 앱 추가 작업 없음. 통합 테스트 요청 시 버튼 노출 예정
 
 ## 진행 중인 작업
 
