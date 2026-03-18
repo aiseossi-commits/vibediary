@@ -122,6 +122,12 @@
 - [x] Recording 화면 전환 애니메이션 slide_from_bottom → none (탭 전환과 통일)
 - [x] Recording 모달 다크모드 흰 배경 플래시 수정 (contentStyle backgroundColor 추가)
 
+## 최근 완료된 작업 (main, 2026-03-18)
+
+- [x] AI 항해사 웹 내보내기 포맷 준비: `exportForWeb()` + `WebExportData` 타입 (버튼 미노출)
+  - ISO 8601 타임스탬프, refined_text, 태그 인라인, structured_data 객체화
+  - 기존 `exportBackup()` 복원 로직 무손상 유지
+
 ## 진행 중인 작업
 
 (없음)
