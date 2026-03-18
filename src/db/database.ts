@@ -7,6 +7,7 @@ import {
   CREATE_RECORD_TAGS_TABLE,
   CREATE_OFFLINE_QUEUE_TABLE,
   CREATE_DAILY_AI_CACHE_TABLE,
+  CREATE_SEARCH_LOGS_TABLE,
   CREATE_INDEXES,
   DEFAULT_TAGS,
 } from './schema';
@@ -51,6 +52,7 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_RECORD_TAGS_TABLE);
     await database.execAsync(CREATE_OFFLINE_QUEUE_TABLE);
     await database.execAsync(CREATE_DAILY_AI_CACHE_TABLE);
+    await database.execAsync(CREATE_SEARCH_LOGS_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');

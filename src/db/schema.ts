@@ -60,6 +60,16 @@ export const CREATE_DAILY_AI_CACHE_TABLE = `
   );
 `;
 
+export const CREATE_SEARCH_LOGS_TABLE = `
+  CREATE TABLE IF NOT EXISTS search_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT,
+    query TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+`;
+
 // 인덱스
 export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_records_created ON records(created_at);`,
