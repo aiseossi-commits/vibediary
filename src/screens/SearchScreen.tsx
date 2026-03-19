@@ -7,12 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   FlatList,
   Alert,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -233,7 +232,11 @@ export default function SearchScreen() {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
   const { activeChild } = useChild();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // 탭 바 높이: paddingTop(8) + icon(24) + paddingBottom(8) + safeArea
+  const tabBarHeight = 40 + insets.bottom;
 
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -326,7 +329,11 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={styles.flex}
+        keyboardVerticalOffset={tabBarHeight}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>AI 등대</Text>
           <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>

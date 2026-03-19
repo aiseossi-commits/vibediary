@@ -34,7 +34,7 @@ import {
 } from '../constants/theme';
 import type { RecordWithTags, DailyRecordSummary } from '../types/record';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
 
 function getDensityColor(count: number, densityColors: readonly string[]): string {
@@ -148,6 +148,7 @@ export default function CalendarScreen() {
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
+  const contentSlideAnim = useRef(new Animated.Value(0)).current;
   const [kbHeight, setKbHeight] = useState(0);
   const sheetScrollRef = useRef<ScrollView>(null);
 
@@ -244,27 +245,63 @@ setDayRecords(records);
   }, [loadMonthData]);
 
   // 날짜 이동 (스와이프용) — ref로 최신 상태 참조
+  const isSwipingRef = useRef(false);
   const navigateDayRef = useRef<(delta: number) => void>(() => {});
   useEffect(() => {
     navigateDayRef.current = (delta: number) => {
-      const d = new Date(selectedDateRef.current + 'T00:00:00');
-      d.setDate(d.getDate() + delta);
-      const newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      handleDayPress({ dateString: newDate });
-      if (newMonth !== currentMonthRef.current) {
-        setCurrentMonth(newMonth);
-        loadMonthData(newMonth);
-      }
+      if (isSwipingRef.current) return;
+      isSwipingRef.current = true;
+
+      const slideOut = delta > 0 ? -SCREEN_WIDTH : SCREEN_WIDTH;
+
+      // 1) 현재 콘텐츠 밀어내기
+      Animated.timing(contentSlideAnim, {
+        toValue: slideOut,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => {
+        // 2) 날짜 변경 + 데이터 로드
+        const d = new Date(selectedDateRef.current + 'T00:00:00');
+        d.setDate(d.getDate() + delta);
+        const newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        handleDayPress({ dateString: newDate });
+        if (newMonth !== currentMonthRef.current) {
+          setCurrentMonth(newMonth);
+          loadMonthData(newMonth);
+        }
+
+        // 3) 반대쪽에서 새 콘텐츠 밀어넣기
+        contentSlideAnim.setValue(-slideOut);
+        Animated.timing(contentSlideAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }).start(() => {
+          isSwipingRef.current = false;
+        });
+      });
     };
-  }, [handleDayPress, loadMonthData]);
+  }, [handleDayPress, loadMonthData, contentSlideAnim]);
 
   const swipePan = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) =>
       Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+    onPanResponderMove: (_, g) => {
+      contentSlideAnim.setValue(g.dx);
+    },
     onPanResponderRelease: (_, g) => {
-      if (g.dx < -60) navigateDayRef.current(1);   // 왼쪽 → 다음날
-      else if (g.dx > 60) navigateDayRef.current(-1); // 오른쪽 → 전날
+      if (g.dx < -60) {
+        navigateDayRef.current(1);   // 왼쪽 → 다음날
+      } else if (g.dx > 60) {
+        navigateDayRef.current(-1);  // 오른쪽 → 전날
+      } else {
+        // 임계값 미달 → 원위치 복귀
+        Animated.spring(contentSlideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
     },
   })).current;
 
@@ -403,6 +440,7 @@ setDayRecords(records);
         >
           <View style={styles.sheetHandle} />
 
+          <Animated.View style={{ flex: 1, transform: [{ translateX: contentSlideAnim }] }}>
           <Text style={styles.sheetDate}>{formattedDate}</Text>
 
           <ScrollView
@@ -485,6 +523,7 @@ setDayRecords(records);
               </>
             )}
           </ScrollView>
+          </Animated.View>
 
           <TouchableOpacity onPress={closeSheet} style={styles.sheetClose}>
             <Text style={styles.sheetCloseText}>✕</Text>

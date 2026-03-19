@@ -162,6 +162,11 @@
 - [x] OrganicBlob 스프링 튜닝 (damping 14, stiffness 90, 배율 0.35 — Android 촐싹거림 완화)
 - [x] 탭 바 height 고정값 제거 → paddingTop/Bottom 방식 (입력창 겹침 근본 수정)
 
+## 최근 완료된 작업 (main, 2026-03-19 UX 개선)
+
+- [x] CalendarScreen 날짜 카드 스와이프 슬라이드 애니메이션 (드래그 추적 + 밀어내기/밀어넣기 전환)
+- [x] SearchScreen 키보드 입력창 슬라이드업: behavior="padding" 통일 + keyboardVerticalOffset(tabBarHeight)
+
 ## 진행 중인 작업
 
 (없음)
