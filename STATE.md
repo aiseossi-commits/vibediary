@@ -157,6 +157,10 @@
 - [x] 접근성 라벨 추가 (HomeScreen, SearchScreen, RecordingScreen, VoyageLogScreen)
 - [x] Android versionCode 추가 (app.json)
 
+- [x] 탭 화면 SafeAreaView edges 통일 (bottom 제거 — 탭 바 겹침 수정)
+- [x] SearchScreen Android KeyboardAvoidingView behavior undefined (탭 바 뒤 입력창 겹침 수정)
+- [x] OrganicBlob 스프링 튜닝 (damping 14, stiffness 90, 배율 0.35 — Android 촐싹거림 완화)
+
 ## 진행 중인 작업
 
 (없음)

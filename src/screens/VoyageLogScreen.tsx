@@ -148,7 +148,7 @@ export default function VoyageLogScreen() {
   }, [loadLogs]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>항해일지</Text>
         <Text style={styles.subtitle}>AI 등대에서 저장한{'\n'}탐색 기록입니다.</Text>

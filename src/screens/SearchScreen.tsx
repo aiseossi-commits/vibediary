@@ -325,8 +325,8 @@ export default function SearchScreen() {
   }, [styles, colors, savedMessageIds, handleSave, handleRecordPress, getUserQueryForAssistant]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <View style={styles.header}>
           <Text style={styles.title}>AI 등대</Text>
           <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>

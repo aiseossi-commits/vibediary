@@ -116,8 +116,8 @@ function OrganicBlob({ audioLevel, color }: { audioLevel: number; color: string 
 
   useEffect(() => {
     scale.value = withSpring(
-      audioLevel > 0.05 ? 1 + audioLevel * 0.5 : 1,
-      { damping: 8, stiffness: 120 }
+      audioLevel > 0.05 ? 1 + audioLevel * 0.35 : 1,
+      { damping: 14, stiffness: 90 }
     );
   }, [audioLevel]);
 

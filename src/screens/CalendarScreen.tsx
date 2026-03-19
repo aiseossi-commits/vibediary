@@ -337,7 +337,7 @@ setDayRecords(records);
   }, [selectedDate]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>캘린더</Text>
       </View>
