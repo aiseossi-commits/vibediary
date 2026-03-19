@@ -227,48 +227,65 @@ function AssistantBubble({
   message: ChatMessage;
   userQuery: string;
   isSaved: boolean;
-  onSave: (messageId: string, query: string, answer: string) => void;
+  onSave: (messageId: string, query: string, answer: string) => Promise<void>;
   onRecordPress: (id: string) => void;
   styles: ReturnType<typeof createStyles>;
   colors: AppColors;
 }) {
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const sourceRecords = message.sourceRecords ?? [];
+
+  const handleSave = useCallback(async () => {
+    if (isSaved || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSave(message.id, userQuery, message.text);
+    } catch {
+      Alert.alert('저장 실패', '항해일지 저장에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isSaved, isSaving, onSave, message.id, userQuery, message.text]);
 
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
         <Text style={styles.assistantBubbleText}>{message.text}</Text>
-        {(sourceRecords.length > 0 || true) && (
-          <View style={styles.assistantBubbleFooter}>
-            {sourceRecords.length > 0 ? (
-              <TouchableOpacity style={styles.sourcesToggle} onPress={() => setSourcesExpanded((v) => !v)}>
-                <Ionicons
-                  name={sourcesExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={12}
-                  color={colors.textTertiary}
-                />
-                <Text style={styles.sourcesToggleText}>근거 {sourceRecords.length}건</Text>
-              </TouchableOpacity>
-            ) : (
-              <View />
-            )}
-            <TouchableOpacity
-              style={[styles.saveButton, isSaved && styles.saveButtonSaved]}
-              onPress={() => onSave(message.id, userQuery, message.text)}
-              disabled={isSaved}
-            >
+        <View style={styles.assistantBubbleFooter}>
+          {sourceRecords.length > 0 ? (
+            <TouchableOpacity style={styles.sourcesToggle} onPress={() => setSourcesExpanded((v) => !v)}>
               <Ionicons
-                name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                name={sourcesExpanded ? 'chevron-up' : 'chevron-down'}
                 size={12}
-                color={isSaved ? colors.textTertiary : colors.textOnPrimary}
+                color={colors.textTertiary}
               />
-              <Text style={[styles.saveButtonText, isSaved && styles.saveButtonTextSaved]}>
-                {isSaved ? '저장됨' : '저장'}
-              </Text>
+              <Text style={styles.sourcesToggleText}>근거 {sourceRecords.length}건</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          ) : (
+            <View />
+          )}
+          <TouchableOpacity
+            style={[styles.saveButton, isSaved && styles.saveButtonSaved]}
+            onPress={handleSave}
+            disabled={isSaved || isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color={colors.textOnPrimary} />
+            ) : (
+              <>
+                <Ionicons
+                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                  size={12}
+                  color={isSaved ? colors.textTertiary : colors.textOnPrimary}
+                />
+                <Text style={[styles.saveButtonText, isSaved && styles.saveButtonTextSaved]}>
+                  {isSaved ? '저장됨' : '저장'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
         {sourcesExpanded && sourceRecords.length > 0 && (
           <View style={styles.sourceRecordsContainer}>
             {sourceRecords.map((record) => (
@@ -291,7 +308,6 @@ export default function SearchScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [showLogs, setShowLogs] = useState(false);
 
@@ -355,18 +371,11 @@ export default function SearchScreen() {
   }, [query, messages, activeChild?.id]);
 
   const handleSave = useCallback(async (messageId: string, userQuery: string, answer: string) => {
-    if (savedMessageIds.has(messageId) || isSaving) return;
-    setIsSaving(true);
-    try {
-      await createSearchLog(activeChild?.id ?? null, userQuery, answer);
-      setSavedMessageIds((prev) => new Set(prev).add(messageId));
-      await loadLogs();
-    } catch {
-      Alert.alert('저장 실패', '항해일지 저장에 실패했어요. 다시 시도해 주세요.');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [savedMessageIds, isSaving, activeChild?.id, loadLogs]);
+    if (savedMessageIds.has(messageId)) return;
+    await createSearchLog(activeChild?.id ?? null, userQuery, answer);
+    setSavedMessageIds((prev) => new Set(prev).add(messageId));
+    await loadLogs();
+  }, [savedMessageIds, activeChild?.id, loadLogs]);
 
   const handleDeleteLog = useCallback((log: SearchLog) => {
     Alert.alert('항해일지 삭제', '이 기록을 삭제할까요?', [
