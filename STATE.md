@@ -153,7 +153,7 @@
 - [x] .env.example 생성
 - [x] 미사용 GROQ_API_KEY .env에서 제거
 - [x] 빈 catch 블록 보강 (ChildContext, VoyageLogScreen, SettingsScreen)
-- [x] babel-plugin-transform-remove-console: 프로덕션 빌드 console 자동 제거
+- [x] babel-plugin-transform-remove-console: 프로덕션 빌드 console 자동 제거 (process.env.NODE_ENV 사용)
 - [x] 접근성 라벨 추가 (HomeScreen, SearchScreen, RecordingScreen, VoyageLogScreen)
 - [x] Android versionCode 추가 (app.json)
 

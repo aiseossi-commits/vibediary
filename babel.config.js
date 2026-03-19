@@ -3,7 +3,7 @@ module.exports = function (api) {
   return {
     presets: [['babel-preset-expo', { jsxRuntime: 'automatic' }]],
     plugins: [
-      ...(!api.env('development') ? ['transform-remove-console'] : []),
+      ...(process.env.NODE_ENV === 'production' ? ['transform-remove-console'] : []),
       'react-native-reanimated/plugin',
     ],
   };
