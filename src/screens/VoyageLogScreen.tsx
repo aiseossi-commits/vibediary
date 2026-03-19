@@ -102,7 +102,7 @@ function LogCard({
           <Text style={styles.logQuery}>{log.query}</Text>
           <Text style={styles.logDate}>{formatDate(log.createdAt)}</Text>
         </View>
-        <TouchableOpacity style={styles.logDeleteButton} onPress={() => onDelete(log)}>
+        <TouchableOpacity style={styles.logDeleteButton} onPress={() => onDelete(log)} accessibilityLabel="항해일지 삭제" accessibilityRole="button">
           <Ionicons name="close" size={18} color={colors.textTertiary} />
         </TouchableOpacity>
       </View>
@@ -122,7 +122,9 @@ export default function VoyageLogScreen() {
     try {
       const data = await getSearchLogs(activeChild?.id ?? null);
       setLogs(data);
-    } catch {}
+    } catch {
+      Alert.alert('오류', '항해일지를 불러오지 못했습니다.');
+    }
   }, [activeChild?.id]);
 
   useFocusEffect(useCallback(() => { loadLogs(); }, [loadLogs]));
@@ -137,7 +139,9 @@ export default function VoyageLogScreen() {
           try {
             await deleteSearchLog(log.id);
             await loadLogs();
-          } catch {}
+          } catch {
+            Alert.alert('오류', '삭제에 실패했습니다.');
+          }
         },
       },
     ]);

@@ -147,6 +147,16 @@
 - [x] Search 탭 아이콘: 나침반 → 돋보기(search), 항해일지 탭: journal 아이콘
 - [x] SearchScreen 단순화: 로그 토글/상태 전부 제거
 
+## 최근 완료된 작업 (테스터 배포 전 감사, 2026-03-19)
+
+- [x] eas.json 하드코딩 시크릿 제거 (preview env 블록 삭제)
+- [x] .env.example 생성
+- [x] 미사용 GROQ_API_KEY .env에서 제거
+- [x] 빈 catch 블록 보강 (ChildContext, VoyageLogScreen, SettingsScreen)
+- [x] babel-plugin-transform-remove-console: 프로덕션 빌드 console 자동 제거
+- [x] 접근성 라벨 추가 (HomeScreen, SearchScreen, RecordingScreen, VoyageLogScreen)
+- [x] Android versionCode 추가 (app.json)
+
 ## 진행 중인 작업
 
 (없음)

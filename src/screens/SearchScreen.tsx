@@ -374,11 +374,14 @@ export default function SearchScreen() {
             onSubmitEditing={handleSearch}
             returnKeyType="search"
             multiline={false}
+            accessibilityLabel="검색어 입력"
           />
           <TouchableOpacity
             onPress={handleSearch}
             style={[styles.searchButton, (!query.trim() || isSearching) && styles.searchButtonDisabled]}
             disabled={!query.trim() || isSearching}
+            accessibilityLabel="검색"
+            accessibilityRole="button"
           >
             {isSearching ? (
               <ActivityIndicator size="small" color={colors.textOnPrimary} />

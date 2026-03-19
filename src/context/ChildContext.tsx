@@ -38,7 +38,9 @@ export function ChildProvider({ children: reactChildren }: { children: React.Rea
         }
         return current;
       });
-    } catch {}
+    } catch (e) {
+      console.warn('[ChildContext] 아이 목록 로드 실패:', e);
+    }
   }, []);
 
   useEffect(() => {
@@ -47,7 +49,9 @@ export function ChildProvider({ children: reactChildren }: { children: React.Rea
         const json = await FileSystem.readAsStringAsync(SETTINGS_FILE);
         const settings = JSON.parse(json);
         if (settings.activeChildId) setActiveChildId(settings.activeChildId);
-      } catch {}
+      } catch {
+        // 설정 파일 없음 — 최초 실행, 무시
+      }
       await refreshChildren();
       setIsLoaded(true);
     })();

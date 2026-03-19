@@ -196,7 +196,9 @@ export default function SettingsScreen() {
       ]);
       setPendingCount(pending);
       setOrphanedCount(orphaned);
-    } catch {}
+    } catch {
+      // 카운트 조회 실패 — UI에 0 표시 유지
+    }
   };
 
   const openNameModal = (title: string, initialValue: string, onConfirm: (name: string) => void) => {

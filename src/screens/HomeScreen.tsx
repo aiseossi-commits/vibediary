@@ -226,7 +226,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       {pulseAnims.map(({ scale, opacity }, i) => (
         <Animated.View key={i} style={[styles.pulseRing, { transform: [{ scale }], opacity }]} />
       ))}
-      <TouchableOpacity onPress={handlePearlPress} activeOpacity={0.85} style={styles.pearlButton}>
+      <TouchableOpacity onPress={handlePearlPress} activeOpacity={0.85} style={styles.pearlButton} accessibilityLabel="음성 녹음 시작" accessibilityRole="button">
         <Ionicons name="mic-outline" size={52} color={micIconColor} />
       </TouchableOpacity>
     </View>
@@ -276,10 +276,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Text style={styles.subtitle}>작은 기록이 큰 추억이 됩니다</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerIcon}>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerIcon} accessibilityLabel="설정" accessibilityRole="button">
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Tags')} style={styles.headerIcon}>
+          <TouchableOpacity onPress={() => navigation.navigate('Tags')} style={styles.headerIcon} accessibilityLabel="태그 관리" accessibilityRole="button">
             <Ionicons name="pricetags-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -302,6 +302,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             onPress={handleTextSubmit}
             style={[styles.sendButton, !textInput.trim() && !isSaving && { opacity: 0.35 }]}
             disabled={isSaving || !textInput.trim()}
+            accessibilityLabel="텍스트 기록 전송"
+            accessibilityRole="button"
           >
             {isSaving ? (
               <ActivityIndicator size="small" color={colors.textOnPrimary} />

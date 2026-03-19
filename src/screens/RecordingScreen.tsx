@@ -204,7 +204,7 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
       <View style={styles.bgGlow} pointerEvents="none" />
       <View style={styles.header}>
         {!isProcessing && (
-          <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+          <TouchableOpacity onPress={handleCancel} style={styles.cancelButton} accessibilityLabel="녹음 취소" accessibilityRole="button">
             <Text style={styles.cancelText}>취소</Text>
           </TouchableOpacity>
         )}
@@ -241,11 +241,13 @@ export default function RecordingScreen({ onRecordingComplete, onCancel, isProce
                   disabled={isStarting}
                   style={[styles.recordButton, isStarting && { opacity: 0.5 }]}
                   activeOpacity={0.7}
+                  accessibilityLabel="녹음 시작"
+                  accessibilityRole="button"
                 >
                   <View style={styles.recordDot} />
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity onPress={handleStop} style={styles.stopButton}>
+                <TouchableOpacity onPress={handleStop} style={styles.stopButton} accessibilityLabel="녹음 중지" accessibilityRole="button">
                   <View style={styles.stopIcon} />
                 </TouchableOpacity>
               )}
