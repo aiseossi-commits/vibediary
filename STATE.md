@@ -143,7 +143,9 @@
 - [x] AssistantBubble isSaving 독립화: 버블마다 저장 상태 분리 (3원칙 검토 후 수정)
 - [x] react-native-reanimated 4.2.1, babel-preset-expo package.json 명시 + iOS 재빌드
 - [x] SearchScreen: Fragment→View 래핑 (KeyboardAvoidingView 레이아웃 버그 수정)
-- [x] SearchScreen: 항해일지 버튼을 subtitle 아래로 이동 (헤더 column 구조)
+- [x] 항해일지 독립 탭 분리: VoyageLogScreen 신규, 탭 4개로 확장
+- [x] Search 탭 아이콘: 나침반 → 돋보기(search), 항해일지 탭: journal 아이콘
+- [x] SearchScreen 단순화: 로그 토글/상태 전부 제거
 
 ## 진행 중인 작업
 
