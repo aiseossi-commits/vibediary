@@ -141,6 +141,7 @@
 - [x] SearchScreen: 채팅 버블 UI (UserBubble/AssistantBubble), FlatList, 자동 스크롤
 - [x] AssistantBubble: Reanimated FadeInDown 등장 애니메이션, 근거 N건 접기/펼치기, 저장 버튼
 - [x] AssistantBubble isSaving 독립화: 버블마다 저장 상태 분리 (3원칙 검토 후 수정)
+- [x] react-native-reanimated 4.2.1, babel-preset-expo package.json 명시 + iOS 재빌드
 
 ## 진행 중인 작업
 
