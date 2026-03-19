@@ -39,10 +39,24 @@ export interface STTResult {
   source: 'device' | 'whisper';
 }
 
+// 유사도 점수가 포함된 기록 (AI 등대 검색용)
+export interface ScoredRecord extends RecordWithTags {
+  score?: number;
+}
+
 // 검색 결과 타입
 export interface SearchResult {
   answer: string;
-  sourceRecords: RecordWithTags[];
+  sourceRecords: ScoredRecord[];
+}
+
+// AI 등대 채팅 메시지
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  sourceRecords?: ScoredRecord[];
+  createdAt: number;
 }
 
 // 항해일지 (AI 등대 검색 로그)

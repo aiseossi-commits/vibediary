@@ -1,7 +1,10 @@
 import { detectTagsFromQuery, vectorSearch, getTagIdsByNames } from './vectorSearch';
 import { getRecordById } from '../db/recordsDao';
 import { getNetworkState } from '../utils/network';
-import type { SearchResult, RecordWithTags } from '../types/record';
+import type { SearchResult, ScoredRecord, RecordWithTags } from '../types/record';
+
+// 유사도 임계값 — 이상이면 full 포맷, 미만이면 summary만
+const CONTEXT_FULL_THRESHOLD = 0.6;
 
 // 검색 답변 생성 시스템 프롬프트
 const SEARCH_SYSTEM_PROMPT = `당신은 발달장애인 돌봄 기록을 검색해 답변하는 AI 비서입니다.
@@ -20,7 +23,8 @@ export async function searchRecords(
   query: string,
   queryEmbedding: number[] | null,
   filterTagNames?: string[],
-  childId?: string
+  childId?: string,
+  conversationHistory?: { role: 'user' | 'assistant'; text: string }[]
 ): Promise<SearchResult> {
   // 1단계: 태그 자동 감지 (사용자 필터 + 자동 감지)
   const autoDetectedTags = detectTagsFromQuery(query);
@@ -28,34 +32,34 @@ export async function searchRecords(
   const filterTagIds = allFilterTags.length > 0 ? await getTagIdsByNames(allFilterTags) : undefined;
 
   // 2단계: 벡터 유사도 검색 (임베딩이 있을 때)
-  let topRecordIds: string[] = [];
+  const scoredRecords: { record: RecordWithTags; score: number }[] = [];
+  let fallbackRecords: RecordWithTags[] = [];
 
   if (queryEmbedding) {
     const vectorResults = await vectorSearch(queryEmbedding, filterTagIds, childId);
-    topRecordIds = vectorResults.map((r) => r.id);
+    for (const vr of vectorResults) {
+      const record = await getRecordById(vr.id);
+      if (record) scoredRecords.push({ record, score: vr.score });
+    }
   }
 
   // 임베딩이 없으면 태그 필터링된 최근 기록 사용
-  if (topRecordIds.length === 0) {
+  if (scoredRecords.length === 0) {
     const { getRecordsByTags } = await import('../db/queries');
     const { getAllRecords } = await import('../db/recordsDao');
-    let fallbackRecords: RecordWithTags[];
 
     if (filterTagIds && filterTagIds.length > 0) {
       fallbackRecords = await getRecordsByTags(filterTagIds, 5, 0, childId);
     } else {
       fallbackRecords = await getAllRecords(5, 0, childId);
     }
-
-    topRecordIds = fallbackRecords.map((r) => r.id);
   }
 
-  // 전체 기록 데이터 로드
-  const sourceRecords: RecordWithTags[] = [];
-  for (const id of topRecordIds) {
-    const record = await getRecordById(id);
-    if (record) sourceRecords.push(record);
-  }
+  // sourceRecords 구성 (score 포함)
+  const sourceRecords: ScoredRecord[] = [
+    ...scoredRecords.map(({ record, score }) => ({ ...record, score })),
+    ...fallbackRecords.map((r) => ({ ...r, score: undefined })),
+  ];
 
   if (sourceRecords.length === 0) {
     return {
@@ -67,14 +71,13 @@ export async function searchRecords(
   // 3단계: LLM 답변 생성
   const isOnline = await getNetworkState();
   if (!isOnline) {
-    // 오프라인: 기록만 반환 (LLM 답변 없이)
     return {
       answer: '오프라인 상태에서는 관련 기록만 보여드려요.',
       sourceRecords,
     };
   }
 
-  const answer = await generateAnswer(query, sourceRecords, topRecordIds.length);
+  const answer = await generateAnswer(query, scoredRecords, fallbackRecords, sourceRecords.length, conversationHistory);
 
   return {
     answer,
@@ -83,27 +86,54 @@ export async function searchRecords(
 }
 
 // LLM 답변 생성 (Gemini 2.5 Flash Lite via Worker proxy)
-async function generateAnswer(query: string, records: RecordWithTags[], recordCount: number): Promise<string> {
+async function generateAnswer(
+  query: string,
+  scoredRecords: { record: RecordWithTags; score: number }[],
+  fallbackRecords: RecordWithTags[],
+  recordCount: number,
+  conversationHistory?: { role: 'user' | 'assistant'; text: string }[]
+): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
   if (!workerUrl || !workerSecret) {
     return '기록을 찾았지만 AI 답변을 생성할 수 없습니다.';
   }
 
-  // 컨텍스트 구성 (compact 포맷: YYYY-MM-DD #태그 요약 [키:값])
-  const context = records
-    .map((r) => {
-      const d = new Date(r.createdAt);
-      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const tags = r.tags.map((t) => t.name).join('');
-      const data = r.structuredData
-        ? Object.entries(r.structuredData)
-            .map(([k, v]) => `${k}:${v}`)
-            .join(',')
-        : '';
-      return `${date} ${tags} ${r.summary}${data ? ` [${data}]` : ''}`;
-    })
-    .join('\n');
+  // 컨텍스트 구성 — 유사도 기반 압축
+  // score >= 0.6: full 포맷 (날짜 #태그 요약 [키:값])
+  // score < 0.6 또는 fallback: summary만
+  const formatRecord = (record: RecordWithTags, score?: number): string => {
+    const d = new Date(record.createdAt);
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const tags = record.tags.map((t) => t.name).join('');
+    const summary = `${date} ${tags} ${record.summary}`;
+
+    if (score !== undefined && score >= CONTEXT_FULL_THRESHOLD && record.structuredData) {
+      const data = Object.entries(record.structuredData)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(',');
+      return `${summary} [${data}]`;
+    }
+    return summary;
+  };
+
+  const context = [
+    ...scoredRecords.map(({ record, score }) => formatRecord(record, score)),
+    ...fallbackRecords.map((record) => formatRecord(record, undefined)),
+  ].join('\n');
+
+  // 슬라이딩 윈도우: 이전 대화 컨텍스트 구성
+  const history = conversationHistory ?? [];
+  const contents: { role: string; parts: { text: string }[] }[] = history.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.text }],
+  }));
+
+  // 현재 질문 + 기록 컨텍스트 추가
+  contents.push({
+    role: 'user',
+    parts: [{ text: `<user_query>\n${query}\n</user_query>\n\n<record_count>${recordCount}건 분석</record_count>\n\n<context>\n${context}\n</context>` }],
+  });
 
   try {
     const response = await fetch(
@@ -118,12 +148,7 @@ async function generateAnswer(query: string, records: RecordWithTags[], recordCo
           systemInstruction: {
             parts: [{ text: SEARCH_SYSTEM_PROMPT }],
           },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: `<user_query>\n${query}\n</user_query>\n\n<record_count>${recordCount}건 분석</record_count>\n\n<context>\n${context}\n</context>` }],
-            },
-          ],
+          contents,
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
             { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },

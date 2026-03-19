@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  FlatList,
   ScrollView,
   Alert,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,7 +32,7 @@ import {
   SHADOW,
   type AppColors,
 } from '../constants/theme';
-import type { SearchResult, SearchLog } from '../types/record';
+import type { ChatMessage, SearchLog } from '../types/record';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -60,31 +62,46 @@ function createStyles(colors: AppColors) {
     logToggleTextActive: {
       color: colors.primary,
     },
-    results: { flex: 1 },
-    resultsContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xl },
-    loadingContainer: { alignItems: 'center', paddingTop: SPACING.xxl, gap: SPACING.md },
-    loadingText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
-    answerCard: {
+    messageList: { flex: 1 },
+    messageListContent: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: SPACING.xl },
+    // 사용자 버블
+    userBubbleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: SPACING.sm },
+    userBubble: {
+      maxWidth: '78%',
+      backgroundColor: colors.primary,
+      borderRadius: BORDER_RADIUS.md,
+      borderBottomRightRadius: 4,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+    },
+    userBubbleText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, lineHeight: 22 },
+    // 어시스턴트 버블
+    assistantBubbleRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm },
+    assistantBubble: {
+      maxWidth: '88%',
       backgroundColor: colors.surface,
       borderRadius: BORDER_RADIUS.md,
+      borderBottomLeftRadius: 4,
       padding: SPACING.md,
-      marginBottom: SPACING.md,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.primary,
       ...SHADOW.sm,
     },
-    answerCardHeader: {
+    assistantBubbleText: { fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: 24 },
+    assistantBubbleFooter: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: SPACING.sm,
+      justifyContent: 'space-between',
+      marginTop: SPACING.sm,
     },
-    answerLabel: {
+    sourcesToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 2,
+    },
+    sourcesToggleText: {
       fontSize: FONT_SIZE.xs,
       color: colors.textTertiary,
       fontWeight: FONT_WEIGHT.semibold,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
     },
     saveButton: {
       flexDirection: 'row',
@@ -106,16 +123,25 @@ function createStyles(colors: AppColors) {
     saveButtonTextSaved: {
       color: colors.textTertiary,
     },
-    answerText: { fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: 24 },
-    sourcesLabel: {
-      fontSize: FONT_SIZE.md,
-      fontWeight: FONT_WEIGHT.semibold,
-      color: colors.textPrimary,
-      marginBottom: SPACING.sm,
-      marginTop: SPACING.sm,
+    sourceRecordsContainer: { marginTop: SPACING.sm },
+    // 로딩
+    typingRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
+    typingBubble: {
+      backgroundColor: colors.surface,
+      borderRadius: BORDER_RADIUS.md,
+      borderBottomLeftRadius: 4,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      ...SHADOW.sm,
     },
+    typingText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
+    // 빈 상태
     emptyState: { alignItems: 'center', paddingTop: SPACING.xxl * 2, gap: SPACING.lg },
     emptyDescription: { fontSize: FONT_SIZE.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 26 },
+    // 입력
     inputArea: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -169,17 +195,90 @@ function createStyles(colors: AppColors) {
     logDeleteButton: {
       padding: 4,
     },
-    logsEmptyText: {
-      fontSize: FONT_SIZE.sm,
-      color: colors.textTertiary,
-      lineHeight: 22,
-    },
   });
 }
 
 function formatDate(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+}
+
+// 사용자 말풍선
+function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnType<typeof createStyles> }) {
+  return (
+    <View style={styles.userBubbleRow}>
+      <View style={styles.userBubble}>
+        <Text style={styles.userBubbleText}>{message.text}</Text>
+      </View>
+    </View>
+  );
+}
+
+// 어시스턴트 말풍선
+function AssistantBubble({
+  message,
+  userQuery,
+  isSaved,
+  onSave,
+  onRecordPress,
+  styles,
+  colors,
+}: {
+  message: ChatMessage;
+  userQuery: string;
+  isSaved: boolean;
+  onSave: (messageId: string, query: string, answer: string) => void;
+  onRecordPress: (id: string) => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: AppColors;
+}) {
+  const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const sourceRecords = message.sourceRecords ?? [];
+
+  return (
+    <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
+      <View style={styles.assistantBubble}>
+        <Text style={styles.assistantBubbleText}>{message.text}</Text>
+        {(sourceRecords.length > 0 || true) && (
+          <View style={styles.assistantBubbleFooter}>
+            {sourceRecords.length > 0 ? (
+              <TouchableOpacity style={styles.sourcesToggle} onPress={() => setSourcesExpanded((v) => !v)}>
+                <Ionicons
+                  name={sourcesExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={12}
+                  color={colors.textTertiary}
+                />
+                <Text style={styles.sourcesToggleText}>근거 {sourceRecords.length}건</Text>
+              </TouchableOpacity>
+            ) : (
+              <View />
+            )}
+            <TouchableOpacity
+              style={[styles.saveButton, isSaved && styles.saveButtonSaved]}
+              onPress={() => onSave(message.id, userQuery, message.text)}
+              disabled={isSaved}
+            >
+              <Ionicons
+                name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                size={12}
+                color={isSaved ? colors.textTertiary : colors.textOnPrimary}
+              />
+              <Text style={[styles.saveButtonText, isSaved && styles.saveButtonTextSaved]}>
+                {isSaved ? '저장됨' : '저장'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {sourcesExpanded && sourceRecords.length > 0 && (
+          <View style={styles.sourceRecordsContainer}>
+            {sourceRecords.map((record) => (
+              <RecordCard key={record.id} record={record} onPress={() => onRecordPress(record.id)} />
+            ))}
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
 }
 
 export default function SearchScreen() {
@@ -189,12 +288,14 @@ export default function SearchScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [query, setQuery] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [result, setResult] = useState<SearchResult | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
+  const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+
+  const flatListRef = useRef<FlatList>(null);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -204,38 +305,68 @@ export default function SearchScreen() {
   }, [activeChild?.id]);
 
   useFocusEffect(useCallback(() => { loadLogs(); }, [loadLogs]));
-
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
   const handleSearch = useCallback(async () => {
-    if (!query.trim()) return;
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    // 사용자 메시지 생성
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      role: 'user',
+      text: trimmed,
+      createdAt: Date.now(),
+    };
+
+    // 슬라이딩 윈도우: 최근 4개 메시지를 대화 히스토리로 전달
+    const history = messages.slice(-4).map((m) => ({
+      role: m.role,
+      text: m.text,
+    }));
+
+    setQuery('');
+    setMessages((prev) => [...prev, userMsg]);
     setIsSearching(true);
-    setResult(null);
-    setIsSaved(false);
+
     try {
-      const queryEmbedding = await generateEmbedding(query.trim());
-      const searchResult = await searchRecords(query.trim(), queryEmbedding, undefined, activeChild?.id);
-      setResult(searchResult);
+      const queryEmbedding = await generateEmbedding(trimmed);
+      const searchResult = await searchRecords(trimmed, queryEmbedding, undefined, activeChild?.id, history);
+
+      const assistantMsg: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: searchResult.answer,
+        sourceRecords: searchResult.sourceRecords,
+        createdAt: Date.now(),
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch {
-      setResult({ answer: '검색 중 오류가 발생했어요. 다시 시도해 주세요.', sourceRecords: [] });
+      const errorMsg: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: '검색 중 오류가 발생했어요. 다시 시도해 주세요.',
+        createdAt: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsSearching(false);
     }
-  }, [query, activeChild?.id]);
+  }, [query, messages, activeChild?.id]);
 
-  const handleSave = useCallback(async () => {
-    if (!result || isSaved || isSaving) return;
+  const handleSave = useCallback(async (messageId: string, userQuery: string, answer: string) => {
+    if (savedMessageIds.has(messageId) || isSaving) return;
     setIsSaving(true);
     try {
-      await createSearchLog(activeChild?.id ?? null, query.trim(), result.answer);
-      setIsSaved(true);
+      await createSearchLog(activeChild?.id ?? null, userQuery, answer);
+      setSavedMessageIds((prev) => new Set(prev).add(messageId));
       await loadLogs();
     } catch {
       Alert.alert('저장 실패', '항해일지 저장에 실패했어요. 다시 시도해 주세요.');
     } finally {
       setIsSaving(false);
     }
-  }, [result, isSaved, isSaving, activeChild?.id, query, loadLogs]);
+  }, [savedMessageIds, isSaving, activeChild?.id, loadLogs]);
 
   const handleDeleteLog = useCallback((log: SearchLog) => {
     Alert.alert('항해일지 삭제', '이 기록을 삭제할까요?', [
@@ -257,6 +388,38 @@ export default function SearchScreen() {
     navigation.navigate('RecordDetail', { recordId });
   }, [navigation]);
 
+  // 새 메시지 도착 시 자동 스크롤
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [messages.length, isSearching]);
+
+  // 메시지별 사용자 쿼리 매핑 (assistant 메시지에 대응하는 user 메시지 텍스트 찾기)
+  const getUserQueryForAssistant = useCallback((index: number): string => {
+    for (let i = index - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return messages[i].text;
+    }
+    return '';
+  }, [messages]);
+
+  const renderMessage = useCallback(({ item, index }: { item: ChatMessage; index: number }) => {
+    if (item.role === 'user') {
+      return <UserBubble message={item} styles={styles} />;
+    }
+    return (
+      <AssistantBubble
+        message={item}
+        userQuery={getUserQueryForAssistant(index)}
+        isSaved={savedMessageIds.has(item.id)}
+        onSave={handleSave}
+        onRecordPress={handleRecordPress}
+        styles={styles}
+        colors={colors}
+      />
+    );
+  }, [styles, colors, savedMessageIds, handleSave, handleRecordPress, getUserQueryForAssistant]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
@@ -274,119 +437,91 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.results} contentContainerStyle={styles.resultsContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {showLogs ? (
-            <>
-              {logs.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="journal-outline" size={48} color={colors.textTertiary} />
-                  <Text style={styles.emptyDescription}>
-                    아직 저장된 항해일지가 없어요.{'\n'}검색 후 저장 버튼을 눌러보세요.
-                  </Text>
-                </View>
-              ) : (
-                logs.map((log) => (
-                  <View key={log.id} style={styles.logCard}>
-                    <View style={styles.logCardHeader}>
-                      <Text style={styles.logQuery} numberOfLines={2}>{log.query}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.xs }}>
-                        <Text style={styles.logDate}>{formatDate(log.createdAt)}</Text>
-                        <TouchableOpacity style={styles.logDeleteButton} onPress={() => handleDeleteLog(log)}>
-                          <Ionicons name="close" size={16} color={colors.textTertiary} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    <Text style={styles.logAnswer} numberOfLines={4}>{log.answer}</Text>
-                  </View>
-                ))
-              )}
-            </>
-          ) : (
-            <>
-              {isSearching && (
-                <View style={styles.loadingContainer}>
-                  <WaveLoader color={colors.primary} />
-                  <Text style={styles.loadingText}>바다가 기억을 찾고 있어요...</Text>
-                </View>
-              )}
-
-              {result && !isSearching && (
-                <>
-                  <View style={styles.answerCard}>
-                    <View style={styles.answerCardHeader}>
-                      <Text style={styles.answerLabel}>답변</Text>
-                      <TouchableOpacity
-                        onPress={handleSave}
-                        style={[styles.saveButton, isSaved && styles.saveButtonSaved]}
-                        disabled={isSaved || isSaving}
-                      >
-                        {isSaving ? (
-                          <ActivityIndicator size="small" color={colors.textOnPrimary} />
-                        ) : (
-                          <>
-                            <Ionicons
-                              name={isSaved ? 'bookmark' : 'bookmark-outline'}
-                              size={12}
-                              color={isSaved ? colors.textTertiary : colors.textOnPrimary}
-                            />
-                            <Text style={[styles.saveButtonText, isSaved && styles.saveButtonTextSaved]}>
-                              {isSaved ? '저장됨' : '저장'}
-                            </Text>
-                          </>
-                        )}
+        {showLogs ? (
+          <ScrollView style={styles.messageList} contentContainerStyle={styles.messageListContent} showsVerticalScrollIndicator={false}>
+            {logs.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="journal-outline" size={48} color={colors.textTertiary} />
+                <Text style={styles.emptyDescription}>
+                  아직 저장된 항해일지가 없어요.{'\n'}검색 후 저장 버튼을 눌러보세요.
+                </Text>
+              </View>
+            ) : (
+              logs.map((log) => (
+                <View key={log.id} style={styles.logCard}>
+                  <View style={styles.logCardHeader}>
+                    <Text style={styles.logQuery} numberOfLines={2}>{log.query}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.xs }}>
+                      <Text style={styles.logDate}>{formatDate(log.createdAt)}</Text>
+                      <TouchableOpacity style={styles.logDeleteButton} onPress={() => handleDeleteLog(log)}>
+                        <Ionicons name="close" size={16} color={colors.textTertiary} />
                       </TouchableOpacity>
                     </View>
-                    <Text style={styles.answerText}>{result.answer}</Text>
                   </View>
-                  {result.sourceRecords.length > 0 && (
-                    <>
-                      <Text style={styles.sourcesLabel}>근거 기록 ({result.sourceRecords.length}건)</Text>
-                      {result.sourceRecords.map((record) => (
-                        <RecordCard key={record.id} record={record} onPress={() => handleRecordPress(record.id)} />
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-
-              {!result && !isSearching && (
-                <View style={styles.emptyState}>
-                  <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
-                  <Text style={styles.emptyDescription}>
-                    기록된 내용을 바탕으로 무엇이든 물어보세요.{'\n'}
-                    대화 내용은 저장되지 않아요.{'\n'}
-                    매번 새로운 질문으로 시작됩니다.
-                  </Text>
+                  <Text style={styles.logAnswer} numberOfLines={4}>{log.answer}</Text>
                 </View>
-              )}
-            </>
-          )}
-        </ScrollView>
-
-        {!showLogs && <View style={styles.inputArea}>
-          <TextInput
-            style={styles.input}
-            placeholder="기록에 대해 물어보세요..."
-            placeholderTextColor={colors.textTertiary}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-            multiline={false}
-          />
-
-          <TouchableOpacity
-            onPress={handleSearch}
-            style={[styles.searchButton, (!query.trim() || isSearching) && styles.searchButtonDisabled]}
-            disabled={!query.trim() || isSearching}
-          >
-            {isSearching ? (
-              <ActivityIndicator size="small" color={colors.textOnPrimary} />
-            ) : (
-              <Text style={styles.searchButtonText}>검색</Text>
+              ))
             )}
-          </TouchableOpacity>
-        </View>}
+          </ScrollView>
+        ) : (
+          <>
+            {messages.length === 0 && !isSearching ? (
+              <View style={[styles.messageList, styles.emptyState]}>
+                <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
+                <Text style={styles.emptyDescription}>
+                  기록된 내용을 바탕으로 무엇이든 물어보세요.{'\n'}
+                  대화 내용은 저장되지 않아요.{'\n'}
+                  매번 새로운 질문으로 시작됩니다.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                ref={flatListRef}
+                style={styles.messageList}
+                contentContainerStyle={styles.messageListContent}
+                data={messages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderMessage}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                ListFooterComponent={
+                  isSearching ? (
+                    <View style={styles.typingRow}>
+                      <View style={styles.typingBubble}>
+                        <WaveLoader color={colors.primary} />
+                        <Text style={styles.typingText}>바다가 기억을 찾고 있어요...</Text>
+                      </View>
+                    </View>
+                  ) : null
+                }
+              />
+            )}
+
+            <View style={styles.inputArea}>
+              <TextInput
+                style={styles.input}
+                placeholder="기록에 대해 물어보세요..."
+                placeholderTextColor={colors.textTertiary}
+                value={query}
+                onChangeText={setQuery}
+                onSubmitEditing={handleSearch}
+                returnKeyType="search"
+                multiline={false}
+              />
+              <TouchableOpacity
+                onPress={handleSearch}
+                style={[styles.searchButton, (!query.trim() || isSearching) && styles.searchButtonDisabled]}
+                disabled={!query.trim() || isSearching}
+              >
+                {isSearching ? (
+                  <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                ) : (
+                  <Text style={styles.searchButtonText}>검색</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

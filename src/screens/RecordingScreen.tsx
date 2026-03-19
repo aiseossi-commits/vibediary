@@ -1,5 +1,13 @@
-import React, { useCallback, useMemo, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
+import React, { useCallback, useMemo, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import { useRecording } from '../hooks/useRecording';
@@ -92,45 +100,46 @@ function createStyles(colors: AppColors) {
 }
 
 function OrganicBlob({ audioLevel, color }: { audioLevel: number; color: string }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const r1 = useRef(new Animated.Value(60)).current;
-  const r2 = useRef(new Animated.Value(60)).current;
-  const r3 = useRef(new Animated.Value(60)).current;
-  const r4 = useRef(new Animated.Value(60)).current;
+  const scale = useSharedValue(1);
+  const r1 = useSharedValue(60);
+  const r2 = useSharedValue(60);
+  const r3 = useSharedValue(60);
+  const r4 = useSharedValue(60);
 
   useEffect(() => {
-    const makeLoop = (anim: Animated.Value, a: number, b: number, dur: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.timing(anim, { toValue: a, duration: dur, useNativeDriver: false }),
-        Animated.timing(anim, { toValue: b, duration: dur, useNativeDriver: false }),
-      ]));
-
-    const l1 = makeLoop(r1, 52, 70, 900);
-    const l2 = makeLoop(r2, 72, 50, 1100);
-    const l3 = makeLoop(r3, 58, 74, 1300);
-    const l4 = makeLoop(r4, 68, 52, 950);
-    l1.start(); l2.start(); l3.start(); l4.start();
-
-    return () => { l1.stop(); l2.stop(); l3.stop(); l4.stop(); };
+    const dur = (d: number) => ({ duration: d });
+    r1.value = withRepeat(withSequence(withTiming(52, dur(900)), withTiming(70, dur(900))), -1);
+    r2.value = withRepeat(withSequence(withTiming(72, dur(1100)), withTiming(50, dur(1100))), -1);
+    r3.value = withRepeat(withSequence(withTiming(58, dur(1300)), withTiming(74, dur(1300))), -1);
+    r4.value = withRepeat(withSequence(withTiming(68, dur(950)), withTiming(52, dur(950))), -1);
   }, []);
 
   useEffect(() => {
-    const target = audioLevel > 0.05 ? 1 + audioLevel * 0.5 : 1;
-    Animated.spring(scale, { toValue: target, useNativeDriver: true, damping: 8, stiffness: 120 }).start();
+    scale.value = withSpring(
+      audioLevel > 0.05 ? 1 + audioLevel * 0.5 : 1,
+      { damping: 8, stiffness: 120 }
+    );
   }, [audioLevel]);
+
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const blobStyle = useAnimatedStyle(() => ({
+    width: 120,
+    height: 120,
+    backgroundColor: color,
+    opacity: 0.85,
+    borderTopLeftRadius: r1.value,
+    borderTopRightRadius: r2.value,
+    borderBottomRightRadius: r3.value,
+    borderBottomLeftRadius: r4.value,
+  }));
 
   return (
     <View style={{ width: 160, height: 160, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={{ transform: [{ scale }] }}>
-        <Animated.View style={{
-          width: 120, height: 120,
-          backgroundColor: color,
-          opacity: 0.85,
-          borderTopLeftRadius: r1,
-          borderTopRightRadius: r2,
-          borderBottomRightRadius: r3,
-          borderBottomLeftRadius: r4,
-        }} />
+      <Animated.View style={scaleStyle}>
+        <Animated.View style={blobStyle} />
       </Animated.View>
     </View>
   );

@@ -130,6 +130,17 @@
   - 웹 팀 확정: structured_data는 웹 최초 업로드 시 Gemini 1.5 Flash로 일괄 파싱 → IndexedDB 캐싱
   - 앱 추가 작업 없음. 통합 테스트 요청 시 버튼 노출 예정
 
+## 최근 완료된 작업 (reanimated-chat-upgrade, 2026-03-19)
+
+- [x] babel.config.js에 `react-native-reanimated/plugin` 추가
+- [x] OrganicBlob: RN Animated → Reanimated (`useSharedValue` + `useAnimatedStyle` + `withRepeat/withSequence/withSpring`)
+- [x] `ScoredRecord` 타입 추가, `SearchResult.sourceRecords` score 포함
+- [x] `ChatMessage` 타입 추가 (`id`, `role`, `text`, `sourceRecords?`, `createdAt`)
+- [x] searchPipeline.ts: 유사도 0.6 기준 컨텍스트 압축 (이상: full 포맷, 미만: summary만)
+- [x] searchPipeline.ts: 슬라이딩 윈도우 conversationHistory 파라미터 추가 (Gemini multi-turn)
+- [x] SearchScreen: 채팅 버블 UI (UserBubble/AssistantBubble), FlatList, 자동 스크롤
+- [x] AssistantBubble: Reanimated FadeInDown 등장 애니메이션, 근거 N건 접기/펼치기, 저장 버튼
+
 ## 진행 중인 작업
 
 (없음)
