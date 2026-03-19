@@ -166,6 +166,11 @@
 
 - [x] CalendarScreen 날짜 카드 스와이프 슬라이드 애니메이션 (드래그 추적 + 밀어내기/밀어넣기 전환)
 - [x] SearchScreen 키보드 입력창 슬라이드업: behavior="padding" 통일 + keyboardVerticalOffset(tabBarHeight)
+- [x] AI 등대 검색 환각 방지 (방안 E):
+  - 유사도 임계값 0.3→0.55, 최대 반환 50→10건
+  - 평균 유사도 <0.5 거부 메커니즘
+  - 프롬프트 인용 강제 + 무관 기록 거부 규칙
+  - fallback(무관한 최근 기록 반환) 완전 제거
 
 ## 진행 중인 작업
 

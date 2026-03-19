@@ -1,8 +1,8 @@
 import { getRecordsWithEmbeddings } from '../db/queries';
 import { getAllTags } from '../db/tagsDao';
 
-const SIMILARITY_THRESHOLD = 0.3;
-const MAX_RESULTS = 50;
+const SIMILARITY_THRESHOLD = 0.55;
+const MAX_RESULTS = 10;
 
 // 코사인 유사도 계산
 export function cosineSimilarity(a: number[], b: number[]): number {
