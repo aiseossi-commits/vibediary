@@ -54,7 +54,7 @@ function TabNavigator() {
           backgroundColor: colors.tabBg,
           borderTopWidth: 1,
           borderTopColor: colors.tabBorder,
-          height: 60 + insets.bottom,
+          paddingTop: 8,
           paddingBottom: 8 + insets.bottom,
         },
         tabBarActiveTintColor: colors.primary,

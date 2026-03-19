@@ -160,6 +160,7 @@
 - [x] 탭 화면 SafeAreaView edges 통일 (bottom 제거 — 탭 바 겹침 수정)
 - [x] SearchScreen Android KeyboardAvoidingView behavior undefined (탭 바 뒤 입력창 겹침 수정)
 - [x] OrganicBlob 스프링 튜닝 (damping 14, stiffness 90, 배율 0.35 — Android 촐싹거림 완화)
+- [x] 탭 바 height 고정값 제거 → paddingTop/Bottom 방식 (입력창 겹침 근본 수정)
 
 ## 진행 중인 작업
 
