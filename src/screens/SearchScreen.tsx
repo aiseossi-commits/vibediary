@@ -38,8 +38,7 @@ function createStyles(colors: AppColors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     flex: { flex: 1 },
-    header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.lg, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-    headerLeft: { flex: 1 },
+    header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.md },
     title: { fontSize: FONT_SIZE.title, fontWeight: FONT_WEIGHT.bold, fontFamily: 'Pretendard-Bold', color: colors.textPrimary, letterSpacing: -0.6, marginBottom: SPACING.sm },
     subtitle: { fontSize: FONT_SIZE.md, color: colors.textSecondary, lineHeight: 26, letterSpacing: 0.2 },
     logToggleButton: {
@@ -49,7 +48,8 @@ function createStyles(colors: AppColors) {
       paddingHorizontal: SPACING.sm,
       paddingVertical: SPACING.xs,
       borderRadius: BORDER_RADIUS.sm,
-      marginTop: 6,
+      marginTop: SPACING.sm,
+      alignSelf: 'flex-start',
     },
     logToggleButtonActive: {
       backgroundColor: colors.primary + '22',
@@ -433,10 +433,8 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>AI 등대</Text>
-            <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>
-          </View>
+          <Text style={styles.title}>AI 등대</Text>
+          <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>
           <TouchableOpacity
             style={[styles.logToggleButton, showLogs && styles.logToggleButtonActive]}
             onPress={() => setShowLogs((v) => !v)}
@@ -473,7 +471,7 @@ export default function SearchScreen() {
             )}
           </ScrollView>
         ) : (
-          <>
+          <View style={styles.flex}>
             {messages.length === 0 && !isSearching ? (
               <View style={[styles.messageList, styles.emptyState]}>
                 <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
@@ -529,7 +527,7 @@ export default function SearchScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </>
+          </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
