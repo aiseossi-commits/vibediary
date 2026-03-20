@@ -41,3 +41,10 @@ yarn-error.*
 # generated native folders (ios는 Podfile 커스텀으로 추적)
 /android
 *.apk
+
+# Release keystore
+*.keystore
+\!android/app/debug.keystore
+
+# Keystore credentials
+keystore.properties

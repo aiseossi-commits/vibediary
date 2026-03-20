@@ -171,10 +171,15 @@
   - 평균 유사도 <0.5 거부 메커니즘
   - 프롬프트 인용 강제 + 무관 기록 거부 규칙
   - fallback(무관한 최근 기록 반환) 완전 제거
+- [x] EAS 프로젝트 aiseossi 계정으로 이전 (projectId/owner 변경)
+- [x] .gitignore keystore/credentials 보안 패턴 추가
+- [x] iOS Info.plist NSPhotoLibraryUsageDescription 권한 추가
+- [x] expo 패키지 버전 업데이트 (expo 55.0.5, expo-sqlite 55.0.11 등)
+- [x] react-native-worklets 0.7.2 추가
 
 ## 진행 중인 작업
 
-(없음)
+- [ ] family-sync OpenSpec 변경 검토 중 (openspec/changes/family-sync/)
 
 ## 최근 완료된 작업 (dead-code-cleanup)
 

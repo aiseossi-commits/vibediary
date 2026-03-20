@@ -21,7 +21,9 @@
           {
             "CFBundleTypeName": "VibeDiary Backup",
             "CFBundleTypeRole": "Editor",
-            "LSItemContentTypes": ["public.json"]
+            "LSItemContentTypes": [
+              "public.json"
+            ]
           }
         ]
       }
@@ -43,8 +45,15 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [{ "mimeType": "application/json" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "mimeType": "application/json"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -71,9 +80,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "e624c730-81a4-44e6-bc57-0bd045fa357d"
+        "projectId": "c43c1e17-f436-44d9-95ee-ed1cdad398b3"
       }
     },
-    "owner": "sunseok"
+    "owner": "aiseossi"
   }
 }
