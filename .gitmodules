@@ -1,0 +1,3 @@
+[submodule "docs/aiseossi-knowledge"]
+	path = docs/aiseossi-knowledge
+	url = https://github.com/aiseossi-commits/aiseossi-knowledge.git

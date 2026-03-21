@@ -8,6 +8,22 @@
 
 ---
 
+## 공유 지식 (aiseossi-knowledge)
+
+이 앱은 @aiseossi 브랜드 하위 제품이다. 제품 간 공유되는 도메인 지식은 aiseossi-knowledge 레포에서 관리한다.
+
+**참조해야 하는 파일** (`docs/aiseossi-knowledge/`):
+- `ontology.md` — 발달 영역 코드, 태그 계층, structured_data 스키마
+- `brand/tone-guide.md` — 앱 내 텍스트 톤앤매너
+- `decisions.md` — 제품 간 공유 의사결정 로그
+
+**코드 수정 시 확인 사항:**
+- 태그 관련 수정 → ontology.md의 태그 계층과 일치하는지 확인
+- AI 프롬프트 수정 → ontology.md의 발달 영역 코드, structured_data 스키마 반영 여부 확인
+- UI 텍스트 수정 → tone-guide.md의 용어 규칙 준수
+
+---
+
 ## 기술 스택
 
 - **프레임워크**: React Native + Expo (TypeScript strict)
