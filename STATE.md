@@ -179,9 +179,9 @@
 
 ## 진행 중인 작업
 
-- [ ] family-sync OpenSpec 변경 검토 중 (openspec/changes/family-sync/)
+(없음)
 
-## 최근 완료된 작업 (dead-code-cleanup)
+## 최근 완료된 작업 (dead-code-cleanup, 완료 2026-03-21)
 
 - [x] `STTReviewScreen.tsx` 삭제 (고아 파일)
 - [x] `getRecordsByTagNames()` 삭제 (`src/db/queries.ts`)
@@ -191,6 +191,12 @@
 - [x] whisperSTT 30초 AbortController 타임아웃 추가 (`stt.ts`)
 - [x] recordPipeline DB 저장 구간 트랜잭션 적용 (createRecord + setTagsForRecord + addToOfflineQueue)
 - [x] RecordingScreen 무음/저음량 취소 시 임시 오디오 파일 삭제 (스토리지 누수 수정)
+- [x] `processRecording()` 삭제 — recordPipeline.ts (미사용, processFromText로 대체됨)
+- [x] `FONT_FAMILY` 상수 삭제 — theme.ts (미사용)
+- [x] `removeTagFromRecord()` 삭제 — tagsDao.ts (미사용)
+- [x] `WebExportData`/`exportForWeb()` 삭제 — backupService.ts (미사용)
+- [x] export → 내부 함수 전환: requestAudioPermission, cosineSimilarity, addTagToRecord, getRecordsByDateRange, TagChipProps
+- [x] app.json: ITSAppUsesNonExemptEncryption: false 추가, Android versionCode 2
 
 ## 최근 버그 수정
 
@@ -231,15 +237,16 @@
 ## 다음 계획
 
 - [x] child-profile OpenSpec 변경 아카이브
-- [ ] 앱 전체 dead code 감사 (OpenSpec 도입 이전 코드) → `/openspec-explore` 권장
+- [ ] 앱 전체 dead code 감사 (진행 중)
 - [x] 기록 알림 기능: 굿모닝/굿나잇 + 커스텀 알람, 설정 화면 토글 (expo-notifications)
 - [x] 백업/복원 기능: JSON 파일 내보내기/가져오기 (설정 화면) → `/openspec-new` 권장
 - [x] AI 등대 탭 구현 (SearchScreen — 이미 완성)
 
-## 검토 보류
+## v2로 이관 (현재 범위 밖)
 
-- [ ] AI 등대 로컬 LLM 전환 (react-native-rag / llama.rn): 기록 휘발 방지 + 오프라인 인사이트 목적. 모델 다운로드 500MB~1GB 부담으로 보류. 참고: llama.rn, react-native-executorch, react-native-rag, callstackincubator/ai
-- [ ] 잠금화면 위젯 / 빠른 녹음 트리거: iOS WidgetKit 잠금화면 위젯 + Android 홈 위젯. 설정 화면에서 안내+딥링크 제공 방식. 나중에 구현.
+- family-sync (이벤트 로그 기반 가족 동기화)
+- AI 등대 로컬 LLM 전환 (llama.rn 등)
+- 잠금화면 위젯 / 빠른 녹음 트리거
 
 ---
 

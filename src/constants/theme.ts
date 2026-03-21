@@ -150,13 +150,6 @@ export const FONT_WEIGHT = {
   bold: '700' as const,
 };
 
-export const FONT_FAMILY = {
-  regular: 'Pretendard-Regular',
-  medium: 'Pretendard-Medium',
-  semibold: 'Pretendard-SemiBold',
-  bold: 'Pretendard-Bold',
-} as const;
-
 export const BORDER_RADIUS = {
   sm: 8,
   md: 12,

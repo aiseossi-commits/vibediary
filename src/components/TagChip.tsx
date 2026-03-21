@@ -14,7 +14,7 @@ import {
 } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 
-export interface TagChipProps {
+interface TagChipProps {
   name: string;
   tag?: { id: number; name: string };
   onPress?: () => void;

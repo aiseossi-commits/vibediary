@@ -16,53 +16,6 @@ async function getCustomTagNames(): Promise<string[]> {
   }
 }
 
-// 전체 녹음 → 기록 생성 파이프라인
-export async function processRecording(audioUri: string, createdAt?: number, childId?: string, childName?: string): Promise<string> {
-  // 1. STT 변환 — 실패하거나 빈 텍스트면 저장 자체를 차단
-  const sttResult = await processSTT(audioUri, childName);
-  if (!sttResult.text.trim()) {
-    throw new Error('NO_SPEECH');
-  }
-
-  // 2. AI 처리 시도
-  let aiResult;
-  let aiPending = false;
-  const customTags = await getCustomTagNames();
-
-  try {
-    aiResult = await processWithAI(sttResult.text, customTags);
-  } catch (e) {
-    console.error('[Pipeline] AI 처리 실패:', e);
-    aiResult = createFallbackResult(sttResult.text);
-    aiPending = true;
-  }
-
-  // 3. embedding 생성 (AI 처리 성공 시에만)
-  const embedding = !aiPending ? await generateEmbedding(aiResult.summary) : null;
-
-  // 4-6. DB 저장 + 태그 + 오프라인 큐를 단일 트랜잭션으로 처리
-  const db = await getDatabase();
-  let recordId!: string;
-  await db.withTransactionAsync(async () => {
-    recordId = await createRecord({
-      audioPath: audioUri,
-      rawText: sttResult.text,
-      summary: aiResult.summary,
-      structuredData: aiResult.structuredData,
-      embedding,
-      aiPending,
-      createdAt,
-      childId,
-    });
-    await setTagsForRecord(recordId, aiResult.tags);
-    if (aiPending && sttResult.text.trim().length > 0) {
-      await addToOfflineQueue(recordId, sttResult.text);
-    }
-  });
-
-  return recordId;
-}
-
 // STT만 실행, 실패 시 빈 문자열 반환
 export async function runSTTOnly(audioUri: string, subjectName?: string): Promise<string> {
   try {

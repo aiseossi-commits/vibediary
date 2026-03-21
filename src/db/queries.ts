@@ -2,7 +2,7 @@ import { getDatabase } from './database';
 import type { RecordWithTags, Tag, DailyRecordSummary } from '../types/record';
 
 // 날짜 범위 기반 기록 조회 (캘린더용)
-export async function getRecordsByDateRange(
+async function getRecordsByDateRange(
   startDate: string, // YYYY-MM-DD
   endDate: string, // YYYY-MM-DD
   childId?: string

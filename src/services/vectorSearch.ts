@@ -5,7 +5,7 @@ const SIMILARITY_THRESHOLD = 0.55;
 const MAX_RESULTS = 10;
 
 // 코사인 유사도 계산
-export function cosineSimilarity(a: number[], b: number[]): number {
+function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) return 0;
 
   let dotProduct = 0;

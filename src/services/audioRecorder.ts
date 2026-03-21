@@ -17,7 +17,7 @@ export function setMeteringCallback(cb: ((level: number) => void) | null) {
 }
 
 // 오디오 권한 요청
-export async function requestAudioPermission(): Promise<boolean> {
+async function requestAudioPermission(): Promise<boolean> {
   const { granted } = await Audio.requestPermissionsAsync();
   return granted;
 }

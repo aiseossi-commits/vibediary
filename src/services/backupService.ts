@@ -9,24 +9,6 @@ import { getAllRecordsForBackup } from '../db/recordsDao';
 
 const BACKUP_VERSION = 1;
 
-// AI 항해사 웹 내보내기 포맷
-export interface WebExportRecord {
-  record_id: string;
-  child_id: string | null;
-  timestamp: string; // ISO 8601
-  raw_text: string | null;
-  refined_text: string;
-  tags: string[];
-  structured_data: Record<string, number | boolean | null> | null;
-}
-
-export interface WebExportData {
-  export_version: string;
-  exported_at: string; // ISO 8601
-  profiles: { child_id: string; child_name: string }[];
-  records: WebExportRecord[];
-}
-
 export interface BackupData {
   version: number;
   exportedAt: number;
@@ -107,60 +89,6 @@ export async function parseBackupFromUri(uri: string): Promise<BackupData> {
     throw new Error('INVALID_FORMAT');
   }
   return data;
-}
-
-// AI 항해사 웹 서비스용 JSON 내보내기 (버튼 미노출 — 웹 연동 준비 중)
-export async function exportForWeb(): Promise<void> {
-  const [children, records, tags, recordTags] = await Promise.all([
-    getAllChildren(),
-    getAllRecordsForBackup(),
-    getAllTags(),
-    getAllRecordTags(),
-  ]);
-
-  // record_id → tag 이름 배열 맵
-  const tagIdToName = new Map(tags.map(t => [t.id, t.name]));
-  const recordTagMap = new Map<string, string[]>();
-  for (const rt of recordTags) {
-    const name = tagIdToName.get(rt.tag_id);
-    if (!name) continue;
-    const list = recordTagMap.get(rt.record_id) ?? [];
-    list.push(name);
-    recordTagMap.set(rt.record_id, list);
-  }
-
-  const data: WebExportData = {
-    export_version: '1.0',
-    exported_at: new Date().toISOString(),
-    profiles: children.map(c => ({ child_id: c.id, child_name: c.name })),
-    records: records.map(r => {
-      let structuredData: Record<string, number | boolean | null> | null = null;
-      if (r.structured_data) {
-        try {
-          structuredData = JSON.parse(r.structured_data);
-        } catch {
-          structuredData = null;
-        }
-      }
-      return {
-        record_id: r.id,
-        child_id: r.child_id,
-        timestamp: new Date(r.created_at).toISOString(),
-        raw_text: r.raw_text,
-        refined_text: r.summary,
-        tags: recordTagMap.get(r.id) ?? [],
-        structured_data: structuredData,
-      };
-    }),
-  };
-
-  const d = new Date();
-  const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-  const fileName = `bada-export-${dateStr}.json`;
-  const filePath = `${FileSystem.cacheDirectory}${fileName}`;
-
-  await FileSystem.writeAsStringAsync(filePath, JSON.stringify(data, null, 2));
-  await Sharing.shareAsync(filePath, { mimeType: 'application/json', dialogTitle: 'AI 항해사로 내보내기' });
 }
 
 // 덮어쓰기 복원: 기존 DB 전체 삭제 후 백업 데이터로 교체

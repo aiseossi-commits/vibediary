@@ -39,20 +39,10 @@ export async function deleteTag(tagId: number): Promise<void> {
 }
 
 // 기록에 태그 연결
-export async function addTagToRecord(recordId: string, tagId: number): Promise<void> {
+async function addTagToRecord(recordId: string, tagId: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     'INSERT OR IGNORE INTO record_tags (record_id, tag_id) VALUES (?, ?)',
-    recordId,
-    tagId
-  );
-}
-
-// 기록에서 태그 제거
-export async function removeTagFromRecord(recordId: string, tagId: number): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    'DELETE FROM record_tags WHERE record_id = ? AND tag_id = ?',
     recordId,
     tagId
   );
