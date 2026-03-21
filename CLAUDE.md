@@ -12,7 +12,7 @@
 
 이 앱은 @aiseossi 브랜드 하위 제품이다. 제품 간 공유되는 도메인 지식은 aiseossi-knowledge 레포에서 관리한다.
 
-**참조해야 하는 파일** (`docs/aiseossi-knowledge/`):
+**참조해야 하는 파일** (`../aiseossi-knowledge/`):
 - `ontology.md` — 발달 영역 코드, 태그 계층, structured_data 스키마
 - `brand/tone-guide.md` — 앱 내 텍스트 톤앤매너
 - `decisions.md` — 제품 간 공유 의사결정 로그

@@ -183,7 +183,7 @@
 
 ## 최근 완료된 작업 (2026-03-22)
 
-- [x] aiseossi-knowledge 서브모듈 연결 (docs/aiseossi-knowledge)
+- [x] aiseossi-knowledge 서브모듈 연결 → 독립 클론으로 전환 (../aiseossi-knowledge)
 - [x] CLAUDE.md에 공유 지식 참조 섹션 추가
 
 ## 최근 완료된 작업 (dead-code-cleanup, 완료 2026-03-21)
