@@ -190,6 +190,7 @@
   - RecordDetailScreen aiPending 배너 자동 갱신 (큐 처리 완료 구독)
   - Deno Deploy warm 핑 (warmDeno, 4분 간격, /health 엔드포인트)
   - HomeScreen 포커스 + 녹음 화면 진입 시 warmDeno 호출
+  - warmDeno AbortSignal.timeout → AbortController (Hermes 호환성 수정)
 
 ## 최근 완료된 작업 (2026-03-22)
 

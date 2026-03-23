@@ -187,13 +187,17 @@ export async function warmDeno(): Promise<void> {
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
   if (!workerUrl || !workerSecret) return;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
     await fetch(`${workerUrl}/health`, {
       headers: { 'X-App-Secret': workerSecret },
-      signal: AbortSignal.timeout(5000),
+      signal: controller.signal,
     });
     lastPingAt = Date.now();
   } catch {
     // 핑 실패는 무시
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
