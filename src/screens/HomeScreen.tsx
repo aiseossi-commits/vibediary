@@ -28,6 +28,7 @@ import type { RecordWithTags } from '../types/record';
 import { getAllRecords, isDatabaseReady } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
+import { warmDeno } from '../services/aiProcessor';
 import RecordCard from '../components/RecordCard';
 
 interface HomeScreenProps {
@@ -178,6 +179,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     useCallback(() => {
       setIsLoading(true);
       loadRecords(true);
+      warmDeno();
       processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
       return () => setShowEmptyState(false);
     }, [loadRecords])

@@ -15,6 +15,7 @@ import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
+import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -205,6 +206,9 @@ export default function AppNavigator() {
 function RecordingScreenWrapper({ navigation, route }: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const { activeChild } = useChild();
+
+  // 녹음 화면 진입 시 Deno warm (녹음 중 깨어나므로 AI 호출이 빠름)
+  useEffect(() => { warmDeno(); }, []);
 
   const handleRecordingComplete = useCallback(async (uri: string, _duration: number) => {
     setIsProcessing(true);

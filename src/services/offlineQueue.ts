@@ -29,6 +29,40 @@ let isProcessingQueue = false;
 let apiErrorCooldownUntil = 0;
 const API_ERROR_COOLDOWN_MS = 5 * 60 * 1000; // 429 등 API 오류 시 5분 대기
 
+// --- 자동 재시도 (지수 백오프) ---
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let retryAttempt = 0;
+const RETRY_DELAYS = [10_000, 30_000, 60_000, 120_000]; // 10s, 30s, 1m, 2m
+
+function scheduleRetry(): void {
+  if (retryTimer) return;
+  if (Date.now() < apiErrorCooldownUntil) return;
+
+  const delay = RETRY_DELAYS[Math.min(retryAttempt, RETRY_DELAYS.length - 1)];
+  retryAttempt++;
+
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    processOfflineQueue().catch(() => {});
+  }, delay);
+}
+
+export function cancelRetry(): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+}
+
+// --- 큐 처리 완료 콜백 ---
+type QueueCallback = (processedCount: number) => void;
+const listeners = new Set<QueueCallback>();
+
+export function onQueueProcessed(cb: QueueCallback): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
 // 오프라인 큐 일괄 처리 (네트워크 복구 시)
 export async function processOfflineQueue(): Promise<number> {
   if (isProcessingQueue) return 0;
@@ -47,6 +81,7 @@ export async function processOfflineQueue(): Promise<number> {
     }>("SELECT id, record_id, raw_text FROM offline_queue WHERE status = 'pending' ORDER BY created_at ASC");
 
     let processed = 0;
+    let hasPendingLeft = false;
 
     for (const item of pendingItems) {
       try {
@@ -91,6 +126,7 @@ export async function processOfflineQueue(): Promise<number> {
         processed++;
       } catch (error) {
         console.warn(`오프라인 큐 처리 실패 (record: ${item.record_id}):`, error);
+        hasPendingLeft = true;
 
         const errMsg = error instanceof Error ? error.message : '';
         // API 할당량 초과 → 쿨다운 후 중단 (재시도해도 의미없음)
@@ -107,6 +143,17 @@ export async function processOfflineQueue(): Promise<number> {
 
     // 완료된 항목 정리
     await db.runAsync("DELETE FROM offline_queue WHERE status = 'done'");
+
+    // 콜백 알림
+    if (processed > 0) {
+      retryAttempt = 0;
+      listeners.forEach((cb) => cb(processed));
+    }
+
+    // 실패한 항목이 남아있으면 자동 재시도 스케줄
+    if (hasPendingLeft) {
+      scheduleRetry();
+    }
 
     return processed;
   } finally {

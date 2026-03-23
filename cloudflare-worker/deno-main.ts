@@ -49,6 +49,10 @@ Deno.serve(async (request: Request) => {
 
   const url = new URL(request.url);
 
+  if (url.pathname === '/health') {
+    return new Response('ok', { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
+  }
+
   if (request.method === 'POST' && url.pathname === '/stt') {
     return handleSTT(request);
   }

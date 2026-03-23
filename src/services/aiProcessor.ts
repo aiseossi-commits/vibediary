@@ -46,7 +46,7 @@ async function callGeminiAPI(text: string, extraTags: string[] = []): Promise<AI
   const userMessage = USER_PROMPT_TEMPLATE.replace('{text}', text);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   let response: Response;
   try {
@@ -175,4 +175,25 @@ export function createFallbackResult(text: string): AIProcessingResult {
     tags: ['#일상'],
     structuredData: {},
   };
+}
+
+// Deno Deploy warm 핑 (cold start 방지)
+let lastPingAt = 0;
+const PING_INTERVAL = 4 * 60 * 1000; // 4분
+
+export async function warmDeno(): Promise<void> {
+  if (Date.now() - lastPingAt < PING_INTERVAL) return;
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) return;
+
+  try {
+    await fetch(`${workerUrl}/health`, {
+      headers: { 'X-App-Secret': workerSecret },
+      signal: AbortSignal.timeout(5000),
+    });
+    lastPingAt = Date.now();
+  } catch {
+    // 핑 실패는 무시
+  }
 }

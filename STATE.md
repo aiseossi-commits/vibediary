@@ -181,6 +181,16 @@
 
 (없음)
 
+## 최근 완료된 작업 (2026-03-24)
+
+- [x] AI 무한로딩 근본 수정:
+  - callGeminiAPI 타임아웃 15초 → 25초 (Deno cold start + LTE 지연 커버)
+  - offlineQueue 지수 백오프 자동 재시도 (10s→30s→1m→2m, 실패 시 자동 복구)
+  - offlineQueue 처리 완료 콜백 메커니즘 (onQueueProcessed)
+  - RecordDetailScreen aiPending 배너 자동 갱신 (큐 처리 완료 구독)
+  - Deno Deploy warm 핑 (warmDeno, 4분 간격, /health 엔드포인트)
+  - HomeScreen 포커스 + 녹음 화면 진입 시 warmDeno 호출
+
 ## 최근 완료된 작업 (2026-03-22)
 
 - [x] aiseossi-knowledge 서브모듈 연결 → 독립 클론으로 전환 (../aiseossi-knowledge)

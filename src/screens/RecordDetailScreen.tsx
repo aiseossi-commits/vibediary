@@ -27,6 +27,7 @@ import { getRecordById, updateRecord, deleteRecord } from '../db';
 import { playAudio, deleteAudioFile } from '../services/audioRecorder';
 import { processWithAI, createFallbackResult } from '../services/aiProcessor';
 import { setTagsForRecord } from '../db/tagsDao';
+import { onQueueProcessed } from '../services/offlineQueue';
 import TagChip from '../components/TagChip';
 
 interface RecordDetailScreenProps {
@@ -131,6 +132,14 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   useEffect(() => {
     loadRecord();
     return () => { if (soundRef.current) { soundRef.current.unloadAsync(); soundRef.current = null; } };
+  }, [loadRecord]);
+
+  // offlineQueue 처리 완료 시 자동 갱신 (aiPending 배너 해제)
+  useEffect(() => {
+    const unsubscribe = onQueueProcessed((count) => {
+      if (count > 0) loadRecord();
+    });
+    return unsubscribe;
   }, [loadRecord]);
 
   const handleEditRawText = useCallback(async () => {
