@@ -181,6 +181,11 @@
 
 (없음)
 
+## 최근 완료된 작업 (2026-03-24 — 미비 정리)
+
+- [x] offlineQueue.ts: cancelRetry() 미사용 export 삭제
+- [x] CLAUDE.md: child-profile 아카이브 완료 언급 제거
+
 ## 최근 완료된 작업 (2026-03-24)
 
 - [x] AI 무한로딩 근본 수정:

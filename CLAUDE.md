@@ -109,7 +109,6 @@
 3. `/openspec-verify-change` — 검증
 4. `/openspec-archive-change` — 완료
 
-진행 중인 변경: `openspec/changes/child-profile/` (아카이브 필요)
 
 ---
 

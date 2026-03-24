@@ -47,13 +47,6 @@ function scheduleRetry(): void {
   }, delay);
 }
 
-export function cancelRetry(): void {
-  if (retryTimer) {
-    clearTimeout(retryTimer);
-    retryTimer = null;
-  }
-}
-
 // --- 큐 처리 완료 콜백 ---
 type QueueCallback = (processedCount: number) => void;
 const listeners = new Set<QueueCallback>();
