@@ -177,6 +177,13 @@
 - [x] expo 패키지 버전 업데이트 (expo 55.0.5, expo-sqlite 55.0.11 등)
 - [x] react-native-worklets 0.7.2 추가
 
+## 최근 완료된 작업 (2026-03-25)
+
+- [x] Android "다른 앱으로 열기" 수정:
+  - AndroidManifest.xml에 intent filter 3종 추가 (application/json, application/octet-stream, text/plain)
+  - AppNavigator: content:// URI도 허용하도록 URL 체크 완화
+  - backupService: content:// URI → 캐시 복사 후 읽기 + finally 블록에서 임시 파일 삭제
+
 ## 진행 중인 작업
 
 (없음)

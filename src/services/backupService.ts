@@ -78,7 +78,20 @@ export async function pickAndParseBackup(): Promise<BackupData> {
 
 // URI에서 직접 읽어서 파싱 (Open with 흐름용)
 export async function parseBackupFromUri(uri: string): Promise<BackupData> {
-  const raw = await FileSystem.readAsStringAsync(uri);
+  // content:// URI는 직접 읽기 실패할 수 있으므로 앱 캐시 디렉토리로 복사 후 읽기
+  let readUri = uri;
+  let tmpPath: string | null = null;
+  if (uri.startsWith('content://')) {
+    tmpPath = `${FileSystem.cacheDirectory}backup_import_${Date.now()}.json`;
+    await FileSystem.copyAsync({ from: uri, to: tmpPath });
+    readUri = tmpPath;
+  }
+  let raw: string;
+  try {
+    raw = await FileSystem.readAsStringAsync(readUri);
+  } finally {
+    if (tmpPath) FileSystem.deleteAsync(tmpPath, { idempotent: true }).catch(() => {});
+  }
   let data: BackupData;
   try {
     data = JSON.parse(raw);

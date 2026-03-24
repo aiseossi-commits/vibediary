@@ -76,7 +76,10 @@ export default function AppNavigator() {
   const pendingFileUrl = useRef<string | null>(null);
 
   const handleIncomingFile = useCallback(async (url: string) => {
-    if (!url.includes('.json') && !url.includes('json')) return;
+    // content:// URI (카카오톡 등)는 파일명 없이 올 수 있으므로 scheme 기준으로도 허용
+    const isContentUri = url.startsWith('content://');
+    const isJsonUri = url.includes('.json') || url.includes('json');
+    if (!isContentUri && !isJsonUri) return;
     try {
       const data = await parseBackupFromUri(url);
       Alert.alert(
