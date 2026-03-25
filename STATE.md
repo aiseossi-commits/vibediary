@@ -187,6 +187,8 @@
   - eas build는 잘 됐으나 eas submit을 누락한 것이 원인
   - build 5 (eee9db11, 3.24)가 이미 제출 성공 상태였음
   - App Store Connect에서 외부 테스터 그룹에 build 5 수동 추가 완료 (직접 처리)
+- [x] 설정 화면 버전 동적 표시: expo-constants + expo-application으로 v{version} (build {nativeBuildVersion})
+- [x] CHANGELOG.md 생성 (build 1~5 소급 정리)
 - [x] iOS TestFlight 배포 워크플로우 확립:
   - eas build → eas submit (내가 처리)
   - App Store Connect 테스터 그룹 빌드 추가 → 직접 처리 (터미널로 불가)

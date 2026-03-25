@@ -5,6 +5,8 @@ import {
   Animated, ActivityIndicator, Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
@@ -530,7 +532,9 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <Text style={styles.appName}>바다 vibediary</Text>
             <Text style={styles.slogan}>기록에 치이지 말고, 그냥 말하세요</Text>
-            <Text style={styles.version}>버전 1.0.0</Text>
+            <Text style={styles.version}>
+              v{Constants.expoConfig?.version ?? '1.0.0'} (build {Application.nativeBuildVersion ?? '?'})
+            </Text>
             <TouchableOpacity
               onPress={() => Linking.openURL('https://aiseossi-commits.github.io/vibediary/privacy-policy.html')}
               style={{ marginTop: SPACING.md }}
