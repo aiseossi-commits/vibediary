@@ -183,10 +183,23 @@
   - AndroidManifest.xml에 intent filter 3종 추가 (application/json, application/octet-stream, text/plain)
   - AppNavigator: content:// URI도 허용하도록 URL 체크 완화
   - backupService: content:// URI → 캐시 복사 후 읽기 + finally 블록에서 임시 파일 삭제
+- [x] iOS TestFlight 미업데이트 원인 파악:
+  - eas build는 잘 됐으나 eas submit을 누락한 것이 원인
+  - build 5 (eee9db11, 3.24)가 이미 제출 성공 상태였음
+  - App Store Connect에서 외부 테스터 그룹에 build 5 수동 추가 완료 (직접 처리)
+- [x] iOS TestFlight 배포 워크플로우 확립:
+  - eas build → eas submit (내가 처리)
+  - App Store Connect 테스터 그룹 빌드 추가 → 직접 처리 (터미널로 불가)
 
 ## 진행 중인 작업
 
 (없음)
+
+## 미해결 이슈 (다음 세션)
+
+- offlineQueue.ts에 force 파라미터 추가 중 중단됨 (검토 후 재작업 필요)
+  - 수동 처리하기 버튼 누를 때 쿨다운 무시 + 네트워크 오프라인 시 명확한 에러 피드백
+  - SettingsScreen handleProcessQueue 피드백 개선 (0건 완료 → 실패 원인 표시)
 
 ## 최근 완료된 작업 (2026-03-24 — 미비 정리)
 
