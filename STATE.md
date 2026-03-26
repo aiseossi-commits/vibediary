@@ -198,6 +198,9 @@
 - [x] AI 등대 검색 임베딩 소스 변경: summary → raw_text (약물명, 수치 등 구체적 단어 검색 가능)
   - recordPipeline.ts 2곳, offlineQueue.ts 1곳 수정
   - 테스터 피드백: "류코보린 20mg증량한날" 검색 미검출 → 근본 원인 수정
+- [x] 설정 화면 검색 재색인 버튼 추가 (백업/복원 카드 하단)
+  - getAllRecordsForReindex() DAO 함수 추가
+  - 기존 기록 raw_text 기반 임베딩 일괄 재생성, Alert 확인 후 실행
 
 ## 진행 중인 작업
 

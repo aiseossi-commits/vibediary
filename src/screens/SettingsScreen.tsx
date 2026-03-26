@@ -10,6 +10,8 @@ import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
+import { generateEmbedding } from '../services/aiProcessor';
+import { getAllRecordsForReindex, updateRecord } from '../db/recordsDao';
 import {
   isDatabaseReady, createChild, updateChild, deleteChild,
   getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
@@ -95,6 +97,7 @@ export default function SettingsScreen() {
   // 백업/복원 상태
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isReindexing, setIsReindexing] = useState(false);
 
   const handleExport = useCallback(async () => {
     setIsBackingUp(true);
@@ -288,6 +291,41 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const handleReindex = useCallback(() => {
+    Alert.alert(
+      '검색 재색인',
+      '모든 기록의 검색 데이터를 새로 생성합니다.\nAI 서버 호출이 기록 수만큼 발생합니다. 계속할까요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '재색인',
+          onPress: async () => {
+            setIsReindexing(true);
+            try {
+              const records = await getAllRecordsForReindex();
+              let success = 0;
+              for (const record of records) {
+                try {
+                  const text = record.raw_text || record.summary;
+                  const embedding = await generateEmbedding(text);
+                  await updateRecord(record.id, { embedding });
+                  success++;
+                } catch {
+                  // 개별 실패 시 계속 진행
+                }
+              }
+              Alert.alert('완료', `${success}/${records.length}건 재색인 완료`);
+            } catch {
+              Alert.alert('오류', '재색인 중 문제가 발생했습니다.');
+            } finally {
+              setIsReindexing(false);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
+
   const handleProcessQueue = async () => {
     setIsProcessing(true);
     try {
@@ -389,6 +427,15 @@ export default function SettingsScreen() {
                 }
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={[styles.processButton, { marginTop: SPACING.sm }]}
+              onPress={handleReindex}
+              disabled={isReindexing}
+            >
+              <Text style={styles.processButtonText}>
+                {isReindexing ? '재색인 중...' : '검색 재색인'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
