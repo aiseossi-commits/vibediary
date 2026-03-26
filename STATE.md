@@ -193,6 +193,12 @@
   - eas build → eas submit (내가 처리)
   - App Store Connect 테스터 그룹 빌드 추가 → 직접 처리 (터미널로 불가)
 
+## 최근 완료된 작업 (2026-03-27)
+
+- [x] AI 등대 검색 임베딩 소스 변경: summary → raw_text (약물명, 수치 등 구체적 단어 검색 가능)
+  - recordPipeline.ts 2곳, offlineQueue.ts 1곳 수정
+  - 테스터 피드백: "류코보린 20mg증량한날" 검색 미검출 → 근본 원인 수정
+
 ## 진행 중인 작업
 
 (없음)

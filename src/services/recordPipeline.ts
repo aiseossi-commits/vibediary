@@ -44,7 +44,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     aiPending = true;
   }
 
-  const embedding = !aiPending ? await generateEmbedding(aiResult.summary) : null;
+  const embedding = !aiPending ? await generateEmbedding(text || aiResult.summary) : null;
 
   const db = await getDatabase();
   let recordId!: string;
@@ -84,7 +84,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
   }
 
   // 2. embedding 생성 + DB 저장 (트랜잭션)
-  const embedding = !aiPending ? await generateEmbedding(aiResult.summary) : null;
+  const embedding = !aiPending ? await generateEmbedding(text || aiResult.summary) : null;
 
   const db = await getDatabase();
   let recordId!: string;
