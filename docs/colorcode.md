@@ -402,3 +402,42 @@ export const LIGHT_COLORS = {
 export const DARK_DENSITY_COLORS = ['transparent', '#2A302E', '#364040', '#4A5E6A', '#4F667D'] as const;
 export const LIGHT_DENSITY_COLORS = ['transparent', '#D9E6E1', '#B8CEC8', '#A1B7CB', '#6B8EAC'] as const;
 ```
+
+---
+
+## 6. 딥 오션 (key: `deepOcean`)
+
+primary: `#1A7A9E` — 진하고 깊은 바다색 파랑
+
+```ts
+dark.primary: '#1A7A9E', dark.background: '#111E24'
+light.primary: '#1A7A9E', light.background: '#EBF5FA'
+darkDensity: ['transparent', '#192F3B', '#1A3E50', '#105870', '#0F5870']
+lightDensity: ['transparent', '#C5E5F0', '#8DCCDF', '#4BA8C4', '#1A7A9E']
+```
+
+---
+
+## 7. 맑은 하늘 (key: `clearSky`)
+
+primary: `#4B9FD5` — 밝고 청명한 하늘색
+
+```ts
+dark.primary: '#4B9FD5', dark.background: '#131B22'
+light.primary: '#4B9FD5', light.background: '#EFF6FC'
+darkDensity: ['transparent', '#1B2E3C', '#1E3F53', '#2B7EB0', '#2B7EB0']
+lightDensity: ['transparent', '#C8DEF0', '#93C3E2', '#7ABDE5', '#4B9FD5']
+```
+
+---
+
+## 8. 슬레이트 네이비 (key: `slateNavy`)
+
+primary: `#3D5A7A` — 회색기 없는 묵직한 네이비. 칼름 블루보다 블루감 강함
+
+```ts
+dark.primary: '#3D5A7A', dark.background: '#141922'
+light.primary: '#3D5A7A', light.background: '#EDF0F5'
+darkDensity: ['transparent', '#1D2B3A', '#253347', '#2A3F57', '#2A3F57']
+lightDensity: ['transparent', '#C5CEDE', '#9BACC0', '#6685A4', '#3D5A7A']
+```

@@ -19,7 +19,7 @@ import {
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, type AppColors } from '../constants/theme';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, PALETTES, type AppColors, type PaletteKey } from '../constants/theme';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -82,11 +82,22 @@ function createStyles(colors: AppColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
     },
+    // 팔레트 선택
+    paletteCard: {
+      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md, marginTop: SPACING.sm, ...SHADOW.sm,
+    },
+    paletteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.sm },
+    paletteItem: { alignItems: 'center', gap: 4 },
+    paletteCircle: { width: 36, height: 36, borderRadius: 18 },
+    paletteCircleSelected: { width: 36, height: 36, borderRadius: 18, borderWidth: 2.5, borderColor: colors.textPrimary },
+    paletteName: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textAlign: 'center', maxWidth: 56 },
+    paletteNameSelected: { fontSize: FONT_SIZE.xs, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium, textAlign: 'center', maxWidth: 56 },
   });
 }
 
 export default function SettingsScreen() {
-  const { colors, isDark, setTheme } = useTheme();
+  const { colors, isDark, palette, setTheme, setPalette } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
   const navigation = useNavigation();
@@ -472,6 +483,34 @@ export default function SettingsScreen() {
               ]} />
             </Animated.View>
           </TouchableOpacity>
+          <View style={styles.paletteCard}>
+            <Text style={styles.cardTitle}>색상 테마</Text>
+            <View style={styles.paletteRow}>
+              {(Object.keys(PALETTES) as PaletteKey[]).map((key) => {
+                const entry = PALETTES[key];
+                const primaryColor = isDark ? entry.dark.primary : entry.light.primary;
+                const isSelected = palette === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={styles.paletteItem}
+                    onPress={() => setPalette(key)}
+                    activeOpacity={0.7}
+                    accessibilityLabel={`${entry.name} 테마 선택`}
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <View style={[
+                      isSelected ? styles.paletteCircleSelected : styles.paletteCircle,
+                      { backgroundColor: primaryColor },
+                    ]} />
+                    <Text style={isSelected ? styles.paletteNameSelected : styles.paletteName}>
+                      {entry.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* AI 데이터 투명성 */}

@@ -201,6 +201,11 @@
 - [x] 설정 화면 검색 재색인 버튼 추가 (백업/복원 카드 하단)
   - getAllRecordsForReindex() DAO 함수 추가
   - 기존 기록 raw_text 기반 임베딩 일괄 재생성, Alert 확인 후 실행
+- [x] 인앱 팔레트 선택 기능 (유저 기능, 설정 화면 노출)
+  - theme.ts: PaletteKey 타입 + PALETTES 레코드 8종 (세이지/에메랄드/골드/앰버/칼름블루/딥오션/맑은하늘/슬레이트네이비)
+  - ThemeContext: palette 상태 + setPalette 추가, app_settings.json에 저장
+  - SettingsScreen: 색상 스와치 UI (화면 모드 카드 하단, 선택 원형 표시)
+  - docs/colorcode.md: 블루 3종 팔레트 추가
 
 ## 진행 중인 작업
 
