@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: AI 등대 임베딩 소스 개선 (raw_text + summary 합성)` (2026-03-27)
+**마지막 커밋**: `fix: 임베딩 API v1beta → v1 수정 (text-embedding-004 404 오류 해결)` (2026-03-27)
 
 **현재 브랜치**: feat/pretendard-blob
 

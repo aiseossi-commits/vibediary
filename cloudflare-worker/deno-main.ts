@@ -110,7 +110,7 @@ async function handleEmbedding(request: Request) {
 
   const googleKey = Deno.env.get('GOOGLE_AI_API_KEY');
   const upstreamResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${googleKey}`,
+    `https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=${googleKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
