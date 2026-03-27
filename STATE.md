@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `debug: 임베딩 모델 목록 확인용 임시 엔드포인트 추가` (2026-03-28)
+**마지막 커밋**: `fix: 임베딩 모델 text-embedding-004 → gemini-embedding-001 교체` (2026-03-28)
 
 **현재 브랜치**: feat/pretendard-blob
 
