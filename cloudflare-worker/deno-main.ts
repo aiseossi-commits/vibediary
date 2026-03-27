@@ -108,13 +108,21 @@ async function handleEmbedding(request: Request) {
     return new Response('Request body too large', { status: 413 });
   }
 
+  let parsed: { model?: string; content?: unknown };
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return new Response('Invalid JSON', { status: 400 });
+  }
+
+  const modelName = (parsed.model ?? 'models/text-embedding-004').replace(/^models\//, '');
   const googleKey = Deno.env.get('GOOGLE_AI_API_KEY');
   const upstreamResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=${googleKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:embedContent?key=${googleKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body,
+      body: JSON.stringify({ content: parsed.content }),
     }
   );
 
