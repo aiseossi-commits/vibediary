@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: 버전 1.0.1 bump (iOS build 2, Android versionCode 3)` (2026-03-28)
+**마지막 커밋**: `chore: iOS buildNumber 4, Android versionCode 4, .easignore ios/Pods 추가` (2026-03-28)
 
 **현재 브랜치**: feat/pretendard-blob
 

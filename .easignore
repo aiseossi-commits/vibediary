@@ -1,0 +1,10 @@
+# .gitignore 기반이지만 android/ios 폴더는 로컬 빌드에 필요
+/node_modules
+/build-*.tar.gz
+/bundle
+/android/.gradle
+/android/build
+/ios/build
+/ios/Pods
+/.planning
+/openspec

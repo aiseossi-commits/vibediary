@@ -13,6 +13,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.aiseossi.vibediary",
+      "buildNumber": "4",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -41,7 +42,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE"
       ],
-      "versionCode": 3,
+      "versionCode": 4,
       "package": "com.aiseossi.vibediary",
       "intentFilters": [
         {
