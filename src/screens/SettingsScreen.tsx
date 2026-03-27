@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
-import { generateEmbedding } from '../services/aiProcessor';
+import { generateEmbedding, buildEmbeddingText } from '../services/aiProcessor';
 import { getAllRecordsForReindex, updateRecord } from '../db/recordsDao';
 import {
   isDatabaseReady, createChild, updateChild, deleteChild,
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
               let success = 0;
               for (const record of records) {
                 try {
-                  const text = record.raw_text || record.summary;
+                  const text = buildEmbeddingText(record.raw_text, record.summary);
                   const embedding = await generateEmbedding(text);
                   await updateRecord(record.id, { embedding });
                   success++;

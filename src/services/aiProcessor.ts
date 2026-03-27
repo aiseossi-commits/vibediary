@@ -136,6 +136,16 @@ export async function processWithAI(text: string, extraTags: string[] = []): Pro
   return callGeminiAPI(text, extraTags);
 }
 
+// 임베딩 소스 텍스트 합성 (raw_text + summary → 약물명/수치 + 의미 풍부함 동시 확보)
+export function buildEmbeddingText(rawText: string | null, summary: string): string {
+  const raw = rawText?.trim() ?? '';
+  const sum = summary?.trim() ?? '';
+  if (raw && sum && raw !== sum) {
+    return `${raw}\n${sum}`;
+  }
+  return raw || sum;
+}
+
 // 텍스트 임베딩 생성 (text-embedding-004, 768차원)
 export async function generateEmbedding(text: string): Promise<number[] | null> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;

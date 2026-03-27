@@ -1,5 +1,5 @@
 import { processSTT } from './stt';
-import { processWithAI, createFallbackResult, generateEmbedding } from './aiProcessor';
+import { processWithAI, createFallbackResult, generateEmbedding, buildEmbeddingText } from './aiProcessor';
 import { createRecord } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
@@ -44,7 +44,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     aiPending = true;
   }
 
-  const embedding = !aiPending ? await generateEmbedding(text || aiResult.summary) : null;
+  const embedding = !aiPending ? await generateEmbedding(buildEmbeddingText(text, aiResult.summary)) : null;
 
   const db = await getDatabase();
   let recordId!: string;
@@ -84,7 +84,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
   }
 
   // 2. embedding 생성 + DB 저장 (트랜잭션)
-  const embedding = !aiPending ? await generateEmbedding(text || aiResult.summary) : null;
+  const embedding = !aiPending ? await generateEmbedding(buildEmbeddingText(text, aiResult.summary)) : null;
 
   const db = await getDatabase();
   let recordId!: string;
