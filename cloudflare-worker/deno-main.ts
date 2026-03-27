@@ -65,6 +65,16 @@ Deno.serve(async (request: Request) => {
     return handleEmbedding(request);
   }
 
+  if (request.method === 'GET' && url.pathname === '/debug-models') {
+    const googleKey = Deno.env.get('GOOGLE_AI_API_KEY');
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${googleKey}`);
+    const data = await res.json();
+    const embedModels = (data.models ?? []).filter((m: { name: string }) => m.name.includes('embed'));
+    return new Response(JSON.stringify(embedModels.map((m: { name: string }) => m.name)), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    });
+  }
+
   return new Response('Not Found', { status: 404 });
 });
 
