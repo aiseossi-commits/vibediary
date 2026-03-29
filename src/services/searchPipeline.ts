@@ -1,7 +1,19 @@
 import { detectTagsFromQuery, vectorSearch, getTagIdsByNames } from './vectorSearch';
 import { getRecordById } from '../db/recordsDao';
+import { textSearchRecords } from '../db/queries';
 import { getNetworkState } from '../utils/network';
 import type { SearchResult, ScoredRecord, RecordWithTags } from '../types/record';
+
+// 쿼리에서 의미 있는 키워드 추출 (2자 이상, 조사/의문어 제외)
+const STOPWORDS = new Set(['언제', '어디서', '무엇을', '어떻게', '왜', '했지', '먹었지', '했나', '인지', '이야', '이에요', '에요', '이고', '에서', '에게', '하고', '이랑', '랑', '을', '를', '이', '가', '은', '는', '의', '로', '으로', '와', '과']);
+
+function extractKeywords(query: string): string[] {
+  return query
+    .replace(/[?？!！.,。、]/g, ' ')
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 2 && !STOPWORDS.has(w));
+}
 
 // 유사도 임계값 — 이상이면 full 포맷, 미만이면 summary만
 const CONTEXT_FULL_THRESHOLD = 0.6;
@@ -31,14 +43,31 @@ export async function searchRecords(
   const allFilterTags = [...new Set([...(filterTagNames || []), ...autoDetectedTags])];
   const filterTagIds = allFilterTags.length > 0 ? await getTagIdsByNames(allFilterTags) : undefined;
 
-  // 2단계: 벡터 유사도 검색 (임베딩이 있을 때)
-  const scoredRecords: { record: RecordWithTags; score: number }[] = [];
+  // 2단계: 벡터 검색 + 텍스트 키워드 검색 병렬 실행
+  const keywords = extractKeywords(query);
 
-  if (queryEmbedding) {
-    const vectorResults = await vectorSearch(queryEmbedding, filterTagIds, childId);
-    for (const vr of vectorResults) {
-      const record = await getRecordById(vr.id);
-      if (record) scoredRecords.push({ record, score: vr.score });
+  const [vectorResults, textResults] = await Promise.all([
+    queryEmbedding ? vectorSearch(queryEmbedding, filterTagIds, childId) : Promise.resolve([]),
+    keywords.length > 0 ? textSearchRecords(keywords, childId) : Promise.resolve([]),
+  ]);
+
+  // 벡터 결과 id 맵
+  const scoredRecords: { record: RecordWithTags; score: number }[] = [];
+  const seenIds = new Set<string>();
+
+  for (const vr of vectorResults) {
+    const record = await getRecordById(vr.id);
+    if (record) {
+      scoredRecords.push({ record, score: vr.score });
+      seenIds.add(vr.id);
+    }
+  }
+
+  // 텍스트 검색 결과 중 벡터 결과에 없는 것만 추가 (score 0.5 고정)
+  for (const record of textResults) {
+    if (!seenIds.has(record.id)) {
+      scoredRecords.push({ record, score: 0.5 });
+      seenIds.add(record.id);
     }
   }
 
@@ -53,15 +82,16 @@ export async function searchRecords(
     };
   }
 
-  // 평균 유사도 거부 — 근거가 약하면 솔직히 모른다고 답변
-  const avgScore = scoredRecords.length > 0
-    ? scoredRecords.reduce((sum, r) => sum + r.score, 0) / scoredRecords.length
-    : 0;
-  if (avgScore < 0.5) {
-    return {
-      answer: '관련 기록이 충분하지 않아 정확한 답변을 드리기 어려워요. 다른 키워드로 다시 질문해 보세요.',
-      sourceRecords: [],
-    };
+  // 평균 유사도 거부 — 텍스트 검색 결과가 있으면 건너뜀 (키워드 직접 매칭은 항상 유효)
+  const vectorOnly = scoredRecords.filter((r) => r.score > 0.5);
+  if (textResults.length === 0 && vectorOnly.length > 0) {
+    const avgScore = vectorOnly.reduce((sum, r) => sum + r.score, 0) / vectorOnly.length;
+    if (avgScore < 0.5) {
+      return {
+        answer: '관련 기록이 충분하지 않아 정확한 답변을 드리기 어려워요. 다른 키워드로 다시 질문해 보세요.',
+        sourceRecords: [],
+      };
+    }
   }
 
   // 3단계: LLM 답변 생성

@@ -195,6 +195,10 @@
 
 ## 최근 완료된 작업 (2026-03-29)
 
+- [x] AI 등대 텍스트 검색 폴백 추가: 키워드 단어가 raw_text/summary에 직접 포함된 기록도 검색
+  - queries.ts: textSearchRecords(keywords, childId) 추가 (LIKE 검색, 최대 20건)
+  - searchPipeline.ts: extractKeywords() + 벡터/텍스트 병렬 실행 + 결과 병합 (텍스트 매칭은 score 0.5)
+  - 텍스트 매칭 결과가 있으면 평균 유사도 거부 로직 건너뜀
 - [x] 임베딩 소스 합성 (improve-embedding-source): buildEmbeddingText(rawText, summary) 도입
   - aiProcessor.ts에 buildEmbeddingText 추가 (raw+summary 합성, 중복 시 하나만 사용)
   - recordPipeline.ts 2곳, offlineQueue.ts 1곳, SettingsScreen.tsx 재색인 1곳 적용

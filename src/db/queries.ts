@@ -138,6 +138,43 @@ export async function getRecordsByTags(
   return results;
 }
 
+// 키워드 텍스트 검색 (raw_text OR summary에 포함된 기록)
+export async function textSearchRecords(
+  keywords: string[],
+  childId?: string
+): Promise<RecordWithTags[]> {
+  if (keywords.length === 0) return [];
+
+  const db = await getDatabase();
+  const childFilter = childId ? ' AND r.child_id = ?' : '';
+
+  // 키워드 하나라도 raw_text 또는 summary에 포함된 기록
+  const kwConditions = keywords.map(() => '(r.raw_text LIKE ? OR r.summary LIKE ?)').join(' OR ');
+  const kwParams: string[] = keywords.flatMap((kw) => [`%${kw}%`, `%${kw}%`]);
+  const childParams = childId ? [childId] : [];
+
+  const rows = await db.getAllAsync<any>(
+    `SELECT r.* FROM records r
+     WHERE (${kwConditions})${childFilter}
+     AND r.ai_pending = 0
+     ORDER BY r.created_at DESC
+     LIMIT 20`,
+    ...kwParams, ...childParams
+  );
+
+  const results: RecordWithTags[] = [];
+  for (const row of rows) {
+    const tags = await db.getAllAsync<Tag>(
+      `SELECT t.id, t.name FROM tags t
+       INNER JOIN record_tags rt ON t.id = rt.tag_id
+       WHERE rt.record_id = ?`,
+      row.id
+    );
+    results.push(mapRow(row, tags));
+  }
+  return results;
+}
+
 // 임베딩이 있는 전체 기록 조회 (벡터 검색용)
 export async function getRecordsWithEmbeddings(tagIds?: number[], childId?: string): Promise<
   { id: string; summary: string; structuredData: string | null; embedding: Uint8Array; createdAt: number }[]
