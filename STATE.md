@@ -195,6 +195,10 @@
 
 ## 최근 완료된 작업 (2026-03-29)
 
+- [x] offlineQueue force 파라미터 + 수동 처리 피드백 개선
+  - processOfflineQueue(force=true): 쿨다운 무시, QueueProcessResult 반환 (ok/empty/offline/already_running/cooldown)
+  - SettingsScreen 수동 처리 버튼: 상태별 명확한 메시지 (오프라인, 처리 중, 없음 등)
+- [x] 텍스트 검색 limit 제거: 특정 키워드 포함 기록 전체 반환 (오래된 기록도 검색 가능)
 - [x] AI 등대 텍스트 검색 폴백 추가: 키워드 단어가 raw_text/summary에 직접 포함된 기록도 검색
   - queries.ts: textSearchRecords(keywords, childId) 추가 (LIKE 검색, 최대 20건)
   - searchPipeline.ts: extractKeywords() + 벡터/텍스트 병렬 실행 + 결과 병합 (텍스트 매칭은 score 0.5)
@@ -223,9 +227,7 @@
 
 ## 미해결 이슈 (다음 세션)
 
-- offlineQueue.ts에 force 파라미터 추가 중 중단됨 (검토 후 재작업 필요)
-  - 수동 처리하기 버튼 누를 때 쿨다운 무시 + 네트워크 오프라인 시 명확한 에러 피드백
-  - SettingsScreen handleProcessQueue 피드백 개선 (0건 완료 → 실패 원인 표시)
+(없음)
 
 ## 최근 완료된 작업 (2026-03-24 — 미비 정리)
 

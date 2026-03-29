@@ -340,9 +340,26 @@ export default function SettingsScreen() {
   const handleProcessQueue = async () => {
     setIsProcessing(true);
     try {
-      const processed = await processOfflineQueue();
-      Alert.alert('완료', `${processed}건의 기록이 AI 처리되었습니다.`);
-      loadCounts();
+      const result = await processOfflineQueue(true);
+      switch (result.status) {
+        case 'ok':
+          Alert.alert('완료', `${result.processed}건의 기록이 AI 처리되었습니다.`);
+          loadCounts();
+          break;
+        case 'empty':
+          Alert.alert('완료', '처리할 기록이 없어요.');
+          break;
+        case 'offline':
+          Alert.alert('오프라인', '인터넷에 연결되지 않았어요.\n연결 후 다시 시도해주세요.');
+          break;
+        case 'already_running':
+          Alert.alert('처리 중', '이미 AI 처리가 진행 중이에요.');
+          break;
+        case 'cooldown':
+          Alert.alert('완료', '처리할 기록이 없어요.');
+          loadCounts();
+          break;
+      }
     } catch {
       Alert.alert('오류', '처리 중 문제가 발생했습니다.');
     }

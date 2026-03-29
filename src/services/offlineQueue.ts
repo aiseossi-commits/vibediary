@@ -56,12 +56,20 @@ export function onQueueProcessed(cb: QueueCallback): () => void {
   return () => listeners.delete(cb);
 }
 
+export type QueueProcessResult =
+  | { status: 'ok'; processed: number }
+  | { status: 'already_running' }
+  | { status: 'offline' }
+  | { status: 'cooldown'; resumesAt: number }
+  | { status: 'empty' };
+
 // 오프라인 큐 일괄 처리 (네트워크 복구 시)
-export async function processOfflineQueue(): Promise<number> {
-  if (isProcessingQueue) return 0;
-  if (Date.now() < apiErrorCooldownUntil) return 0;
+// force=true 이면 쿨다운 무시 (수동 버튼 전용)
+export async function processOfflineQueue(force = false): Promise<QueueProcessResult> {
+  if (isProcessingQueue) return { status: 'already_running' };
+  if (!force && Date.now() < apiErrorCooldownUntil) return { status: 'cooldown', resumesAt: apiErrorCooldownUntil };
   const isOnline = await getNetworkState();
-  if (!isOnline) return 0;
+  if (!isOnline) return { status: 'offline' };
 
   isProcessingQueue = true;
 
@@ -72,6 +80,10 @@ export async function processOfflineQueue(): Promise<number> {
       record_id: string;
       raw_text: string;
     }>("SELECT id, record_id, raw_text FROM offline_queue WHERE status = 'pending' ORDER BY created_at ASC");
+
+    if (pendingItems.length === 0) return { status: 'empty' };
+
+    if (force) apiErrorCooldownUntil = 0;
 
     let processed = 0;
     let hasPendingLeft = false;
@@ -143,12 +155,13 @@ export async function processOfflineQueue(): Promise<number> {
       listeners.forEach((cb) => cb(processed));
     }
 
+
     // 실패한 항목이 남아있으면 자동 재시도 스케줄
     if (hasPendingLeft) {
       scheduleRetry();
     }
 
-    return processed;
+    return { status: 'ok', processed };
   } finally {
     isProcessingQueue = false;
   }

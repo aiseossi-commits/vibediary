@@ -157,8 +157,7 @@ export async function textSearchRecords(
     `SELECT r.* FROM records r
      WHERE (${kwConditions})${childFilter}
      AND r.ai_pending = 0
-     ORDER BY r.created_at DESC
-     LIMIT 20`,
+     ORDER BY r.created_at DESC`,
     ...kwParams, ...childParams
   );
 
