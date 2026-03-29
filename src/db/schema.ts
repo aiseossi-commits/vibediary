@@ -27,8 +27,23 @@ export const CREATE_RECORDS_TABLE = `
 export const CREATE_TAGS_TABLE = `
   CREATE TABLE IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL
+    name TEXT NOT NULL,
+    child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
+    UNIQUE(name, child_id)
   );
+`;
+
+// tags 테이블 v2→v3 마이그레이션 (UNIQUE 제약 변경 + child_id 추가)
+export const MIGRATE_TAGS_V3 = `
+  CREATE TABLE IF NOT EXISTS tags_new (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
+    UNIQUE(name, child_id)
+  );
+  INSERT OR IGNORE INTO tags_new (id, name, child_id) SELECT id, name, NULL FROM tags;
+  DROP TABLE tags;
+  ALTER TABLE tags_new RENAME TO tags;
 `;
 
 export const CREATE_RECORD_TAGS_TABLE = `

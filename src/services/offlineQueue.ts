@@ -1,5 +1,6 @@
 import { getDatabase } from '../db/database';
 import { processWithAI, generateEmbedding, buildEmbeddingText } from './aiProcessor';
+import { DEFAULT_TAGS } from '../db/schema';
 import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
@@ -98,9 +99,8 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
         }
 
         // AI 처리 (커스텀 태그 포함)
-        const baseTags = ['#의료', '#투약', '#행동', '#일상', '#치료'];
         const allTagNames = (await getAllTags().catch(() => [])).map((t) => t.name);
-        const customTags = allTagNames.filter((n) => !baseTags.includes(n));
+        const customTags = allTagNames.filter((n) => !DEFAULT_TAGS.includes(n));
         const result = await processWithAI(item.raw_text, customTags);
 
         // embedding 생성 (실패해도 큐 처리 계속)

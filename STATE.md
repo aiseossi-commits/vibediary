@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: iOS buildNumber 4, Android versionCode 4, .easignore ios/Pods 추가` (2026-03-28)
+**마지막 커밋**: `feat: tag-system-overhaul — 아이별 태그 격리 + RecordDetail 태그 편집 UI` (2026-03-29)
 
 **현재 브랜치**: feat/pretendard-blob
 
@@ -192,6 +192,16 @@
 - [x] iOS TestFlight 배포 워크플로우 확립:
   - eas build → eas submit (내가 처리)
   - App Store Connect 테스터 그룹 빌드 추가 → 직접 처리 (터미널로 불가)
+
+## 최근 완료된 작업 (2026-03-29, tag-system-overhaul)
+
+- [x] schema.ts: tags 테이블 child_id 추가, UNIQUE(name, child_id), MIGRATE_TAGS_V3
+- [x] database.ts: v3 마이그레이션 (tags 테이블 재생성)
+- [x] tagsDao.ts: getAllTags/createTag/getTagsWithCount에 childId 필터, isDefault 플래그 추가
+- [x] recordPipeline.ts: BASE_TAG_NAMES 하드코딩 제거 → DEFAULT_TAGS import
+- [x] offlineQueue.ts: baseTags 하드코딩 제거 → DEFAULT_TAGS import
+- [x] TagsScreen.tsx: getTagsWithCount/createTag에 activeChild.id 전달, 기본 태그 삭제 버튼 숨김
+- [x] RecordDetailScreen.tsx: 태그 편집 UI 추가 (전체 태그 선택 피커, 저장/취소)
 
 ## 최근 완료된 작업 (2026-03-29)
 

@@ -24,6 +24,7 @@ import {
 } from '../constants/theme';
 import type { Tag, RecordWithTags } from '../types/record';
 import { getTagsWithCount, createTag, deleteTag, getRecordsByTags, isDatabaseReady } from '../db';
+import { useChild } from '../context/ChildContext';
 import RecordCard from '../components/RecordCard';
 
 interface TagsScreenProps {
@@ -63,7 +64,7 @@ function TagCreateInput({ onSubmit, onCancel, onFocus, colors, styles }: {
   );
 }
 
-type TagWithCount = Tag & { count: number };
+type TagWithCount = Tag & { count: number; isDefault: boolean };
 
 function getTagColor(name: string, colors: AppColors): string {
   const map: Record<string, string> = {
@@ -125,6 +126,7 @@ function createStyles(colors: AppColors) {
 export default function TagsScreen({ navigation }: TagsScreenProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { activeChild } = useChild();
 
   const [tags, setTags] = useState<TagWithCount[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -141,14 +143,14 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const loadTags = useCallback(async () => {
     if (!isDatabaseReady()) { setTags([]); setIsLoading(false); return; }
     try {
-      const data = await getTagsWithCount();
+      const data = await getTagsWithCount(activeChild?.id);
       setTags(data);
     } catch (error) {
       console.warn('Failed to load tags:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeChild?.id]);
 
   useFocusEffect(useCallback(() => { setIsLoading(true); loadTags(); }, []));
 
@@ -175,14 +177,14 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
   const handleCreateTag = useCallback(async (name: string) => {
     try {
-      await createTag(name);
+      await createTag(name, activeChild?.id);
       setShowCreateInput(false);
       await loadTags();
     } catch (error) {
       console.error('Failed to create tag:', error);
       Alert.alert('오류', '태그 생성에 실패했습니다');
     }
-  }, [loadTags]);
+  }, [loadTags, activeChild?.id]);
 
   const handleDeleteTag = useCallback((tag: TagWithCount) => {
     Alert.alert('태그 삭제', `"${tag.name}" 태그를 삭제하시겠습니까?\n이 태그가 연결된 ${tag.count}개의 기록에서 태그가 제거됩니다.`, [
@@ -231,13 +233,15 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
               <View style={styles.tagItemRight}>
                 <Text style={styles.tagCount}>{tag.count}</Text>
                 <Text style={styles.tagCountLabel}>건</Text>
-                <TouchableOpacity
-                  onPress={() => handleDeleteTag(tag)}
-                  style={styles.tagDeleteBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.tagDeleteBtnText}>×</Text>
-                </TouchableOpacity>
+                {!tag.isDefault && (
+                  <TouchableOpacity
+                    onPress={() => handleDeleteTag(tag)}
+                    style={styles.tagDeleteBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.tagDeleteBtnText}>×</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </TouchableOpacity>
           );

@@ -10,6 +10,7 @@ import {
   CREATE_SEARCH_LOGS_TABLE,
   CREATE_INDEXES,
   DEFAULT_TAGS,
+  MIGRATE_TAGS_V3,
 } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -62,10 +63,10 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync(indexSQL);
     }
 
-    // 기본 태그 삽입 (이미 존재하면 무시)
+    // 기본 태그 삽입 (이미 존재하면 무시, child_id=NULL로 global)
     for (const tagName of DEFAULT_TAGS) {
       await database.runAsync(
-        'INSERT OR IGNORE INTO tags (name) VALUES (?)',
+        'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, NULL)',
         tagName
       );
     }
@@ -89,6 +90,19 @@ export async function initializeDatabase(): Promise<void> {
       // v1 → v2: daily_ai_cache 테이블 추가
       await database.execAsync(CREATE_DAILY_AI_CACHE_TABLE);
       await database.execAsync('PRAGMA user_version = 2');
+    }
+
+    if (currentVersion < 3) {
+      // v2 → v3: tags 테이블에 child_id 추가 (global/per-child 분리)
+      await database.execAsync(MIGRATE_TAGS_V3);
+      // 기본 태그 재삽입 (마이그레이션 후 child_id=NULL로)
+      for (const tagName of DEFAULT_TAGS) {
+        await database.runAsync(
+          'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, NULL)',
+          tagName
+        );
+      }
+      await database.execAsync('PRAGMA user_version = 3');
     }
 
     dbInitialized = true;

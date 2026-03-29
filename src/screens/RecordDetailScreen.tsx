@@ -22,12 +22,13 @@ import {
   SHADOW,
   type AppColors,
 } from '../constants/theme';
-import type { RecordWithTags } from '../types/record';
+import type { RecordWithTags, Tag } from '../types/record';
 import { getRecordById, updateRecord, deleteRecord } from '../db';
 import { playAudio, deleteAudioFile } from '../services/audioRecorder';
 import { processWithAI, createFallbackResult } from '../services/aiProcessor';
-import { setTagsForRecord } from '../db/tagsDao';
+import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { onQueueProcessed } from '../services/offlineQueue';
+import { useChild } from '../context/ChildContext';
 import TagChip from '../components/TagChip';
 
 interface RecordDetailScreenProps {
@@ -100,6 +101,17 @@ function createStyles(colors: AppColors) {
     audioButtonText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
     audioButtonTextActive: { color: colors.primaryDark },
     rawText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: FONT_SIZE.sm * 1.7 },
+    tagEditContainer: { marginBottom: SPACING.md },
+    tagEditHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
+    tagEditLabel: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+    tagEditButtonRow: { flexDirection: 'row', gap: SPACING.xs },
+    tagEditBtn: { paddingHorizontal: SPACING.sm + 2, paddingVertical: SPACING.xs, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
+    tagEditBtnText: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium, color: colors.primary },
+    tagPickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md },
+    tagPickerItem: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingHorizontal: SPACING.sm + 2, paddingVertical: SPACING.xs + 1, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.background },
+    tagPickerItemSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+    tagPickerText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
+    tagPickerTextSelected: { color: colors.primary, fontWeight: FONT_WEIGHT.medium },
   });
 }
 
@@ -107,6 +119,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { recordId } = route.params as { recordId: string };
+  const { activeChild } = useChild();
 
   const [record, setRecord] = useState<RecordWithTags | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,6 +128,10 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditingTags, setIsEditingTags] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [editingTagIds, setEditingTagIds] = useState<number[]>([]);
+  const [isSavingTags, setIsSavingTags] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -202,6 +219,34 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
     ]);
   }, [record, navigation]);
 
+  const handleStartEditTags = useCallback(async () => {
+    if (!record) return;
+    try {
+      const all = await getAllTags(activeChild?.id);
+      setAvailableTags(all);
+      setEditingTagIds(record.tags.map((t) => t.id));
+      setIsEditingTags(true);
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    }
+  }, [record, activeChild?.id]);
+
+  const handleSaveTags = useCallback(async () => {
+    if (!record) return;
+    setIsSavingTags(true);
+    try {
+      const selectedNames = availableTags.filter((t) => editingTagIds.includes(t.id)).map((t) => t.name);
+      await setTagsForRecord(record.id, selectedNames, activeChild?.id);
+      await loadRecord();
+      setIsEditingTags(false);
+    } catch (error) {
+      console.error('Failed to save tags:', error);
+      Alert.alert('오류', '태그 저장에 실패했습니다');
+    } finally {
+      setIsSavingTags(false);
+    }
+  }, [record, availableTags, editingTagIds, activeChild?.id, loadRecord]);
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -260,11 +305,49 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           </View>
         )}
 
-        {record.tags.length > 0 && (
-          <View style={styles.tagsSection}>
-            {record.tags.map((tag) => <TagChip key={tag.id} name={tag.name} size="md" />)}
+        <View style={styles.tagEditContainer}>
+          <View style={styles.tagEditHeader}>
+            <Text style={styles.tagEditLabel}>태그</Text>
+            {isEditingTags ? (
+              <View style={styles.tagEditButtonRow}>
+                <TouchableOpacity onPress={() => setIsEditingTags(false)} style={styles.tagEditBtn} disabled={isSavingTags}>
+                  <Text style={styles.tagEditBtnText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSaveTags} style={[styles.tagEditBtn, { backgroundColor: colors.primary }]} disabled={isSavingTags}>
+                  {isSavingTags ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={[styles.tagEditBtnText, { color: colors.textOnPrimary }]}>저장</Text>}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={handleStartEditTags} style={styles.tagEditBtn}>
+                <Text style={styles.tagEditBtnText}>편집</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
+          {isEditingTags ? (
+            <View style={styles.tagPickerRow}>
+              {availableTags.map((tag) => {
+                const selected = editingTagIds.includes(tag.id);
+                return (
+                  <TouchableOpacity
+                    key={tag.id}
+                    style={[styles.tagPickerItem, selected && styles.tagPickerItemSelected]}
+                    onPress={() => setEditingTagIds((prev) => selected ? prev.filter((id) => id !== tag.id) : [...prev, tag.id])}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.tagPickerText, selected && styles.tagPickerTextSelected]}>{tag.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.tagsSection}>
+              {record.tags.length > 0
+                ? record.tags.map((tag) => <TagChip key={tag.id} name={tag.name} size="md" />)
+                : <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textTertiary }}>태그 없음</Text>
+              }
+            </View>
+          )}
+        </View>
 
         <View style={[styles.section, SHADOW.sm]}>
           <Text style={styles.sectionTitle}>요약</Text>

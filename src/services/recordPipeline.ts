@@ -4,13 +4,12 @@ import { createRecord } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
 import { getDatabase } from '../db/database';
+import { DEFAULT_TAGS } from '../db/schema';
 
-const BASE_TAG_NAMES = ['#의료', '#투약', '#행동', '#일상', '#치료'];
-
-async function getCustomTagNames(): Promise<string[]> {
+async function getCustomTagNames(childId?: string): Promise<string[]> {
   try {
-    const all = await getAllTags();
-    return all.map((t) => t.name).filter((n) => !BASE_TAG_NAMES.includes(n));
+    const all = await getAllTags(childId);
+    return all.map((t) => t.name).filter((n) => !DEFAULT_TAGS.includes(n));
   } catch {
     return [];
   }
@@ -35,7 +34,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     throw new Error('NO_SPEECH');
   }
 
-  const customTags = await getCustomTagNames();
+  const customTags = await getCustomTagNames(childId);
   try {
     aiResult = await processWithAI(text, customTags);
   } catch (e) {
@@ -74,7 +73,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
   let aiResult;
   let aiPending = false;
 
-  const customTags = await getCustomTagNames();
+  const customTags = await getCustomTagNames(childId);
   try {
     aiResult = await processWithAI(text, customTags);
   } catch (e) {
