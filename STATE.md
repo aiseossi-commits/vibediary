@@ -195,6 +195,7 @@
 
 ## 최근 완료된 작업 (2026-03-29)
 
+- [x] Android 앱 아이콘 수정: android-icon-foreground.png를 새 아이콘으로 업데이트 (3/21 icon.png 교체 시 누락됐던 것)
 - [x] 다크모드 마이크 아이콘 색상 수정: 8종 팔레트 micIcon을 primaryLight로 통일 (기존 border색과 동일해 안보이던 문제)
 - [x] improve-embedding-source OpenSpec 아카이브 + spec sync
 - [x] offlineQueue force 파라미터 + 수동 처리 피드백 개선
