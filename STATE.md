@@ -193,6 +193,12 @@
   - eas build → eas submit (내가 처리)
   - App Store Connect 테스터 그룹 빌드 추가 → 직접 처리 (터미널로 불가)
 
+## 최근 완료된 작업 (2026-03-29)
+
+- [x] 임베딩 소스 합성 (improve-embedding-source): buildEmbeddingText(rawText, summary) 도입
+  - aiProcessor.ts에 buildEmbeddingText 추가 (raw+summary 합성, 중복 시 하나만 사용)
+  - recordPipeline.ts 2곳, offlineQueue.ts 1곳, SettingsScreen.tsx 재색인 1곳 적용
+
 ## 최근 완료된 작업 (2026-03-27)
 
 - [x] AI 등대 검색 임베딩 소스 변경: summary → raw_text (약물명, 수치 등 구체적 단어 검색 가능)
