@@ -195,6 +195,7 @@
 
 ## 최근 완료된 작업 (2026-03-29)
 
+- [x] 다크모드 마이크 아이콘 색상 수정: 8종 팔레트 micIcon을 primaryLight로 통일 (기존 border색과 동일해 안보이던 문제)
 - [x] improve-embedding-source OpenSpec 아카이브 + spec sync
 - [x] offlineQueue force 파라미터 + 수동 처리 피드백 개선
   - processOfflineQueue(force=true): 쿨다운 무시, QueueProcessResult 반환 (ok/empty/offline/already_running/cooldown)

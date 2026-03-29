@@ -23,7 +23,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#535753', divider: '#3F443F', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#3F443F', micBorder: '#535753',
-      micIcon: '#535753', micLabel: '#D9E6DB', tabBg: '#1F2420',
+      micIcon: '#A1B7A3', micLabel: '#D9E6DB', tabBg: '#1F2420',
       tabBorder: '#262A26', tabInactive: '#717D73',
     },
     light: {
@@ -54,7 +54,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#3D4844', divider: '#29332E', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#29332E', micBorder: '#3D4844',
-      micIcon: '#3D4844', micLabel: '#D1FAE5', tabBg: '#121A16',
+      micIcon: '#34D399', micLabel: '#D1FAE5', tabBg: '#121A16',
       tabBorder: '#1A2320', tabInactive: '#647A71',
     },
     light: {
@@ -85,7 +85,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#57554E', divider: '#44423C', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#44423C', micBorder: '#57554E',
-      micIcon: '#57554E', micLabel: '#FDF7B8', tabBg: '#1F1E1B',
+      micIcon: '#FDE68A', micLabel: '#FDF7B8', tabBg: '#1F1E1B',
       tabBorder: '#292824', tabInactive: '#A8A69E',
     },
     light: {
@@ -116,7 +116,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#57534E', divider: '#44403C', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#44403C', micBorder: '#57534E',
-      micIcon: '#57534E', micLabel: '#FDE68A', tabBg: '#1F1F1E',
+      micIcon: '#FBBF24', micLabel: '#FDE68A', tabBg: '#1F1F1E',
       tabBorder: '#292524', tabInactive: '#A8A29E',
     },
     light: {
@@ -147,7 +147,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#535755', divider: '#3F4442', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#3F4442', micBorder: '#535755',
-      micIcon: '#535755', micLabel: '#D9E6E1', tabBg: '#1F2422',
+      micIcon: '#A1B7CB', micLabel: '#D9E6E1', tabBg: '#1F2422',
       tabBorder: '#262A28', tabInactive: '#717D77',
     },
     light: {
@@ -178,7 +178,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#2E4552', divider: '#243842', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#243842', micBorder: '#2E4552',
-      micIcon: '#2E4552', micLabel: '#C5DFE9', tabBg: '#111E24',
+      micIcon: '#4BA8C4', micLabel: '#C5DFE9', tabBg: '#111E24',
       tabBorder: '#192730', tabInactive: '#4A6675',
     },
     light: {
@@ -209,7 +209,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#344A5C', divider: '#263543', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#263543', micBorder: '#344A5C',
-      micIcon: '#344A5C', micLabel: '#C8DEF0', tabBg: '#131B22',
+      micIcon: '#7ABDE5', micLabel: '#C8DEF0', tabBg: '#131B22',
       tabBorder: '#1A2530', tabInactive: '#4A6980',
     },
     light: {
@@ -240,7 +240,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#36425A', divider: '#28334A', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#28334A', micBorder: '#36425A',
-      micIcon: '#36425A', micLabel: '#C5CEDE', tabBg: '#141922',
+      micIcon: '#6685A4', micLabel: '#C5CEDE', tabBg: '#141922',
       tabBorder: '#1C2330', tabInactive: '#56697F',
     },
     light: {
