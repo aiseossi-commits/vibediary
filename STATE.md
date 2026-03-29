@@ -195,6 +195,7 @@
 
 ## 최근 완료된 작업 (2026-03-29)
 
+- [x] improve-embedding-source OpenSpec 아카이브 + spec sync
 - [x] offlineQueue force 파라미터 + 수동 처리 피드백 개선
   - processOfflineQueue(force=true): 쿨다운 무시, QueueProcessResult 반환 (ok/empty/offline/already_running/cooldown)
   - SettingsScreen 수동 처리 버튼: 상태별 명확한 메시지 (오프라인, 처리 중, 없음 등)
