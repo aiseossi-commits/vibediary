@@ -6,9 +6,9 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: tag-system-overhaul — 아이별 태그 격리 + RecordDetail 태그 편집 UI` (2026-03-29)
+**마지막 커밋**: `chore: Android versionCode 5→6 app.json 커밋 누락분 반영` (2026-03-30)
 
-**현재 브랜치**: feat/pretendard-blob
+**현재 브랜치**: main
 
 ---
 
