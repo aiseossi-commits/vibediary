@@ -15,10 +15,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import RecordCard from '../components/RecordCard';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
-import { generateEmbedding } from '../services/aiProcessor';
 import { createSearchLog } from '../db/searchLogsDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -150,7 +148,6 @@ function AssistantBubble({
   userQuery,
   isSaved,
   onSave,
-  onRecordPress,
   styles,
   colors,
 }: {
@@ -158,13 +155,10 @@ function AssistantBubble({
   userQuery: string;
   isSaved: boolean;
   onSave: (messageId: string, query: string, answer: string) => Promise<void>;
-  onRecordPress: (id: string) => void;
   styles: ReturnType<typeof createStyles>;
   colors: AppColors;
 }) {
-  const [sourcesExpanded, setSourcesExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const sourceRecords = message.sourceRecords ?? [];
 
   const handleSave = useCallback(async () => {
     if (isSaved || isSaving) return;
@@ -183,18 +177,7 @@ function AssistantBubble({
       <View style={styles.assistantBubble}>
         <Text style={styles.assistantBubbleText}>{message.text}</Text>
         <View style={styles.assistantBubbleFooter}>
-          {sourceRecords.length > 0 ? (
-            <TouchableOpacity style={styles.sourcesToggle} onPress={() => setSourcesExpanded((v) => !v)}>
-              <Ionicons
-                name={sourcesExpanded ? 'chevron-up' : 'chevron-down'}
-                size={12}
-                color={colors.textTertiary}
-              />
-              <Text style={styles.sourcesToggleText}>근거 {sourceRecords.length}건</Text>
-            </TouchableOpacity>
-          ) : (
-            <View />
-          )}
+          <View />
           <TouchableOpacity
             style={[styles.saveButton, isSaved && styles.saveButtonSaved]}
             onPress={handleSave}
@@ -216,13 +199,6 @@ function AssistantBubble({
             )}
           </TouchableOpacity>
         </View>
-        {sourcesExpanded && sourceRecords.length > 0 && (
-          <View style={styles.sourceRecordsContainer}>
-            {sourceRecords.map((record) => (
-              <RecordCard key={record.id} record={record} onPress={() => onRecordPress(record.id)} />
-            ))}
-          </View>
-        )}
       </View>
     </Animated.View>
   );
@@ -263,14 +239,12 @@ export default function SearchScreen() {
     setIsSearching(true);
 
     try {
-      const queryEmbedding = await generateEmbedding(trimmed);
-      const searchResult = await searchRecords(trimmed, queryEmbedding, undefined, activeChild?.id, history);
+      const searchResult = await searchRecords(trimmed, activeChild?.id, history);
 
       const assistantMsg: ChatMessage = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: searchResult.answer,
-        sourceRecords: searchResult.sourceRecords,
         createdAt: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -320,7 +294,6 @@ export default function SearchScreen() {
         userQuery={getUserQueryForAssistant(index)}
         isSaved={savedMessageIds.has(item.id)}
         onSave={handleSave}
-        onRecordPress={handleRecordPress}
         styles={styles}
         colors={colors}
       />

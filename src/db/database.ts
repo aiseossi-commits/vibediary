@@ -11,6 +11,8 @@ import {
   CREATE_INDEXES,
   DEFAULT_TAGS,
   MIGRATE_TAGS_V3,
+  CLEANUP_DUPLICATE_DEFAULT_TAGS,
+  CLEANUP_NULL_DUPLICATE_TAGS,
 } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -63,15 +65,7 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync(indexSQL);
     }
 
-    // 기본 태그 삽입 (이미 존재하면 무시, child_id=NULL로 global)
-    for (const tagName of DEFAULT_TAGS) {
-      await database.runAsync(
-        'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, NULL)',
-        tagName
-      );
-    }
-
-    // 마이그레이션 (기존 DB 버전 확인)
+    // 마이그레이션 (기존 DB 버전 확인) — 기본 태그 삽입보다 먼저 실행
     const versionRow = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
     const currentVersion = versionRow?.user_version ?? 0;
 
@@ -95,14 +89,27 @@ export async function initializeDatabase(): Promise<void> {
     if (currentVersion < 3) {
       // v2 → v3: tags 테이블에 child_id 추가 (global/per-child 분리)
       await database.execAsync(MIGRATE_TAGS_V3);
-      // 기본 태그 재삽입 (마이그레이션 후 child_id=NULL로)
-      for (const tagName of DEFAULT_TAGS) {
-        await database.runAsync(
-          'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, NULL)',
-          tagName
-        );
-      }
       await database.execAsync('PRAGMA user_version = 3');
+    }
+
+    if (currentVersion < 4) {
+      // v3 → v4: 기본 태그 child_id IS NOT NULL 중복 행 정리
+      await database.execAsync(CLEANUP_DUPLICATE_DEFAULT_TAGS);
+      await database.execAsync('PRAGMA user_version = 4');
+    }
+
+    if (currentVersion < 5) {
+      // v4 → v5: SQLite NULL UNIQUE 버그로 생긴 global 태그 중복 정리 + partial unique index
+      await database.execAsync(CLEANUP_NULL_DUPLICATE_TAGS);
+      await database.execAsync('PRAGMA user_version = 5');
+    }
+
+    // 기본 태그 삽입 (마이그레이션 완료 후, child_id 컬럼 보장된 상태에서 실행)
+    for (const tagName of DEFAULT_TAGS) {
+      await database.runAsync(
+        'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, NULL)',
+        tagName
+      );
     }
 
     dbInitialized = true;

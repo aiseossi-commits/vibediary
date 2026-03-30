@@ -238,6 +238,7 @@
 
 - [x] AI summary 문체 고정: ~함/~음 체로 통일 (aiProcessor.ts buildSystemPrompt 규칙 추가)
 - [x] TagsScreen 커스텀 태그 색상 다양화: 이름 해시 기반 8색 팔레트 배정 (항상 동일 색상 보장)
+- [x] AI 등대 전체 컨텍스트 검색으로 전환 (full-context-ai-search): 벡터 임베딩 제거, 전체 기록을 LLM에 직접 전달, 날짜/집계/의미론 모든 질문 처리 가능
 - [x] HomeScreen 기록 10개 고정 표시, 무한스크롤/푸터 스피너 제거
 
 ## 진행 중인 작업

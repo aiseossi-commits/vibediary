@@ -18,7 +18,8 @@ export async function getAllTags(childId?: string): Promise<Tag[]> {
 export async function createTag(name: string, childId?: string): Promise<Tag> {
   const db = await getDatabase();
   const normalizedName = name.startsWith('#') ? name : `#${name}`;
-  const resolvedChildId = childId ?? null;
+  // 기본 태그는 항상 global (child_id=NULL) — 아이별 중복 생성 방지
+  const resolvedChildId = DEFAULT_TAGS.includes(normalizedName) ? null : (childId ?? null);
 
   await db.runAsync(
     'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)',

@@ -93,6 +93,31 @@ export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_offline_queue_status ON offline_queue(status);`,
 ];
 
+// v4: child_id IS NOT NULL인 기본 태그 중복 제거 (child_id 있는 쪽 → global로 이전)
+export const CLEANUP_DUPLICATE_DEFAULT_TAGS = `
+  INSERT OR IGNORE INTO record_tags (record_id, tag_id)
+    SELECT rt.record_id, global.id
+    FROM record_tags rt
+    JOIN tags dup ON rt.tag_id = dup.id AND dup.child_id IS NOT NULL
+    JOIN tags global ON global.name = dup.name AND global.child_id IS NULL;
+  DELETE FROM tags WHERE child_id IS NOT NULL AND name IN ('#의료','#투약','#행동','#일상','#치료');
+`;
+
+// v5: SQLite NULL UNIQUE 버그로 생긴 global 태그 중복 정리 + partial unique index 추가
+// UNIQUE(name, child_id)는 NULL을 distinct로 취급 → NULL끼리 중복 허용됨
+export const CLEANUP_NULL_DUPLICATE_TAGS = `
+  INSERT OR IGNORE INTO record_tags (record_id, tag_id)
+    SELECT rt.record_id, (SELECT MIN(id) FROM tags WHERE name = t.name AND child_id IS NULL)
+    FROM record_tags rt
+    JOIN tags t ON rt.tag_id = t.id
+    WHERE t.child_id IS NULL
+      AND t.id != (SELECT MIN(id) FROM tags WHERE name = t.name AND child_id IS NULL);
+  DELETE FROM tags
+    WHERE child_id IS NULL
+      AND id NOT IN (SELECT MIN(id) FROM tags WHERE child_id IS NULL GROUP BY name);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name_global ON tags(name) WHERE child_id IS NULL;
+`;
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   '#의료',

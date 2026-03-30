@@ -1,5 +1,5 @@
 import { getDatabase } from '../db/database';
-import { processWithAI, generateEmbedding, buildEmbeddingText } from './aiProcessor';
+import { processWithAI } from './aiProcessor';
 import { DEFAULT_TAGS } from '../db/schema';
 import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
@@ -103,20 +103,12 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
         const customTags = allTagNames.filter((n) => !DEFAULT_TAGS.includes(n));
         const result = await processWithAI(item.raw_text, customTags);
 
-        // embedding 생성 (실패해도 큐 처리 계속)
-        let embedding: number[] | null = null;
-        try {
-          embedding = await generateEmbedding(buildEmbeddingText(item.raw_text, result.summary));
-        } catch {
-          // embedding 생성 실패 시 null 유지
-        }
-
         // 기록 업데이트
         await updateRecord(item.record_id, {
           summary: result.summary,
           structuredData: result.structuredData,
           aiPending: false,
-          embedding,
+          embedding: null,
         });
 
         // 태그 업데이트

@@ -1,8 +1,8 @@
 import { getDatabase } from './database';
 import type { RecordWithTags, Tag, DailyRecordSummary } from '../types/record';
 
-// 날짜 범위 기반 기록 조회 (캘린더용)
-async function getRecordsByDateRange(
+// 날짜 범위 기반 기록 조회
+export async function getRecordsByDateRange(
   startDate: string, // YYYY-MM-DD
   endDate: string, // YYYY-MM-DD
   childId?: string
@@ -174,32 +174,30 @@ export async function textSearchRecords(
   return results;
 }
 
-// 임베딩이 있는 전체 기록 조회 (벡터 검색용)
-export async function getRecordsWithEmbeddings(tagIds?: number[], childId?: string): Promise<
-  { id: string; summary: string; structuredData: string | null; embedding: Uint8Array; createdAt: number }[]
-> {
+// AI 등대 전체 컨텍스트 검색용 기록 조회 (최대 2000건)
+export async function getAllRecordsForSearch(childId?: string, limit = 2000): Promise<RecordWithTags[]> {
   const db = await getDatabase();
+  const rows = childId
+    ? await db.getAllAsync<any>(
+        'SELECT * FROM records WHERE ai_pending = 0 AND child_id = ? ORDER BY created_at DESC LIMIT ?',
+        childId, limit
+      )
+    : await db.getAllAsync<any>(
+        'SELECT * FROM records WHERE ai_pending = 0 ORDER BY created_at DESC LIMIT ?',
+        limit
+      );
 
-  const childFilter = childId ? ' AND child_id = ?' : '';
-  const childParams = childId ? [childId] : [];
-
-  let query: string;
-  const params: any[] = [];
-
-  if (tagIds && tagIds.length > 0) {
-    const placeholders = tagIds.map(() => '?').join(',');
-    query = `SELECT DISTINCT r.id, r.summary, r.structured_data, r.embedding, r.created_at
-             FROM records r
-             INNER JOIN record_tags rt ON r.id = rt.record_id
-             WHERE r.embedding IS NOT NULL AND rt.tag_id IN (${placeholders})${childFilter}`;
-    params.push(...tagIds, ...childParams);
-  } else {
-    query = `SELECT id, summary, structured_data, embedding, created_at FROM records WHERE embedding IS NOT NULL${childFilter}`;
-    params.push(...childParams);
+  const results: RecordWithTags[] = [];
+  for (const row of rows) {
+    const tags = await db.getAllAsync<Tag>(
+      `SELECT t.id, t.name FROM tags t
+       INNER JOIN record_tags rt ON t.id = rt.tag_id
+       WHERE rt.record_id = ?`,
+      row.id
+    );
+    results.push(mapRow(row, tags));
   }
-
-  query += ' ORDER BY created_at DESC';
-  return db.getAllAsync(query, ...params);
+  return results;
 }
 
 // Row → RecordWithTags 변환 유틸

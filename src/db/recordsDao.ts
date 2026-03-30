@@ -166,14 +166,6 @@ export async function reassignChildRecords(fromChildId: string, toChildId: strin
   );
 }
 
-// 기록 삭제
-export async function getAllRecordsForReindex(): Promise<{ id: string; raw_text: string | null; summary: string }[]> {
-  const db = await getDatabase();
-  return db.getAllAsync<any>(
-    'SELECT id, raw_text, summary FROM records WHERE ai_pending = 0 ORDER BY created_at ASC'
-  );
-}
-
 export async function deleteRecord(id: string): Promise<void> {
   const db = await getDatabase();
   // CASCADE로 record_tags도 자동 삭제
