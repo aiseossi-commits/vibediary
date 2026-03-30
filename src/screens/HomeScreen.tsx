@@ -116,7 +116,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [records, setRecords] = useState<RecordWithTags[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [showEmptyState, setShowEmptyState] = useState(false);
   const [textInput, setTextInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -155,44 +154,41 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const activeChildIdRef = useRef(activeChild?.id);
   useEffect(() => { activeChildIdRef.current = activeChild?.id; }, [activeChild?.id]);
 
-  const loadRecords = useCallback(async (reset = false) => {
+  const loadRecords = useCallback(async () => {
     try {
-      if (!isDatabaseReady()) { setRecords([]); setHasMore(false); return; }
-      const offset = reset ? 0 : records.length;
+      if (!isDatabaseReady()) { setRecords([]); return; }
       const filterChildId = activeChildIdRef.current;
       const timeout = new Promise<RecordWithTags[]>((_, reject) => setTimeout(() => reject(new Error('DB query timeout')), 5000));
-      const data = await Promise.race([getAllRecords(PAGE_SIZE, offset, filterChildId), timeout]);
-      if (reset) { setRecords(data); setShowEmptyState(data.length === 0); }
-      else { setRecords((prev) => [...prev, ...data]); }
-      setHasMore(data.length === PAGE_SIZE);
+      const data = await Promise.race([getAllRecords(PAGE_SIZE, 0, filterChildId), timeout]);
+      setRecords(data);
+      setShowEmptyState(data.length === 0);
     } catch (e) {
       console.error('[Home] loadRecords error:', e);
-      if (reset) { setRecords([]); setShowEmptyState(true); }
-      setHasMore(false);
+      setRecords([]);
+      setShowEmptyState(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [records.length]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       setIsLoading(true);
-      loadRecords(true);
+      loadRecords();
       warmDeno();
-      processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
+      processOfflineQueue().then(() => loadRecords()).catch(() => {});
       return () => setShowEmptyState(false);
     }, [loadRecords])
   );
 
-  useEffect(() => { loadRecords(true); }, [activeChild?.id]);
+  useEffect(() => { loadRecords(); }, [activeChild?.id]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    loadRecords(true);
-    processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
+    loadRecords();
+    processOfflineQueue().then(() => loadRecords()).catch(() => {});
   }, [loadRecords]);
-  const handleLoadMore = useCallback(() => { if (!isLoading && hasMore) loadRecords(false); }, [isLoading, hasMore, loadRecords]);
   const handleRecordPress = useCallback((record: RecordWithTags) => { navigation.navigate('RecordDetail', { recordId: record.id }); }, [navigation]);
   const handlePearlPress = useCallback(() => { navigation.navigate('Recording'); }, [navigation]);
 
@@ -203,8 +199,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     setTextInput('');
     try {
       await processTextRecord(text, activeChild?.id);
-      loadRecords(true);
-      processOfflineQueue().then(() => loadRecords(true)).catch(() => {});
+      loadRecords();
+      processOfflineQueue().then(() => loadRecords()).catch(() => {});
     }
     catch (e) { Alert.alert('저장 실패', '기록 저장 중 오류가 발생했습니다.'); console.error('텍스트 저장 오류:', e); }
     finally { setIsSaving(false); }
@@ -214,10 +210,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     <RecordCard record={item} onPress={() => handleRecordPress(item)} />
   ), [handleRecordPress]);
 
-  const renderFooter = useCallback(() => {
-    if (!hasMore || records.length === 0) return null;
-    return <View style={styles.listFooter}><ActivityIndicator size="small" color={colors.textTertiary} /></View>;
-  }, [hasMore, records.length, styles, colors]);
 
   const hasRecords = records.length > 0;
 
@@ -333,10 +325,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             refreshControl={
               <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
             }
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
             ListEmptyComponent={isLoading ? <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /></View> : null}
-            ListFooterComponent={renderFooter}
           />
         )}
       </KeyboardAvoidingView>
