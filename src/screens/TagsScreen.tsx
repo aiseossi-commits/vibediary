@@ -66,6 +66,17 @@ function TagCreateInput({ onSubmit, onCancel, onFocus, colors, styles }: {
 
 type TagWithCount = Tag & { count: number; isDefault: boolean };
 
+const CUSTOM_TAG_COLORS = [
+  '#F97316', '#EAB308', '#22C55E', '#14B8A6',
+  '#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4',
+];
+
+function hashTagColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return CUSTOM_TAG_COLORS[h % CUSTOM_TAG_COLORS.length];
+}
+
 function getTagColor(name: string, colors: AppColors): string {
   const map: Record<string, string> = {
     '#의료': colors.tagMedical,
@@ -74,7 +85,7 @@ function getTagColor(name: string, colors: AppColors): string {
     '#일상': colors.tagDaily,
     '#치료': colors.tagTherapy,
   };
-  return map[name] ?? colors.textSecondary;
+  return map[name] ?? hashTagColor(name);
 }
 
 function createStyles(colors: AppColors) {

@@ -237,6 +237,7 @@
 ## 최근 완료된 작업 (2026-03-30)
 
 - [x] AI summary 문체 고정: ~함/~음 체로 통일 (aiProcessor.ts buildSystemPrompt 규칙 추가)
+- [x] TagsScreen 커스텀 태그 색상 다양화: 이름 해시 기반 8색 팔레트 배정 (항상 동일 색상 보장)
 
 ## 진행 중인 작업
 
