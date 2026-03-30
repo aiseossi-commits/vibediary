@@ -232,14 +232,14 @@ export default function SearchScreen() {
       createdAt: Date.now(),
     };
 
-    const history = messages.slice(-4).map((m) => ({ role: m.role, text: m.text }));
+    const history = messages.slice(-8).map((m) => ({ role: m.role, text: m.text }));
 
     setQuery('');
     setMessages((prev) => [...prev, userMsg]);
     setIsSearching(true);
 
     try {
-      const searchResult = await searchRecords(trimmed, activeChild?.id, history);
+      const searchResult = await searchRecords(trimmed, activeChild?.id, history, activeChild?.name);
 
       const assistantMsg: ChatMessage = {
         id: `a-${Date.now()}`,

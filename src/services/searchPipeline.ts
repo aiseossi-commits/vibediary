@@ -2,21 +2,20 @@ import { getAllRecordsForSearch } from '../db/queries';
 import { getNetworkState } from '../utils/network';
 import type { SearchResult, RecordWithTags } from '../types/record';
 
-const SEARCH_SYSTEM_PROMPT = (today: string) =>
+const SEARCH_SYSTEM_PROMPT = (today: string, childName?: string) =>
   `당신은 발달장애인 돌봄 기록을 분석해 답변하는 AI 비서입니다.
-오늘: ${today}
+오늘: ${today}${childName ? `\n돌봄 대상: ${childName}` : ''}
 
 아래 <records>에 모든 돌봄 기록이 포함되어 있습니다. 사용자의 질문에 대해 이 기록들을 근거로 답변하세요.
 
 규칙:
 1. 기록에 있는 사실만 답변하세요. 날짜를 언급할 때는 [YYYY-MM-DD] 형식으로 인용하세요.
-2. 답변은 따뜻하고 간결하게 작성하세요.
+2. 답변은 따뜻하고 간결하게 작성하세요.${childName ? ` 돌봄 대상은 "${childName}"으로 부르세요.` : ''}
 3. 기록에 없는 내용은 절대 추측하지 마세요.
 4. 관련 기록이 없으면 "해당 기록을 찾지 못했어요."라고 답하세요.
 5. 반복 패턴이나 빈도가 있으면 구체적으로 언급하세요 (예: "돼지고기 6회, 땅콩 5회").
-6. 답변 첫 문장에 분석한 총 기록 건수를 자연스럽게 포함하세요.`;
-
-const MEDICAL_TAGS = new Set(['#의료', '#투약']);
+6. 답변 첫 문장에 분석한 총 기록 건수를 자연스럽게 포함하세요.
+7. 이전 대화가 있으면 연속성 있게 답변하세요. "정리해줘", "요약해줘", "더 자세히" 같은 후속 질문은 이전 답변을 기반으로 답하세요.`;
 
 function formatRecord(record: RecordWithTags): string {
   const d = new Date(record.createdAt);
@@ -24,8 +23,7 @@ function formatRecord(record: RecordWithTags): string {
   const tags = record.tags.map((t) => t.name).join('');
   const base = `${date} ${tags} ${record.summary}`;
 
-  const hasMedicalTag = record.tags.some((t) => MEDICAL_TAGS.has(t.name));
-  if (hasMedicalTag && record.structuredData && Object.keys(record.structuredData).length > 0) {
+  if (record.structuredData && Object.keys(record.structuredData).length > 0) {
     const data = Object.entries(record.structuredData).map(([k, v]) => `${k}:${v}`).join(',');
     return `${base} [${data}]`;
   }
@@ -40,7 +38,8 @@ function getToday(): string {
 export async function searchRecords(
   query: string,
   childId?: string,
-  conversationHistory?: { role: 'user' | 'assistant'; text: string }[]
+  conversationHistory?: { role: 'user' | 'assistant'; text: string }[],
+  childName?: string
 ): Promise<SearchResult> {
   const isOnline = await getNetworkState();
   if (!isOnline) {
@@ -54,7 +53,7 @@ export async function searchRecords(
   }
 
   const context = records.map(formatRecord).join('\n');
-  const answer = await generateAnswer(query, context, records.length, conversationHistory);
+  const answer = await generateAnswer(query, context, records.length, conversationHistory, childName);
 
   return { answer };
 }
@@ -63,7 +62,8 @@ async function generateAnswer(
   query: string,
   context: string,
   recordCount: number,
-  conversationHistory?: { role: 'user' | 'assistant'; text: string }[]
+  conversationHistory?: { role: 'user' | 'assistant'; text: string }[],
+  childName?: string
 ): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
@@ -94,7 +94,7 @@ async function generateAnswer(
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SEARCH_SYSTEM_PROMPT(getToday()) }] },
+          systemInstruction: { parts: [{ text: SEARCH_SYSTEM_PROMPT(getToday(), childName) }] },
           contents,
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
