@@ -8,8 +8,8 @@
 
 | 플랫폼 | 버전 | 빌드 | 채널 | 날짜 |
 |--------|------|------|------|------|
-| iOS | 1.0.1 | build 7 | TestFlight (외부 테스터) | 2026-03-28 |
-| Android | 1.0.1 | versionCode 4 | Play 내부테스트 | 2026-03-28 |
+| iOS | 1.0.1 | build 9 | TestFlight (외부 테스터) | 2026-03-30 |
+| Android | 1.0.1 | versionCode 6 | Play 내부테스트 | 2026-03-30 |
 
 > **iOS**: EAS remote 관리 (`autoIncrement: true`) — app.json buildNumber 무관. EAS 대시보드 기준.
 > **Android**: 로컬 Gradle 빌드 (`cd android && ./gradlew bundleRelease`) — versionCode 수동 관리.
@@ -31,7 +31,7 @@
 
 ## v1.0.1
 
-### build 8 (iOS) · versionCode 5 (Android) — 예정
+### build 9 (iOS) · versionCode 6 (Android) — 2026-03-30
 
 - AI 등대 프롬프트 개선: 아이 이름 컨텍스트 주입, 멀티턴 연속성 규칙 추가
 - AI 등대 structuredData 전체 태그 확장 (기존 #의료/#투약 한정 → 전체)

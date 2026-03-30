@@ -246,6 +246,7 @@
 - [x] app.json Android versionCode 4→5 (다음 빌드용)
 - [x] .easignore build-*.apk + /apk 추가 (EAS 업로드 사이즈 727MB→80MB 수준으로 감소)
 - [x] scripts/bump-android-version.js 추가 (app.json + build.gradle versionCode 동시 bump)
+- [x] iOS build 9 / Android versionCode 6 배포 (2026-03-30)
 
 ## 진행 중인 작업
 
