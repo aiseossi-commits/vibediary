@@ -35,7 +35,7 @@ interface HomeScreenProps {
   navigation: any;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 const PEARL_SIZE = 160;
 const PULSE_COUNT = 3;
 
