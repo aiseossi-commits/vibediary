@@ -24,7 +24,7 @@
 - [ ] iOS: `eas build --platform ios --profile production`
 - [ ] iOS: `npx eas submit --platform ios --latest`
 - [ ] iOS: App Store Connect → 외부 테스터 그룹에 새 빌드 수동 추가
-- [ ] Android: `cd android && ./gradlew bundleRelease` → Play Console 직접 업로드
+- [ ] Android: `app.json` + `android/app/build.gradle` versionCode 동시 올리기 → `cd android && ./gradlew bundleRelease` → Play Console 직접 업로드
 - [ ] **현재 배포 현황** 표 업데이트 (빌드 번호, 날짜)
 
 ---

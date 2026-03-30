@@ -245,6 +245,7 @@
 - [x] CHANGELOG.md 재정비: 현재 배포 현황 표 + 빌드 체크리스트 + iOS/Android 분리 기록
 - [x] app.json Android versionCode 4→5 (다음 빌드용)
 - [x] .easignore build-*.apk + /apk 추가 (EAS 업로드 사이즈 727MB→80MB 수준으로 감소)
+- [x] scripts/bump-android-version.js 추가 (app.json + build.gradle versionCode 동시 bump)
 
 ## 진행 중인 작업
 
