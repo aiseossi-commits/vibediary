@@ -243,6 +243,7 @@
 - [x] AI 등대 프롬프트 개선: 아이 이름 컨텍스트 주입, 멀티턴 연속성 규칙 추가, structuredData 전체 태그 확장(의료 한정 제거)
 - [x] AI 등대 대화 기억 창 4→8 메시지 확장
 - [x] CHANGELOG.md 재정비: 현재 배포 현황 표 + 빌드 체크리스트 + iOS/Android 분리 기록
+- [x] app.json Android versionCode 4→5 (다음 빌드용)
 
 ## 진행 중인 작업
 
