@@ -234,6 +234,10 @@
   - SettingsScreen: 색상 스와치 UI (화면 모드 카드 하단, 선택 원형 표시)
   - docs/colorcode.md: 블루 3종 팔레트 추가
 
+## 최근 완료된 작업 (2026-03-30)
+
+- [x] AI summary 문체 고정: ~함/~음 체로 통일 (aiProcessor.ts buildSystemPrompt 규칙 추가)
+
 ## 진행 중인 작업
 
 (없음)
