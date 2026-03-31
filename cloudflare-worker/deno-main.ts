@@ -1,4 +1,4 @@
-// v6.3: Whisper temperature=0 설정 (환각 감소)
+// v6.4: /version 엔드포인트 추가 (인앱 업데이트 체크)
 const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1', 'text-embedding-004'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
@@ -29,7 +29,7 @@ Deno.serve(async (request: Request) => {
     return new Response(null, {
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, X-App-Secret',
       },
     });
@@ -51,6 +51,17 @@ Deno.serve(async (request: Request) => {
 
   if (url.pathname === '/health') {
     return new Response('ok', { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
+  }
+
+  if (request.method === 'GET' && url.pathname === '/version') {
+    return new Response(JSON.stringify({
+      ios: '1.0.1',
+      android: '1.0.1',
+      force: false,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    });
   }
 
   if (request.method === 'POST' && url.pathname === '/stt') {

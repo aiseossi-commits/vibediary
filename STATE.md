@@ -79,6 +79,10 @@
 
 ## 최근 완료된 작업 (이번 세션)
 
+- [x] 인앱 업데이트 체크: deno-main.ts v6.4 /version 엔드포인트 + AppNavigator 버전 비교 Alert (force 옵션 포함)
+
+
+
 - [x] RecordCard: 플라스틱 depth 효과 (per-side 보더, 드롭 섀도우)
 - [x] HomeScreen 진주 버튼: 유니폼 보더로 복귀 (per-side 보더 → white arc 버그)
 - [x] WaveLoader: useNativeDriver:true (scaleY 변환으로 JS 스레드 blocking 방지)

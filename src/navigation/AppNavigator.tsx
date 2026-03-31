@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Alert, ActivityIndicator, View, Text, Linking } from 'react-native';
+import { Alert, ActivityIndicator, View, Text, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -17,8 +17,19 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
 import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
+import Constants from 'expo-constants';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
+
+function isOlderVersion(current: string, min: string): boolean {
+  const c = current.split('.').map(Number);
+  const m = min.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((c[i] ?? 0) < (m[i] ?? 0)) return true;
+    if ((c[i] ?? 0) > (m[i] ?? 0)) return false;
+  }
+  return false;
+}
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -74,6 +85,35 @@ export default function AppNavigator() {
   const { colors } = useTheme();
   const { children: childList, isLoaded, refreshChildren } = useChild();
   const pendingFileUrl = useRef<string | null>(null);
+
+  // 인앱 업데이트 체크
+  useEffect(() => {
+    const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+    const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+    if (!workerUrl || !workerSecret) return;
+
+    const currentVersion = Constants.expoConfig?.version ?? '1.0.0';
+    fetch(`${workerUrl}/version`, { headers: { 'X-App-Secret': workerSecret } })
+      .then(res => res.json())
+      .then((data: { ios: string; android: string; force: boolean }) => {
+        const minVersion = Platform.OS === 'ios' ? data.ios : data.android;
+        if (!isOlderVersion(currentVersion, minVersion)) return;
+
+        const storeUrl = Platform.OS === 'ios'
+          ? 'itms-beta://'
+          : `https://play.google.com/store/apps/details?id=com.aiseossi.vibediary`;
+
+        Alert.alert(
+          '업데이트 안내',
+          `새 버전(${minVersion})이 있습니다.\n최신 버전으로 업데이트해 주세요.`,
+          [
+            ...(data.force ? [] : [{ text: '나중에', style: 'cancel' as const }]),
+            { text: '업데이트', onPress: () => Linking.openURL(storeUrl) },
+          ]
+        );
+      })
+      .catch(() => {}); // 버전 체크 실패는 무시
+  }, []);
 
   const handleIncomingFile = useCallback(async (url: string) => {
     // content:// URI (카카오톡 등)는 파일명 없이 올 수 있으므로 scheme 기준으로도 허용
