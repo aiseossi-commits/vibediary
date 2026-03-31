@@ -80,6 +80,7 @@
 ## 최근 완료된 작업 (이번 세션)
 
 - [x] 인앱 업데이트 체크: deno-main.ts v6.4 /version 엔드포인트 + AppNavigator 버전 비교 Alert (force 옵션 포함)
+- [x] 재생 기능 완전 제거: playAudio 함수, isPlaying state, soundRef, handlePlayAudio, 음성 섹션 JSX, 관련 스타일 (expo-av는 녹음에 계속 사용)
 
 
 

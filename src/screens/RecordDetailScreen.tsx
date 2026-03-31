@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
 import {
   SPACING,
@@ -24,7 +23,7 @@ import {
 } from '../constants/theme';
 import type { RecordWithTags, Tag } from '../types/record';
 import { getRecordById, updateRecord, deleteRecord } from '../db';
-import { playAudio, deleteAudioFile } from '../services/audioRecorder';
+import { deleteAudioFile } from '../services/audioRecorder';
 import { processWithAI, createFallbackResult } from '../services/aiProcessor';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { onQueueProcessed } from '../services/offlineQueue';
@@ -91,15 +90,6 @@ function createStyles(colors: AppColors) {
     tableRowEven: { backgroundColor: colors.surfaceSecondary },
     tableKey: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textSecondary },
     tableValue: { flex: 2, fontSize: FONT_SIZE.sm, color: colors.textPrimary, textAlign: 'right' },
-    audioButton: {
-      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-      backgroundColor: colors.surfaceSecondary, paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.md - 2, borderRadius: BORDER_RADIUS.lg,
-    },
-    audioButtonActive: { backgroundColor: colors.primaryLight },
-    audioIcon: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.primary, width: 24, textAlign: 'center' },
-    audioButtonText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
-    audioButtonTextActive: { color: colors.primaryDark },
     rawText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: FONT_SIZE.sm * 1.7 },
     tagEditContainer: { marginBottom: SPACING.md },
     tagEditHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
@@ -126,13 +116,11 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [isEditingRawText, setIsEditingRawText] = useState(false);
   const [editedRawText, setEditedRawText] = useState('');
   const [isReprocessing, setIsReprocessing] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [editingTagIds, setEditingTagIds] = useState<number[]>([]);
   const [isSavingTags, setIsSavingTags] = useState(false);
-  const soundRef = useRef<Audio.Sound | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const loadRecord = useCallback(async () => {
@@ -148,7 +136,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
 
   useEffect(() => {
     loadRecord();
-    return () => { if (soundRef.current) { soundRef.current.unloadAsync(); soundRef.current = null; } };
   }, [loadRecord]);
 
   // offlineQueue 처리 완료 시 자동 갱신 (aiPending 배너 해제)
@@ -183,23 +170,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       setIsReprocessing(false);
     }
   }, [isEditingRawText, record, editedRawText, loadRecord]);
-
-  const handlePlayAudio = useCallback(async () => {
-    if (!record?.audioPath) return;
-    try {
-      if (isPlaying && soundRef.current) {
-        await soundRef.current.stopAsync(); await soundRef.current.unloadAsync(); soundRef.current = null; setIsPlaying(false); return;
-      }
-      setIsPlaying(true);
-      const sound = await playAudio(record.audioPath);
-      soundRef.current = sound;
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) { setIsPlaying(false); sound.unloadAsync(); soundRef.current = null; }
-      });
-    } catch (error) {
-      console.error('Failed to play audio:', error); setIsPlaying(false); Alert.alert('오류', '음성 파일을 재생할 수 없습니다');
-    }
-  }, [record, isPlaying]);
 
   const handleDelete = useCallback(() => {
     if (!record) return;
@@ -365,18 +335,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
                 </View>
               ))}
             </View>
-          </View>
-        )}
-
-        {record.audioPath && (
-          <View style={[styles.section, SHADOW.sm]}>
-            <Text style={styles.sectionTitle}>음성 녹음</Text>
-            <TouchableOpacity onPress={handlePlayAudio} style={[styles.audioButton, isPlaying && styles.audioButtonActive]} activeOpacity={0.7}>
-              <Text style={styles.audioIcon}>{isPlaying ? '||' : '>'}</Text>
-              <Text style={[styles.audioButtonText, isPlaying && styles.audioButtonTextActive]}>
-                {isPlaying ? '재생 중...' : '음성 재생'}
-              </Text>
-            </TouchableOpacity>
           </View>
         )}
 

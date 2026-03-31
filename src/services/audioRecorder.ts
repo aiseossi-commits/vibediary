@@ -113,14 +113,3 @@ export async function deleteAudioFile(uri: string): Promise<void> {
   }
 }
 
-// 음성 파일 재생
-export async function playAudio(uri: string): Promise<Audio.Sound> {
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: false,
-    playsInSilentModeIOS: true,
-    staysActiveInBackground: false,
-  });
-  const { sound } = await Audio.Sound.createAsync({ uri });
-  await sound.playAsync();
-  return sound;
-}
