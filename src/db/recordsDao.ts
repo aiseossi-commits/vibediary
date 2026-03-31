@@ -11,14 +11,15 @@ export async function createRecord(params: {
   aiPending?: boolean;
   createdAt?: number;
   childId?: string | null;
+  source?: 'voice' | 'calendar_text';
 }): Promise<string> {
   const db = await getDatabase();
   const id = Crypto.randomUUID();
   const now = params.createdAt ?? Date.now();
 
   await db.runAsync(
-    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, ai_pending, child_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, ai_pending, child_id, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     now,
     params.audioPath || null,
@@ -26,7 +27,8 @@ export async function createRecord(params: {
     params.summary,
     params.structuredData ? JSON.stringify(params.structuredData) : null,
     params.aiPending ? 1 : 0,
-    params.childId ?? null
+    params.childId ?? null,
+    params.source ?? null
   );
 
   return id;
@@ -180,6 +182,7 @@ function mapRowToRecordWithTags(row: any, tags: Tag[]): RecordWithTags {
     })(),
     isSynced: row.is_synced === 1,
     aiPending: row.ai_pending === 1,
+    source: row.source ?? undefined,
     tags,
   };
 }

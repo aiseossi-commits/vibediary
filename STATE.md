@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor: 데드코드 제거 — embedding 잔재, pause/resume, textSearchRecords 등` (2026-04-01)
+**마지막 커밋**: `fix: 캘린더 직접 입력 타임스탬프 23:59:59 고정 + source 컬럼 + 시간 표시` (2026-04-01)
 
 **현재 브랜치**: main
 
@@ -14,6 +14,11 @@
 
 ## 최근 완료된 작업
 
+- [x] 캘린더 직접 입력 타임스탬프 23:59:59 고정 (카드 맨 뒤 정렬)
+- [x] DB v6 마이그레이션: records.source TEXT 컬럼 추가
+- [x] source 필드 추가: voice / calendar_text 구분
+- [x] RecordCard "추가 기록" 배지 (source=calendar_text)
+- [x] CalendarScreen 카드 시간만 표시 (timeOnly=true)
 - [x] 데드코드 제거: embedding 시스템 잔재 (aiProcessor, recordsDao, queries, types, pipeline, offlineQueue — ~140줄)
 - [x] 데드코드 제거: textSearchRecords 함수 (queries.ts ~34줄)
 - [x] 데드코드 제거: pauseRecording/resumeRecording/isRecording (audioRecorder.ts)

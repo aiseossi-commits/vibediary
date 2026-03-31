@@ -104,6 +104,12 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 5');
     }
 
+    if (currentVersion < 6) {
+      // v5 → v6: records.source 컬럼 추가 ('voice' | 'calendar_text')
+      await database.execAsync('ALTER TABLE records ADD COLUMN source TEXT');
+      await database.execAsync('PRAGMA user_version = 6');
+    }
+
     // 기본 태그 삽입 (마이그레이션 완료 후, child_id 컬럼 보장된 상태에서 실행)
     for (const tagName of DEFAULT_TAGS) {
       await database.runAsync(

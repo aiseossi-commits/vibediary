@@ -51,10 +51,10 @@ export async function processFromText(audioUri: string, text: string, createdAt?
       rawText: text,
       summary: aiResult.summary,
       structuredData: aiResult.structuredData,
-
       aiPending,
       createdAt,
       childId,
+      source: 'voice',
     });
     await setTagsForRecord(recordId, aiResult.tags);
     if (aiPending && text.trim().length > 0) {
@@ -92,7 +92,8 @@ export async function processTextRecord(text: string, childId?: string, date?: s
 
       aiPending,
       childId,
-      createdAt: date ? new Date(date + 'T12:00:00').getTime() : undefined,
+      createdAt: date ? new Date(date + 'T23:59:59').getTime() : undefined,
+      source: 'calendar_text',
     });
     await setTagsForRecord(recordId, aiResult.tags);
     if (aiPending) {

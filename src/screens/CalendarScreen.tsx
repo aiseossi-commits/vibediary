@@ -491,7 +491,7 @@ setDayRecords(records);
                     onPress={() => handleRecordPress(item.id)}
                     showAgeOverlay={false}
                     customLabel={!item.audioPath ? '직접 입력' : '음성 기록'}
-                    timeOnly={false}
+                    timeOnly={true}
                   />
                 ))}
                 <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
