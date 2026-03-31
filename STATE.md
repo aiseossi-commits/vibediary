@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: Android versionCode 5→6 app.json 커밋 누락분 반영` (2026-03-30)
+**마지막 커밋**: `refactor: 데드코드 제거 — embedding 잔재, pause/resume, textSearchRecords 등` (2026-04-01)
 
 **현재 브랜치**: main
 
@@ -14,6 +14,13 @@
 
 ## 최근 완료된 작업
 
+- [x] 데드코드 제거: embedding 시스템 잔재 (aiProcessor, recordsDao, queries, types, pipeline, offlineQueue — ~140줄)
+- [x] 데드코드 제거: textSearchRecords 함수 (queries.ts ~34줄)
+- [x] 데드코드 제거: pauseRecording/resumeRecording/isRecording (audioRecorder.ts)
+- [x] 데드코드 제거: pause/resume hook 로직 (useRecording.ts ~37줄)
+- [x] 데드코드 제거: handleRecordPress (SearchScreen.tsx)
+- [x] CLAUDE.md Obsidian HQ 참조 추가
+- [x] codebase map 생성 (.planning/codebase/ 7개 문서)
 - [x] 온보딩 플로우 추가 (OnboardingScreen, ChildContext.isLoaded)
 - [x] 아이 이름 STT/AI 컨텍스트 적용 (Whisper 힌트, Gemini 프롬프트)
 - [x] CalendarScreen: 월 선택 피커 (AI 분석 기능 완전 제거)

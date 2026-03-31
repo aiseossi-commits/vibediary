@@ -108,7 +108,6 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
           summary: result.summary,
           structuredData: result.structuredData,
           aiPending: false,
-          embedding: null,
         });
 
         // 태그 업데이트

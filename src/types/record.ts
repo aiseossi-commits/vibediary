@@ -7,7 +7,6 @@ export interface DiaryRecord {
   rawText: string | null;
   summary: string;
   structuredData: StructuredData | null;
-  embedding: number[] | null; // Float32Array as number[]
   isSynced: boolean;
   aiPending: boolean; // AI 처리 대기 상태
 }

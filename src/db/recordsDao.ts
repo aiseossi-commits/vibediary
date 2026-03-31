@@ -2,24 +2,12 @@ import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import type { DiaryRecord, RecordWithTags, StructuredData, Tag } from '../types/record';
 
-// Float32Array <-> BLOB 변환 유틸
-function float32ToBlob(arr: number[]): Uint8Array {
-  const float32 = new Float32Array(arr);
-  return new Uint8Array(float32.buffer);
-}
-
-function blobToFloat32(blob: Uint8Array): number[] {
-  const float32 = new Float32Array(blob.buffer);
-  return Array.from(float32);
-}
-
 // 새 기록 생성
 export async function createRecord(params: {
   audioPath?: string | null;
   rawText?: string | null;
   summary: string;
   structuredData?: StructuredData | null;
-  embedding?: number[] | null;
   aiPending?: boolean;
   createdAt?: number;
   childId?: string | null;
@@ -29,15 +17,14 @@ export async function createRecord(params: {
   const now = params.createdAt ?? Date.now();
 
   await db.runAsync(
-    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, embedding, ai_pending, child_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, ai_pending, child_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     now,
     params.audioPath || null,
     params.rawText ?? null,
     params.summary,
     params.structuredData ? JSON.stringify(params.structuredData) : null,
-    params.embedding ? float32ToBlob(params.embedding) : null,
     params.aiPending ? 1 : 0,
     params.childId ?? null
   );
@@ -102,7 +89,7 @@ export async function getAllRecordsForBackup(): Promise<{
 // 기록 수정
 export async function updateRecord(
   id: string,
-  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'embedding' | 'aiPending'>>
+  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'aiPending'>>
 ): Promise<void> {
   const db = await getDatabase();
   const sets: string[] = [];
@@ -119,10 +106,6 @@ export async function updateRecord(
   if (updates.structuredData !== undefined) {
     sets.push('structured_data = ?');
     values.push(updates.structuredData ? JSON.stringify(updates.structuredData) : null);
-  }
-  if (updates.embedding !== undefined) {
-    sets.push('embedding = ?');
-    values.push(updates.embedding ? float32ToBlob(updates.embedding) : null);
   }
   if (updates.aiPending !== undefined) {
     sets.push('ai_pending = ?');
@@ -195,7 +178,6 @@ function mapRowToRecordWithTags(row: any, tags: Tag[]): RecordWithTags {
       try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
       catch { return null; }
     })(),
-    embedding: row.embedding ? blobToFloat32(row.embedding) : null,
     isSynced: row.is_synced === 1,
     aiPending: row.ai_pending === 1,
     tags,

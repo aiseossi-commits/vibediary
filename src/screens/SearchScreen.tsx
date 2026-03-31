@@ -14,7 +14,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { createSearchLog } from '../db/searchLogsDao';
@@ -205,7 +204,6 @@ function AssistantBubble({
 }
 
 export default function SearchScreen() {
-  const navigation = useNavigation<any>();
   const { colors } = useTheme();
   const { activeChild } = useChild();
   const insets = useSafeAreaInsets();
@@ -267,10 +265,6 @@ export default function SearchScreen() {
     setSavedMessageIds((prev) => new Set(prev).add(messageId));
   }, [savedMessageIds, activeChild?.id]);
 
-  const handleRecordPress = useCallback((recordId: string) => {
-    navigation.navigate('RecordDetail', { recordId });
-  }, [navigation]);
-
   const getUserQueryForAssistant = useCallback((index: number): string => {
     for (let i = index - 1; i >= 0; i--) {
       if (messages[i].role === 'user') return messages[i].text;
@@ -298,7 +292,7 @@ export default function SearchScreen() {
         colors={colors}
       />
     );
-  }, [styles, colors, savedMessageIds, handleSave, handleRecordPress, getUserQueryForAssistant]);
+  }, [styles, colors, savedMessageIds, handleSave, getUserQueryForAssistant]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

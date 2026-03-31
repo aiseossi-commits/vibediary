@@ -101,23 +101,6 @@ export async function stopRecording(): Promise<RecordingResult> {
   };
 }
 
-// 녹음 일시중지
-export async function pauseRecording(): Promise<void> {
-  if (!recording) return;
-  await recording.pauseAsync();
-}
-
-// 녹음 재개
-export async function resumeRecording(): Promise<void> {
-  if (!recording) return;
-  await recording.startAsync();
-}
-
-// 녹음 상태 확인
-export function isRecording(): boolean {
-  return recording !== null;
-}
-
 // 음성 파일 삭제
 export async function deleteAudioFile(uri: string): Promise<void> {
   try {

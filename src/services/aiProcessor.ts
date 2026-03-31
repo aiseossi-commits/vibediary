@@ -137,48 +137,6 @@ export async function processWithAI(text: string, extraTags: string[] = []): Pro
   return callGeminiAPI(text, extraTags);
 }
 
-// 임베딩 소스 텍스트 합성 (raw_text + summary → 약물명/수치 + 의미 풍부함 동시 확보)
-export function buildEmbeddingText(rawText: string | null, summary: string): string {
-  const raw = rawText?.trim() ?? '';
-  const sum = summary?.trim() ?? '';
-  if (raw && sum && raw !== sum) {
-    return `${raw}\n${sum}`;
-  }
-  return raw || sum;
-}
-
-// 텍스트 임베딩 생성 (text-embedding-004, 768차원)
-export async function generateEmbedding(text: string): Promise<number[] | null> {
-  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
-  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
-  if (!workerUrl || !workerSecret) return null;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const response = await fetch(`${workerUrl}/embedding`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
-      body: JSON.stringify({
-        model: 'models/gemini-embedding-001',
-        content: { parts: [{ text }] },
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const values: number[] | undefined = data.embedding?.values;
-    return Array.isArray(values) ? values : null;
-  } catch {
-    return null;
-  }
-}
-
 // 오프라인 fallback: 원문을 그대로 사용
 export function createFallbackResult(text: string): AIProcessingResult {
   return {

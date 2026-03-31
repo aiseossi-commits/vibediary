@@ -8,18 +8,27 @@
 
 ---
 
-## 공유 지식 (aiseossi-knowledge)
+## 세션 시작 시 필수
 
-이 앱은 @aiseossi 브랜드 하위 제품이다. 제품 간 공유되는 도메인 지식은 aiseossi-knowledge 레포에서 관리한다.
+**`~/Documents/Obsidian Vault/바다 세계관/00_HQ.md`를 먼저 읽고 시작할 것. 작업 완료 후 반드시 업데이트.**
 
-**참조해야 하는 파일** (`../aiseossi-knowledge/`):
-- `ontology.md` — 발달 영역 코드, 태그 계층, structured_data 스키마
+---
+
+## 공유 지식
+
+이 앱은 @aiseossi 브랜드 하위 제품이다. 제품 간 공유되는 도메인 지식은 **Obsidian vault**에서 관리한다.
+
+**참조해야 하는 파일** (`~/Documents/Obsidian Vault/바다 세계관/`):
+- `온톨로지.md` — 발달 영역 코드, 태그 계층, structured_data 스키마 **(canonical)**
+- `전략.md` — 서비스 철학, 수익 모델, 설계 원칙
+
+**보조 참조** (`../aiseossi-knowledge/`):
 - `brand/tone-guide.md` — 앱 내 텍스트 톤앤매너
 - `decisions.md` — 제품 간 공유 의사결정 로그
 
 **코드 수정 시 확인 사항:**
-- 태그 관련 수정 → ontology.md의 태그 계층과 일치하는지 확인
-- AI 프롬프트 수정 → ontology.md의 발달 영역 코드, structured_data 스키마 반영 여부 확인
+- 태그 관련 수정 → 온톨로지.md의 태그 계층과 일치하는지 확인
+- AI 프롬프트 수정 → 온톨로지.md의 발달 영역 코드, structured_data 스키마 반영 여부 확인
 - UI 텍스트 수정 → tone-guide.md의 용어 규칙 준수
 
 ---

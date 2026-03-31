@@ -51,7 +51,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
       rawText: text,
       summary: aiResult.summary,
       structuredData: aiResult.structuredData,
-      embedding: null,
+
       aiPending,
       createdAt,
       childId,
@@ -89,7 +89,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
       rawText: text,
       summary: aiResult.summary,
       structuredData: aiResult.structuredData,
-      embedding: null,
+
       aiPending,
       childId,
       createdAt: date ? new Date(date + 'T12:00:00').getTime() : undefined,
