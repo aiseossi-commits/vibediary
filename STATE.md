@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `docs: privacy-policy.html 업데이트` (2026-04-01)
+**마지막 커밋**: `docs: store-metadata 지원 이메일 확정` (2026-04-01)
 
 **현재 브랜치**: main
 
@@ -84,6 +84,7 @@
 - [x] docs/store-metadata.md 생성 (스토어 메타데이터 확정본)
 - [x] scripts/generate-featured-image.js 생성 (Play Store 피처드 이미지 1024×500)
 - [x] docs/privacy-policy.html 업데이트 (포지셔닝 일반화, Groq 반영, 알림 권한 제거)
+- [x] store-metadata.md 지원 이메일 확정 (aiseossi@gmail.com)
 
 
 

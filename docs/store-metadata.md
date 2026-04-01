@@ -12,7 +12,7 @@
 | 스토어 타이틀 | 바다 — VibeDiary |
 | 부제목 / 짧은 설명 | 기록에 치이지 말고, 그냥 말하세요 |
 | 개인정보처리방침 URL | https://aiseossi-commits.github.io/vibediary/privacy-policy.html |
-| 지원 이메일 | (입력 필요) |
+| 지원 이메일 | aiseossi@gmail.com |
 
 ---
 
