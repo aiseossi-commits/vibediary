@@ -11,7 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
@@ -206,11 +207,8 @@ function AssistantBubble({
 export default function SearchScreen() {
   const { colors } = useTheme();
   const { activeChild } = useChild();
-  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  // 탭 바 높이: paddingTop(8) + icon(24) + paddingBottom(8) + safeArea
-  const tabBarHeight = 40 + insets.bottom;
 
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);

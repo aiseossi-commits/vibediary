@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: rich-ingestion-pipeline 아카이브 + 메인 스펙 동기화` (2026-04-02)
+**마지막 커밋**: `fix: AI 등대 입력창 위치 불안정 — useBottomTabBarHeight 적용` (2026-04-02)
 
 **현재 브랜치**: main
 
