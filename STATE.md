@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: 캘린더 직접 입력 타임스탬프 23:59:59 고정 + source 컬럼 + 시간 표시` (2026-04-01)
+**마지막 커밋**: `chore: 앱 이름 VibeDiary → 바다` (2026-04-01)
 
 **현재 브랜치**: main
 
@@ -78,6 +78,10 @@
 ---
 
 ## 최근 완료된 작업 (이번 세션)
+
+- [x] app.json name: VibeDiary → 바다 (홈 화면 표시 이름 변경)
+
+
 
 - [x] 인앱 업데이트 체크: deno-main.ts v6.4 /version 엔드포인트 + AppNavigator 버전 비교 Alert (force 옵션 포함)
 - [x] 재생 기능 완전 제거: playAudio 함수, isPlaying state, soundRef, handlePlayAudio, 음성 섹션 JSX, 관련 스타일 (expo-av는 녹음에 계속 사용)
