@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `docs: 스토어 메타데이터 확정본 추가` (2026-04-01)
+**마지막 커밋**: `chore: Play Store 피처드 이미지 생성 스크립트 추가` (2026-04-01)
 
 **현재 브랜치**: main
 
@@ -82,6 +82,7 @@
 - [x] app.json name: VibeDiary → 바다 (홈 화면 표시 이름 변경)
 - [x] bada-intro.md 포지셔닝 업데이트 (발달장애 특화 → 관찰일지 일반화)
 - [x] docs/store-metadata.md 생성 (스토어 메타데이터 확정본)
+- [x] scripts/generate-featured-image.js 생성 (Play Store 피처드 이미지 1024×500)
 
 
 
