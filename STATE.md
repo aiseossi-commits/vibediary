@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: rich ingestion pipeline — 행동 ABC + 발달 domain 구조 추출` (2026-04-02)
+**마지막 커밋**: `chore: rich-ingestion-pipeline 아카이브 + 메인 스펙 동기화` (2026-04-02)
 
 **현재 브랜치**: main
 
