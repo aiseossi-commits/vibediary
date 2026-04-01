@@ -1,5 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
+import { DEFAULT_TAGS } from './schema';
 
 export interface Child {
   id: string;
@@ -15,6 +16,13 @@ export async function createChild(name: string): Promise<Child> {
     'INSERT INTO children (id, name, created_at) VALUES (?, ?, ?)',
     id, name, now
   );
+  // 새 바다에 기본 태그 시드
+  for (const tagName of DEFAULT_TAGS) {
+    await db.runAsync(
+      'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)',
+      tagName, id
+    );
+  }
   return { id, name, createdAt: now };
 }
 

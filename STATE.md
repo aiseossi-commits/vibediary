@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `docs: store-metadata 지원 이메일 확정` (2026-04-01)
+**마지막 커밋**: `feat: 태그 바다별 분리 + 모든 태그 삭제/수정 가능` (2026-04-01)
 
 **현재 브랜치**: main
 
@@ -85,6 +85,7 @@
 - [x] scripts/generate-featured-image.js 생성 (Play Store 피처드 이미지 1024×500)
 - [x] docs/privacy-policy.html 업데이트 (포지셔닝 일반화, Groq 반영, 알림 권한 제거)
 - [x] store-metadata.md 지원 이메일 확정 (aiseossi@gmail.com)
+- [x] 태그 개선: 바다별 분리 (DB v7 마이그레이션), 모든 태그 삭제 가능, 이름 수정 UI (✎ 버튼)
 
 
 

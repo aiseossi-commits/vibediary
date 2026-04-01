@@ -2,12 +2,12 @@ import { getDatabase } from './database';
 import { DEFAULT_TAGS } from './schema';
 import type { Tag } from '../types/record';
 
-// 전체 태그 조회 (global + 아이별 커스텀)
+// 전체 태그 조회 (바다별)
 export async function getAllTags(childId?: string): Promise<Tag[]> {
   const db = await getDatabase();
   if (childId) {
     return db.getAllAsync<Tag>(
-      'SELECT id, name FROM tags WHERE child_id IS NULL OR child_id = ? ORDER BY name',
+      'SELECT id, name FROM tags WHERE child_id = ? ORDER BY name',
       childId
     );
   }
@@ -18,24 +18,49 @@ export async function getAllTags(childId?: string): Promise<Tag[]> {
 export async function createTag(name: string, childId?: string): Promise<Tag> {
   const db = await getDatabase();
   const normalizedName = name.startsWith('#') ? name : `#${name}`;
-  // 기본 태그는 항상 global (child_id=NULL) — 아이별 중복 생성 방지
-  const resolvedChildId = DEFAULT_TAGS.includes(normalizedName) ? null : (childId ?? null);
 
   await db.runAsync(
     'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)',
     normalizedName,
-    resolvedChildId
+    childId ?? null
   );
 
   const tag = await db.getFirstAsync<Tag>(
-    'SELECT id, name FROM tags WHERE name = ? AND (child_id IS ? OR child_id = ?)',
+    'SELECT id, name FROM tags WHERE name = ? AND child_id IS ?',
     normalizedName,
-    resolvedChildId,
-    resolvedChildId
+    childId ?? null
+  ) ?? await db.getFirstAsync<Tag>(
+    'SELECT id, name FROM tags WHERE name = ? AND child_id = ?',
+    normalizedName,
+    childId ?? null
   );
 
   if (!tag) throw new Error(`Tag not found after insert: ${normalizedName}`);
   return tag;
+}
+
+// 태그 이름 변경
+export async function renameTag(tagId: number, newName: string, childId?: string): Promise<void> {
+  const db = await getDatabase();
+  const normalizedName = newName.startsWith('#') ? newName : `#${newName}`;
+  // 같은 바다 내 중복 이름 체크
+  const existing = await db.getFirstAsync<Tag>(
+    'SELECT id FROM tags WHERE name = ? AND child_id IS ?',
+    normalizedName, childId ?? null
+  ) ?? await db.getFirstAsync<Tag>(
+    'SELECT id FROM tags WHERE name = ? AND child_id = ?',
+    normalizedName, childId ?? null
+  );
+  if (existing && existing.id !== tagId) {
+    throw new Error('DUPLICATE');
+  }
+  await db.runAsync('UPDATE tags SET name = ? WHERE id = ?', normalizedName, tagId);
+}
+
+// 태그 삭제
+export async function deleteTag(tagId: number): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM tags WHERE id = ?', tagId);
 }
 
 // 백업용: record_tags 전체 조회
@@ -44,14 +69,6 @@ export async function getAllRecordTags(): Promise<{ record_id: string; tag_id: n
   return db.getAllAsync<{ record_id: string; tag_id: number }>(
     'SELECT record_id, tag_id FROM record_tags'
   );
-}
-
-// 태그 삭제 (기본 태그는 삭제 불가)
-export async function deleteTag(tagId: number): Promise<void> {
-  const db = await getDatabase();
-  const tag = await db.getFirstAsync<Tag>('SELECT id, name FROM tags WHERE id = ?', tagId);
-  if (tag && DEFAULT_TAGS.includes(tag.name)) return;
-  await db.runAsync('DELETE FROM tags WHERE id = ?', tagId);
 }
 
 // 기록에 태그 연결 (내부용)
@@ -74,7 +91,7 @@ export async function setTagsForRecord(recordId: string, tagNames: string[], chi
   }
 }
 
-// 태그별 기록 수 조회 (global + 아이별), isDefault 포함
+// 태그별 기록 수 조회 (바다별), isDefault 포함
 export async function getTagsWithCount(childId?: string): Promise<(Tag & { count: number; isDefault: boolean })[]> {
   const db = await getDatabase();
   let rows: (Tag & { count: number })[];
@@ -84,7 +101,7 @@ export async function getTagsWithCount(childId?: string): Promise<(Tag & { count
       `SELECT t.id, t.name, COUNT(rt.record_id) as count
        FROM tags t
        LEFT JOIN record_tags rt ON t.id = rt.tag_id
-       WHERE t.child_id IS NULL OR t.child_id = ?
+       WHERE t.child_id = ?
        GROUP BY t.id
        ORDER BY count DESC, t.name`,
       childId

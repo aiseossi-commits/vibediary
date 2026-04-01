@@ -9,7 +9,6 @@ import {
   CREATE_DAILY_AI_CACHE_TABLE,
   CREATE_SEARCH_LOGS_TABLE,
   CREATE_INDEXES,
-  DEFAULT_TAGS,
   MIGRATE_TAGS_V3,
   CLEANUP_DUPLICATE_DEFAULT_TAGS,
   CLEANUP_NULL_DUPLICATE_TAGS,
@@ -110,12 +109,34 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 6');
     }
 
-    // 기본 태그 삽입 (마이그레이션 완료 후, child_id 컬럼 보장된 상태에서 실행)
-    for (const tagName of DEFAULT_TAGS) {
-      await database.runAsync(
-        'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, NULL)',
-        tagName
+    if (currentVersion < 7) {
+      // v6 → v7: 글로벌 기본 태그를 바다별로 분리
+      const children = await database.getAllAsync<{ id: string }>('SELECT id FROM children');
+      const globalTags = await database.getAllAsync<{ id: number; name: string }>(
+        'SELECT id, name FROM tags WHERE child_id IS NULL'
       );
+      for (const child of children) {
+        for (const globalTag of globalTags) {
+          await database.runAsync(
+            'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)',
+            globalTag.name, child.id
+          );
+          const newTag = await database.getFirstAsync<{ id: number }>(
+            'SELECT id FROM tags WHERE name = ? AND child_id = ?',
+            globalTag.name, child.id
+          );
+          if (newTag) {
+            await database.runAsync(
+              `UPDATE record_tags SET tag_id = ?
+               WHERE tag_id = ? AND record_id IN (SELECT id FROM records WHERE child_id = ?)`,
+              newTag.id, globalTag.id, child.id
+            );
+          }
+        }
+      }
+      await database.runAsync('DELETE FROM tags WHERE child_id IS NULL');
+      await database.execAsync('DROP INDEX IF EXISTS idx_tags_name_global');
+      await database.execAsync('PRAGMA user_version = 7');
     }
 
     dbInitialized = true;

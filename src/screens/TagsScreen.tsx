@@ -23,7 +23,7 @@ import {
   type AppColors,
 } from '../constants/theme';
 import type { Tag, RecordWithTags } from '../types/record';
-import { getTagsWithCount, createTag, deleteTag, getRecordsByTags, isDatabaseReady } from '../db';
+import { getTagsWithCount, createTag, deleteTag, renameTag, getRecordsByTags, isDatabaseReady } from '../db';
 import { useChild } from '../context/ChildContext';
 import RecordCard from '../components/RecordCard';
 
@@ -145,6 +145,8 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
+  const [editingTagId, setEditingTagId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState('');
   const flatListRef = useRef<FlatList<RecordWithTags>>(null);
   const headerHeightRef = useRef(0);
   const scrollToInput = useCallback(() => {
@@ -214,6 +216,30 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     ]);
   }, [loadTags, loadFilteredRecords]);
 
+  const handleStartEdit = useCallback((tag: TagWithCount) => {
+    setEditingTagId(tag.id);
+    setEditValue(tag.name.startsWith('#') ? tag.name.slice(1) : tag.name);
+  }, []);
+
+  const handleConfirmEdit = useCallback(async (tag: TagWithCount) => {
+    const trimmed = editValue.trim();
+    if (!trimmed || trimmed === tag.name.replace('#', '')) {
+      setEditingTagId(null);
+      return;
+    }
+    try {
+      await renameTag(tag.id, trimmed, activeChild?.id);
+      setEditingTagId(null);
+      await loadTags();
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === 'DUPLICATE') {
+        Alert.alert('중복', '이미 같은 이름의 태그가 있습니다');
+      } else {
+        Alert.alert('오류', '태그 이름 변경에 실패했습니다');
+      }
+    }
+  }, [editValue, activeChild?.id, loadTags]);
+
   const handleRecordPress = useCallback((record: RecordWithTags) => {
     navigation.navigate('RecordDetail', { recordId: record.id });
   }, [navigation]);
@@ -230,6 +256,39 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
         {tags.map((tag) => {
           const isSelected = selectedTagIds.includes(tag.id);
           const tagColor = getTagColor(tag.name, colors);
+          const isEditing = editingTagId === tag.id;
+
+          if (isEditing) {
+            return (
+              <View key={tag.id} style={[styles.tagItem, SHADOW.sm, { borderColor: tagColor, borderWidth: 1.5 }]}>
+                <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+                <TextInput
+                  style={[styles.tagName, { flex: 1, marginLeft: SPACING.sm, padding: 0, color: colors.textPrimary }]}
+                  value={editValue}
+                  onChangeText={setEditValue}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={() => handleConfirmEdit(tag)}
+                  onBlur={() => handleConfirmEdit(tag)}
+                />
+                <TouchableOpacity
+                  onPress={() => handleConfirmEdit(tag)}
+                  style={[styles.tagDeleteBtn, { marginLeft: SPACING.xs }]}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.tagDeleteBtnText, { color: tagColor }]}>✓</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setEditingTagId(null)}
+                  style={styles.tagDeleteBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.tagDeleteBtnText}>×</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+
           return (
             <TouchableOpacity
               key={tag.id}
@@ -244,15 +303,20 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
               <View style={styles.tagItemRight}>
                 <Text style={styles.tagCount}>{tag.count}</Text>
                 <Text style={styles.tagCountLabel}>건</Text>
-                {!tag.isDefault && (
-                  <TouchableOpacity
-                    onPress={() => handleDeleteTag(tag)}
-                    style={styles.tagDeleteBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Text style={styles.tagDeleteBtnText}>×</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  onPress={() => handleStartEdit(tag)}
+                  style={styles.tagDeleteBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.tagDeleteBtnText}>✎</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDeleteTag(tag)}
+                  style={styles.tagDeleteBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.tagDeleteBtnText}>×</Text>
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
@@ -288,7 +352,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
       {isLoadingRecords && <View style={styles.recordsLoading}><ActivityIndicator size="small" color={colors.primary} /></View>}
     </>
-  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, handleToggleTag, handleDeleteTag, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
+  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, editingTagId, editValue, handleToggleTag, handleDeleteTag, handleStartEdit, handleConfirmEdit, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
 
   if (isLoading) {
     return (
