@@ -23,11 +23,32 @@ function formatRecord(record: RecordWithTags): string {
   const tags = record.tags.map((t) => t.name).join('');
   const base = `${date} ${tags} ${record.summary}`;
 
-  if (record.structuredData && Object.keys(record.structuredData).length > 0) {
-    const data = Object.entries(record.structuredData).map(([k, v]) => `${k}:${v}`).join(',');
-    return `${base} [${data}]`;
+  const sd = record.structuredData;
+  if (!sd || Object.keys(sd).length === 0) return base;
+
+  const eventType = sd.event_type;
+
+  if (eventType === 'behavioral_incident') {
+    const parts: string[] = [];
+    if (sd.antecedent) parts.push(`A:${sd.antecedent}`);
+    if (sd.behavior) parts.push(`B:${sd.behavior}`);
+    if (sd.consequence) parts.push(`C:${sd.consequence}`);
+    if (parts.length > 0) return `${base} [${parts.join(', ')}]`;
   }
-  return base;
+
+  if (eventType === 'developmental') {
+    const parts: string[] = [];
+    if (sd.domain) parts.push(`domain:${sd.domain}`);
+    parts.push('type:발달관찰');
+    return `${base} [${parts.join(', ')}]`;
+  }
+
+  // 기존 key:value 방식 유지 (event_type 없거나 medical/daily)
+  const data = Object.entries(sd)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(',');
+  return data ? `${base} [${data}]` : base;
 }
 
 function getToday(): string {

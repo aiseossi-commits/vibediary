@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 태그 바다별 분리 + 모든 태그 삭제/수정 가능` (2026-04-01)
+**마지막 커밋**: `feat: rich ingestion pipeline — 행동 ABC + 발달 domain 구조 추출` (2026-04-02)
 
 **현재 브랜치**: main
 
@@ -14,6 +14,10 @@
 
 ## 최근 완료된 작업
 
+- [x] rich ingestion pipeline: StructuredData 타입 확장 (event_type/antecedent/behavior/consequence/domain)
+- [x] aiProcessor.ts 프롬프트 강화: 기록 유형 분류 + ABC + domain 추출 + JSON 예시 + maxOutputTokens 256→700
+- [x] parseAIResponse 방어 로직 보강: 빈 문자열 필드 제거 + 유효하지 않은 event_type 제거
+- [x] searchPipeline.ts formatRecord 개선: behavioral_incident→[A/B/C], developmental→[domain/type], 기존 방식 유지
 - [x] 캘린더 직접 입력 타임스탬프 23:59:59 고정 (카드 맨 뒤 정렬)
 - [x] DB v6 마이그레이션: records.source TEXT 컬럼 추가
 - [x] source 필드 추가: voice / calendar_text 구분

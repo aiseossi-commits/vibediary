@@ -13,7 +13,15 @@ export interface DiaryRecord {
 }
 
 export interface StructuredData {
-  [key: string]: string | number;
+  [key: string]: string | number | undefined;
+  // 기록 유형 분류
+  event_type?: 'behavioral_incident' | 'medical' | 'developmental' | 'daily';
+  // 행동 사건 ABC
+  antecedent?: string;
+  behavior?: string;
+  consequence?: string;
+  // 발달 관찰 영역
+  domain?: string;
 }
 
 export interface Tag {
