@@ -279,6 +279,11 @@
 - [x] scripts/bump-android-version.js 추가 (app.json + build.gradle versionCode 동시 bump)
 - [x] iOS build 9 / Android versionCode 6 배포 (2026-03-30)
 
+## 최근 완료된 작업 (2026-04-02)
+
+- [x] Android AI 등대 입력창 키보드 위치 버그 수정: adjustNothing + behavior='height' + keyboardVerticalOffset=0 (adjustResize 타이밍 불일치 근본 수정)
+- [x] 사진 첨부 기능 백로그 등록 (999.1): 해비유저 페르소나 니즈, 핵심 플로우 안정화 후 재검토
+
 ## 진행 중인 작업
 
 (없음)
