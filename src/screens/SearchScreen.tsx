@@ -271,6 +271,12 @@ export default function SearchScreen() {
     return '';
   }, [messages]);
 
+  // activeChild 변경 시 대화 초기화 (cross-child 히스토리 오염 방지)
+  useEffect(() => {
+    setMessages([]);
+    setSavedMessageIds(new Set());
+  }, [activeChild?.id]);
+
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);

@@ -14,6 +14,7 @@
 
 ## 최근 완료된 작업
 
+- [x] fix: AI 등대 바다 전환 시 대화 히스토리 초기화 — cross-child 컨텍스트 오염 버그 수정 (SearchScreen.tsx)
 - [x] rich ingestion pipeline: StructuredData 타입 확장 (event_type/antecedent/behavior/consequence/domain)
 - [x] aiProcessor.ts 프롬프트 강화: 기록 유형 분류 + ABC + domain 추출 + JSON 예시 + maxOutputTokens 256→700
 - [x] parseAIResponse 방어 로직 보강: 빈 문자열 필드 제거 + 유효하지 않은 event_type 제거
