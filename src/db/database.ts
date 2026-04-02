@@ -139,6 +139,42 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 7');
     }
 
+    if (currentVersion < 8) {
+      // v7 → v8: pipeline 버그로 생긴 child_id=NULL 태그를 레코드의 child_id 기준으로 복구
+      const nullTags = await database.getAllAsync<{ id: number; name: string }>(
+        'SELECT id, name FROM tags WHERE child_id IS NULL'
+      );
+      for (const nullTag of nullTags) {
+        const linkedRecords = await database.getAllAsync<{ record_id: string }>(
+          'SELECT rt.record_id FROM record_tags rt WHERE rt.tag_id = ?',
+          nullTag.id
+        );
+        for (const { record_id } of linkedRecords) {
+          const record = await database.getFirstAsync<{ child_id: string | null }>(
+            'SELECT child_id FROM records WHERE id = ?',
+            record_id
+          );
+          if (!record?.child_id) continue;
+          await database.runAsync(
+            'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)',
+            nullTag.name, record.child_id
+          );
+          const perChildTag = await database.getFirstAsync<{ id: number }>(
+            'SELECT id FROM tags WHERE name = ? AND child_id = ?',
+            nullTag.name, record.child_id
+          );
+          if (perChildTag) {
+            await database.runAsync(
+              'UPDATE record_tags SET tag_id = ? WHERE tag_id = ? AND record_id = ?',
+              perChildTag.id, nullTag.id, record_id
+            );
+          }
+        }
+      }
+      await database.runAsync('DELETE FROM tags WHERE child_id IS NULL');
+      await database.execAsync('PRAGMA user_version = 8');
+    }
+
     dbInitialized = true;
   })();
 

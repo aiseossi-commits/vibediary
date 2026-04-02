@@ -10,6 +10,7 @@ export interface DiaryRecord {
   isSynced: boolean;
   aiPending: boolean; // AI 처리 대기 상태
   source?: 'voice' | 'calendar_text';
+  childId?: string | null;
 }
 
 export interface StructuredData {

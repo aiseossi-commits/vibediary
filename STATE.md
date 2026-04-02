@@ -83,6 +83,12 @@
 
 ## 최근 완료된 작업 (이번 세션)
 
+- [x] 태그 버그 근본 수정: setTagsForRecord에 childId 미전달로 tags.child_id=NULL 저장되던 문제 — recordPipeline(2곳) + offlineQueue 수정
+- [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
+- [x] DiaryRecord 타입 + mapRowToRecordWithTags에 childId 필드 추가
+- [x] TagsScreen useFocusEffect stale closure 수정 + useEffect([loadTags]) 추가 (activeChild 비동기 로드 대응)
+- [x] 바다 선택 모달 선택 항목 색상 개선: primaryLight+primary → primary+textOnPrimary (전 테마 대비 보장)
+
 - [x] app.json name: VibeDiary → 바다 (홈 화면 표시 이름 변경)
 - [x] bada-intro.md 포지셔닝 업데이트 (발달장애 특화 → 관찰일지 일반화)
 - [x] docs/store-metadata.md 생성 (스토어 메타데이터 확정본)

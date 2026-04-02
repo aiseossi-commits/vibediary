@@ -97,9 +97,9 @@ function createStyles(colors: AppColors) {
       paddingVertical: 14, paddingHorizontal: 16,
       borderRadius: 12, marginBottom: SPACING.xs,
     },
-    modalItemActive: { backgroundColor: colors.primaryLight },
+    modalItemActive: { backgroundColor: colors.primary },
     modalItemText: { fontSize: 15, color: colors.textPrimary },
-    modalItemTextActive: { fontWeight: '600' as const, color: colors.primary },
+    modalItemTextActive: { fontWeight: '600' as const, color: colors.textOnPrimary },
     modalCancel: {
       marginTop: 8, paddingVertical: 14, alignItems: 'center',
       borderTopWidth: 1, borderTopColor: colors.divider,

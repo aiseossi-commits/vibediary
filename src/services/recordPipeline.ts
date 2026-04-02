@@ -56,7 +56,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
       childId,
       source: 'voice',
     });
-    await setTagsForRecord(recordId, aiResult.tags);
+    await setTagsForRecord(recordId, aiResult.tags, childId);
     if (aiPending && text.trim().length > 0) {
       await addToOfflineQueue(recordId, text);
     }
@@ -95,7 +95,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
       createdAt: date ? new Date(date + 'T23:59:59').getTime() : undefined,
       source: 'calendar_text',
     });
-    await setTagsForRecord(recordId, aiResult.tags);
+    await setTagsForRecord(recordId, aiResult.tags, childId);
     if (aiPending) {
       await addToOfflineQueue(recordId, text);
     }

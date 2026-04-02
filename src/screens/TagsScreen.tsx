@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -165,7 +165,10 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     }
   }, [activeChild?.id]);
 
-  useFocusEffect(useCallback(() => { setIsLoading(true); loadTags(); }, []));
+  // activeChild 로드 후 / DB 초기화 후 자동 갱신 (마운트된 채로 상태 변경 시)
+  useEffect(() => { setIsLoading(true); loadTags(); }, [loadTags]);
+  // 화면 포커스 시 갱신 (다른 탭에서 돌아올 때)
+  useFocusEffect(useCallback(() => { setIsLoading(true); loadTags(); }, [loadTags]));
 
   const loadFilteredRecords = useCallback(async (tagIds: number[]) => {
     if (tagIds.length === 0 || !isDatabaseReady()) { setFilteredRecords([]); return; }

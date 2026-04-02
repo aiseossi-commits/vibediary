@@ -111,7 +111,7 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
         });
 
         // 태그 업데이트
-        await setTagsForRecord(item.record_id, result.tags);
+        await setTagsForRecord(item.record_id, result.tags, record.childId ?? undefined);
 
         // 큐에서 완료 처리
         await db.runAsync(

@@ -183,6 +183,7 @@ function mapRowToRecordWithTags(row: any, tags: Tag[]): RecordWithTags {
     isSynced: row.is_synced === 1,
     aiPending: row.ai_pending === 1,
     source: row.source ?? undefined,
+    childId: row.child_id ?? null,
     tags,
   };
 }
