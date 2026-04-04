@@ -84,6 +84,7 @@
 
 ## 최근 완료된 작업 (이번 세션)
 
+- [x] 온톨로지.md v1 태그에 #발달 반영 + HQ 업데이트
 - [x] 태그 분류 재설계 (tag-classification-fix):
   - TagsScreen: activeChild 전환 시 selectedTagIds + filteredRecords 초기화 (아이 기록 섞임 버그 수정)
   - TagsScreen: getRecordsByTags에 activeChild.id 전달 (childId 안전망)
