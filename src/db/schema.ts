@@ -125,4 +125,5 @@ export const DEFAULT_TAGS = [
   '#행동',
   '#일상',
   '#치료',
+  '#발달',
 ];

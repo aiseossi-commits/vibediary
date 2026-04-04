@@ -165,6 +165,12 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     }
   }, [activeChild?.id]);
 
+  // activeChild 전환 시 선택 상태 초기화 (이전 아이 기록 잔류 방지)
+  useEffect(() => {
+    setSelectedTagIds([]);
+    setFilteredRecords([]);
+  }, [activeChild?.id]);
+
   // activeChild 로드 후 / DB 초기화 후 자동 갱신 (마운트된 채로 상태 변경 시)
   useEffect(() => { setIsLoading(true); loadTags(); }, [loadTags]);
   // 화면 포커스 시 갱신 (다른 탭에서 돌아올 때)
@@ -174,14 +180,14 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     if (tagIds.length === 0 || !isDatabaseReady()) { setFilteredRecords([]); return; }
     setIsLoadingRecords(true);
     try {
-      const records = await getRecordsByTags(tagIds, 50, 0);
+      const records = await getRecordsByTags(tagIds, 50, 0, activeChild?.id);
       setFilteredRecords(records);
     } catch (error) {
       console.warn('Failed to load filtered records:', error);
     } finally {
       setIsLoadingRecords(false);
     }
-  }, []);
+  }, [activeChild?.id]);
 
   const handleToggleTag = useCallback((tagId: number) => {
     setSelectedTagIds((prev) => {

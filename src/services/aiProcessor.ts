@@ -1,11 +1,11 @@
 import type { AIProcessingResult } from '../types/record';
 import { getNetworkState } from '../utils/network';
 
-// AI 처리를 위한 시스템 프롬프트 (고정)
-const BASE_TAGS = ['#의료', '#투약', '#행동', '#일상', '#치료'];
-
 function buildSystemPrompt(extraTags: string[]): string {
-  const allTags = [...new Set([...BASE_TAGS, ...extraTags])].join(', ');
+  const customTagSection = extraTags.length > 0
+    ? `\n커스텀 태그 (사용자 정의, 기본 태그와 함께 추가 적용 가능):\n${extraTags.map(t => `- ${t}: 기록 내용이 이 태그 이름과 명확히 관련되면 추가로 부여. 기본 태그를 대체하지 않음`).join('\n')}\n`
+    : '';
+
   return `당신은 발달장애인 돌봄 가족의 음성 기록을 정제하는 AI 비서입니다.
 사용자가 음성으로 남긴 기록을 분석하여 아래 JSON 형식으로 응답하세요.
 
@@ -22,8 +22,18 @@ function buildSystemPrompt(extraTags: string[]): string {
    - 누가 무엇을 했는지 행위 주체와 행동을 바꾸지 말 것
    - 의미 변질 없이 최소한의 문법 교정만 허용
    - 문체는 반드시 **~함/~음 체**로 고정 (예: "약 복용함.", "발작 2회 있었음.", "기분 좋아 보였음.")
-2. tags: 해당하는 태그를 배열로 반환. 가능한 태그: ${allTags}. 관련 없으면 빈 배열.
+2. tags: 아래 기준에 따라 해당하는 태그를 배열로 반환. 기준에 맞는 태그만 선택하고, 해당 없으면 빈 배열.
+
+기본 태그 및 적용 기준:
+- #발달: 언어, 운동, 인지, 사회성 등 발달 영역 관찰 또는 성장 이정표 (예: 첫 발화, 새로운 기술 습득)
+- #행동: 텐트럼, 거부, 자해, 공격, 상동행동 등 도전적 행동이 포함된 경우
+- #치료: 언어치료, 작업치료, ABA 등 치료 세션 기록
+- #의료: 투약, 병원 방문, 처치 등 의료 행위 (단순 체온 관찰·신체 증상만 있으면 해당 안 됨)
+- #투약: 약 복용 기록 (의약품명 또는 용량이 포함된 경우)
+- #일상: 위에 해당하지 않는 일상 케어 (식사, 수면, 외출 등)
+${customTagSection}
 3. structured_data: 아래 지침에 따라 구조화 가능한 데이터를 추출. 없으면 빈 객체.
+   ※ event_type은 structured_data 추출 전략이며 태그 선택과 독립적으로 결정됨.
    a. event_type 분류 (반드시 포함):
       - "behavioral_incident": 문제 행동(텐트럼, 거부, 자해, 공격 등)이 포함된 경우
       - "medical": 체온, 투약, 발작 등 의료 관련 기록
@@ -43,7 +53,7 @@ JSON 응답 예시 (behavioral_incident):
 {"summary": "마트에서 과자 사달라는 요구 거절 후 드러누워 울었음.", "tags": ["#행동"], "structured_data": {"event_type": "behavioral_incident", "antecedent": "마트에서 과자 구매 거절", "behavior": "드러누워 울기", "consequence": "그냥 지나침"}}
 
 JSON 응답 예시 (developmental):
-{"summary": "오늘 처음으로 '엄마' 발화함.", "tags": ["#일상"], "structured_data": {"event_type": "developmental", "domain": "언어"}}
+{"summary": "오늘 처음으로 '엄마' 발화함.", "tags": ["#발달"], "structured_data": {"event_type": "developmental", "domain": "언어"}}
 
 JSON 응답 예시 (medical):
 {"summary": "저녁 체온 38.2도, 해열제 복용함.", "tags": ["#의료", "#투약"], "structured_data": {"event_type": "medical", "temperature": 38.2, "medication": "해열제"}}

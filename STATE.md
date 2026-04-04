@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: AI 등대 입력창 위치 불안정 — useBottomTabBarHeight 적용` (2026-04-02)
+**마지막 커밋**: `fix: 태그 분류 재설계 — #발달 추가, AI 프롬프트 개선, 아이 전환 버그 수정` (2026-04-04)
 
 **현재 브랜치**: main
 
@@ -83,6 +83,15 @@
 ---
 
 ## 최근 완료된 작업 (이번 세션)
+
+- [x] 태그 분류 재설계 (tag-classification-fix):
+  - TagsScreen: activeChild 전환 시 selectedTagIds + filteredRecords 초기화 (아이 기록 섞임 버그 수정)
+  - TagsScreen: getRecordsByTags에 activeChild.id 전달 (childId 안전망)
+  - schema.ts: DEFAULT_TAGS에 '#발달' 추가 (5개 → 6개)
+  - aiProcessor.ts: 태그 semantic 정의 + event_type 독립성 명시 + 커스텀 태그 섹션 분리
+  - aiProcessor.ts: BASE_TAGS 데드코드 제거
+
+
 
 - [x] 태그 버그 근본 수정: setTagsForRecord에 childId 미전달로 tags.child_id=NULL 저장되던 문제 — recordPipeline(2곳) + offlineQueue 수정
 - [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
