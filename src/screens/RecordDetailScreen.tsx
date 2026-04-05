@@ -161,7 +161,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       let aiResult;
       try { aiResult = await processWithAI(trimmed); } catch { aiResult = createFallbackResult(trimmed); }
       await updateRecord(record.id, { rawText: trimmed, summary: aiResult.summary, structuredData: aiResult.structuredData, aiPending: false });
-      await setTagsForRecord(record.id, aiResult.tags);
+      await setTagsForRecord(record.id, aiResult.tags, record.childId ?? undefined);
       await loadRecord();
     } catch (error) {
       console.error('Failed to reprocess:', error);

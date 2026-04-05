@@ -100,6 +100,7 @@
 
 
 - [x] 태그 버그 근본 수정: setTagsForRecord에 childId 미전달로 tags.child_id=NULL 저장되던 문제 — recordPipeline(2곳) + offlineQueue 수정
+- [x] 태그 버그 재발 수정: RecordDetailScreen 원본 텍스트 수정 후 AI 재분석 시 setTagsForRecord childId 미전달 (line 164)
 - [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
 - [x] DiaryRecord 타입 + mapRowToRecordWithTags에 childId 필드 추가
 - [x] TagsScreen useFocusEffect stale closure 수정 + useEffect([loadTags]) 추가 (activeChild 비동기 로드 대응)
