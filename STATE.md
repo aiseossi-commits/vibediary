@@ -84,6 +84,11 @@
 
 ## 최근 완료된 작업 (이번 세션)
 
+- [x] UI 개선 4종:
+  - RecordCard "추가 기록" 배지 제거 (HomeScreen 오표기 수정)
+  - CalendarScreen 카드 customLabel에 시간 포함 (오전 10:30 · 직접 입력)
+  - CalendarScreen 텍스트 입력 시간 설정 UI 추가 (시/분 picker, processTextRecord timestamp 파라미터 추가)
+  - 기본 색상 테마 deepOcean으로 변경, calmBlue 제거, 팔레트 한 줄 레이아웃
 - [x] 온톨로지.md v1 태그에 #발달 반영 + HQ 업데이트
 - [x] 태그 분류 재설계 (tag-classification-fix):
   - TagsScreen: activeChild 전환 시 selectedTagIds + filteredRecords 초기화 (아이 기록 섞임 버그 수정)

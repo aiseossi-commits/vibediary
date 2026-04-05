@@ -85,12 +85,12 @@ function createStyles(colors: AppColors) {
       backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md, marginTop: SPACING.sm, ...SHADOW.sm,
     },
-    paletteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginTop: SPACING.sm },
-    paletteItem: { alignItems: 'center', gap: 4 },
-    paletteCircle: { width: 36, height: 36, borderRadius: 18 },
-    paletteCircleSelected: { width: 36, height: 36, borderRadius: 18, borderWidth: 2.5, borderColor: colors.textPrimary },
-    paletteName: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textAlign: 'center', maxWidth: 56 },
-    paletteNameSelected: { fontSize: FONT_SIZE.xs, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium, textAlign: 'center', maxWidth: 56 },
+    paletteRow: { flexDirection: 'row', flexWrap: 'nowrap', marginTop: SPACING.sm },
+    paletteItem: { flex: 1, alignItems: 'center', gap: 4 },
+    paletteCircle: { width: 32, height: 32, borderRadius: 16 },
+    paletteCircleSelected: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.textPrimary },
+    paletteName: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textAlign: 'center', maxWidth: 44 },
+    paletteNameSelected: { fontSize: FONT_SIZE.xs, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium, textAlign: 'center', maxWidth: 44 },
   });
 }
 

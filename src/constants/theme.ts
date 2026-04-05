@@ -1,6 +1,6 @@
 // 바다(vibediary) 디자인 토큰
 
-export type PaletteKey = 'sage' | 'emerald' | 'gold' | 'amber' | 'calmBlue' | 'deepOcean' | 'clearSky' | 'slateNavy';
+export type PaletteKey = 'sage' | 'emerald' | 'gold' | 'amber' | 'deepOcean' | 'clearSky' | 'slateNavy';
 
 export interface PaletteEntry {
   name: string;
@@ -134,37 +134,6 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
     },
     darkDensity: ['transparent', '#2E2B27', '#3D3830', '#57503A', '#D97706'],
     lightDensity: ['transparent', '#FDE68A', '#FCD34D', '#FBBF24', '#F59E0B'],
-  },
-  calmBlue: {
-    name: '칼름 블루',
-    dark: {
-      primary: '#6B8EAC', primaryLight: '#A1B7CB', primaryDark: '#4F667D',
-      secondary: '#E6EEEB', background: '#1F2422', surface: '#262A28',
-      surfaceSecondary: '#3F4442', textPrimary: '#EBF3EF', textSecondary: '#D9E6E1',
-      textTertiary: '#6B8EAC', textOnPrimary: '#000000', accent: '#EAB308',
-      accentLight: '#FDE68A', tagMedical: '#EF4444', tagMedication: '#6B8EAC',
-      tagBehavior: '#EAB308', tagDaily: '#22C55E', tagTherapy: '#A855F7',
-      error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
-      border: '#535755', divider: '#3F4442', recordingRed: '#EF4444',
-      recordingRedLight: '#FEE2E2', micBg: '#3F4442', micBorder: '#535755',
-      micIcon: '#535755', micLabel: '#D9E6E1', tabBg: '#1F2422',
-      tabBorder: '#262A28', tabInactive: '#717D77',
-    },
-    light: {
-      primary: '#6B8EAC', primaryLight: '#A1B7CB', primaryDark: '#4F667D',
-      secondary: '#EBF3EF', background: '#F1F6F4', surface: '#EBF3EF',
-      surfaceSecondary: '#D9E6E1', textPrimary: '#1F2422', textSecondary: '#3F4442',
-      textTertiary: '#717D77', textOnPrimary: '#FFFFFF', accent: '#CA8A04',
-      accentLight: '#F59E0B', tagMedical: '#EF4444', tagMedication: '#6B8EAC',
-      tagBehavior: '#EAB308', tagDaily: '#22C55E', tagTherapy: '#A855F7',
-      error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
-      border: '#DEE8E3', divider: '#EBF3EF', recordingRed: '#EF4444',
-      recordingRedLight: '#FEE2E2', micBg: '#EBF3EF', micBorder: '#D9E6E1',
-      micIcon: '#D9E6E1', micLabel: '#3F4442', tabBg: '#F1F6F4',
-      tabBorder: '#EBF3EF', tabInactive: '#717D77',
-    },
-    darkDensity: ['transparent', '#2A302E', '#364040', '#4A5E6A', '#4F667D'],
-    lightDensity: ['transparent', '#D9E6E1', '#B8CEC8', '#A1B7CB', '#6B8EAC'],
   },
   deepOcean: {
     name: '딥 오션',

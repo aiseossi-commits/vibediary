@@ -37,6 +37,12 @@ import type { RecordWithTags, DailyRecordSummary } from '../types/record';
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
 
+function formatTimeHM(h: number, m: number): string {
+  const period = h < 12 ? '오전' : '오후';
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  return `${period} ${displayH}:${String(m).padStart(2, '0')}`;
+}
+
 function getDensityColor(count: number, densityColors: readonly string[]): string {
   if (count === 0) return densityColors[0];
   if (count === 1) return densityColors[1];
@@ -118,6 +124,10 @@ function createStyles(colors: AppColors) {
     pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     pickerConfirmBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.primary },
     pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SPACING.sm },
+    timeLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
+    timeButton: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
+    timeButtonText: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
   });
 }
 
@@ -142,6 +152,9 @@ export default function CalendarScreen() {
   const [textInput, setTextInput] = useState('')
   const [isSaving, setIsSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [inputHour, setInputHour] = useState(() => new Date().getHours());
+  const [inputMinute, setInputMinute] = useState(() => Math.round(new Date().getMinutes() / 5) * 5 % 60);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
   const [calendarKey, setCalendarKey] = useState(0);
@@ -157,7 +170,12 @@ export default function CalendarScreen() {
   const isSheetOpenRef = useRef(isSheetOpen);
   useEffect(() => { currentMonthRef.current = currentMonth; }, [currentMonth]);
   useEffect(() => { isSheetOpenRef.current = isSheetOpen; }, [isSheetOpen]);
-  useEffect(() => { selectedDateRef.current = selectedDate; }, [selectedDate]);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+    const now = new Date();
+    setInputHour(now.getHours());
+    setInputMinute(Math.round(now.getMinutes() / 5) * 5 % 60);
+  }, [selectedDate]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -319,7 +337,9 @@ setDayRecords(records);
     if (!trimmed) return;
     setIsSaving(true);
     try {
-      await processTextRecord(trimmed, activeChild?.id, selectedDate);
+      const d = new Date(selectedDate + 'T00:00:00');
+      d.setHours(inputHour, inputMinute, 0, 0);
+      await processTextRecord(trimmed, activeChild?.id, selectedDate, d.getTime());
       setTextInput('');
       Alert.alert('저장 완료', '기록이 저장되었습니다.');
       await loadDayRecords(selectedDate);
@@ -332,7 +352,7 @@ setDayRecords(records);
     } finally {
       setIsSaving(false);
     }
-  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth]);
+  }, [textInput, selectedDate, activeChild?.id, loadDayRecords, loadMonthData, currentMonth, inputHour, inputMinute]);
 
   const summaryMap = useMemo(() => {
     const map: Record<string, DailyRecordSummary> = {};
@@ -464,6 +484,12 @@ setDayRecords(records);
                   <View style={styles.inputDividerLine} />
                 </View>
                 <View style={[styles.textInputContainer, { alignSelf: 'stretch' }]}>
+                  <View style={styles.timeRow}>
+                    <Text style={styles.timeLabel}>시간 설정</Text>
+                    <TouchableOpacity style={styles.timeButton} onPress={() => setShowTimePicker(true)}>
+                      <Text style={styles.timeButtonText}>{formatTimeHM(inputHour, inputMinute)}</Text>
+                    </TouchableOpacity>
+                  </View>
                   <TextInput
                     style={styles.textInput}
                     placeholder="텍스트로 기록하기..."
@@ -490,7 +516,7 @@ setDayRecords(records);
                     record={item}
                     onPress={() => handleRecordPress(item.id)}
                     showAgeOverlay={false}
-                    customLabel={!item.audioPath ? '직접 입력' : '음성 기록'}
+                    customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${item.audioPath ? '음성 기록' : '직접 입력'}`}
                     timeOnly={true}
                   />
                 ))}
@@ -503,6 +529,12 @@ setDayRecords(records);
                   <View style={styles.inputDividerLine} />
                 </View>
                 <View style={styles.textInputContainer}>
+                  <View style={styles.timeRow}>
+                    <Text style={styles.timeLabel}>시간 설정</Text>
+                    <TouchableOpacity style={styles.timeButton} onPress={() => setShowTimePicker(true)}>
+                      <Text style={styles.timeButtonText}>{formatTimeHM(inputHour, inputMinute)}</Text>
+                    </TouchableOpacity>
+                  </View>
                   <TextInput
                     style={styles.textInput}
                     placeholder="텍스트로 추가 기록하기..."
@@ -530,6 +562,47 @@ setDayRecords(records);
           </TouchableOpacity>
         </Animated.View>
       )}
+      <Modal visible={showTimePicker} transparent animationType="fade">
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>시간 설정</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginBottom: SPACING.lg }}>
+              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
+                <Text style={styles.pickerCancelText}>시간</Text>
+                <View style={styles.pickerYearRow}>
+                  <TouchableOpacity onPress={() => setInputHour(h => (h - 1 + 24) % 24)}>
+                    <Text style={styles.pickerArrow}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerYearText}>{String(inputHour).padStart(2, '0')}</Text>
+                  <TouchableOpacity onPress={() => setInputHour(h => (h + 1) % 24)}>
+                    <Text style={styles.pickerArrow}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
+                <Text style={styles.pickerCancelText}>분</Text>
+                <View style={styles.pickerYearRow}>
+                  <TouchableOpacity onPress={() => setInputMinute(m => (m - 5 + 60) % 60)}>
+                    <Text style={styles.pickerArrow}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerYearText}>{String(inputMinute).padStart(2, '0')}</Text>
+                  <TouchableOpacity onPress={() => setInputMinute(m => (m + 5) % 60)}>
+                    <Text style={styles.pickerArrow}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            <View style={styles.pickerButtonRow}>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerCancelBtn}>
+                <Text style={styles.pickerCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerConfirmBtn}>
+                <Text style={styles.pickerConfirmText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={showDatePicker} transparent animationType="fade">
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerContainer}>

@@ -112,17 +112,6 @@ function createStyles(colors: AppColors) {
       color: colors.accent,
       fontWeight: FONT_WEIGHT.medium,
     },
-    calendarTextBadge: {
-      backgroundColor: colors.textSecondary + '22',
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: 2,
-      borderRadius: BORDER_RADIUS.full,
-    },
-    calendarTextBadgeText: {
-      fontSize: FONT_SIZE.xs,
-      color: colors.textSecondary,
-      fontWeight: FONT_WEIGHT.medium,
-    },
     summary: {
       fontSize: 15,
       color: colors.textPrimary,
@@ -155,11 +144,6 @@ function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, 
     >
       <View style={styles.header}>
         <Text style={styles.dateText}>{dateLabel}</Text>
-        {record.source === 'calendar_text' && !record.aiPending && (
-          <View style={styles.calendarTextBadge}>
-            <Text style={styles.calendarTextBadgeText}>추가 기록</Text>
-          </View>
-        )}
         {record.aiPending && (
           <View style={styles.pendingBadge}>
             <ActivityIndicator size="small" color={colors.accent} />

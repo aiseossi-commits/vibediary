@@ -66,7 +66,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
 }
 
 // 텍스트 직접 입력 → 기록 생성 파이프라인 (STT 건너뜀)
-export async function processTextRecord(text: string, childId?: string, date?: string): Promise<string> {
+export async function processTextRecord(text: string, childId?: string, date?: string, timestamp?: number): Promise<string> {
   // 1. AI 처리 시도
   let aiResult;
   let aiPending = false;
@@ -92,7 +92,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
 
       aiPending,
       childId,
-      createdAt: date ? new Date(date + 'T23:59:59').getTime() : undefined,
+      createdAt: timestamp ?? (date ? new Date(date + 'T23:59:59').getTime() : undefined),
       source: 'calendar_text',
     });
     await setTagsForRecord(recordId, aiResult.tags, childId);
