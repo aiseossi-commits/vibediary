@@ -42,6 +42,11 @@ yarn-error.*
 /android
 *.apk
 
+# Build outputs
+*.aab
+*.tar.gz
+bundle/
+
 # Release keystore
 *.keystore
 \!android/app/debug.keystore

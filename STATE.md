@@ -123,6 +123,7 @@
 - [x] AI 등대 대화 자동 저장: 답변 수신 즉시 항해일지에 저장, 수동 저장 버튼 제거
 - [x] 시간 picker 통일: RecordDetailScreen 오전/오후를 ‹ › 컬럼 형태로 변경 (CalendarScreen과 동일)
 - [x] ios/ci_scripts/ci_post_clone.sh 추가: Xcode Cloud 빌드 시 node install + npm install + pod install 자동 실행
+- [x] .gitignore에 빌드 산출물 추가 (*.aab, *.tar.gz, bundle/) — 히스토리 오염 방지
 - [x] 시간 수정 기능:
   - RecordDetailScreen: 시간 수정 버튼 + 12시간제 picker modal (오전/오후 토글)
   - CalendarScreen: 시간 입력 picker 12시간제로 교체 (오전/오후 + 1-12시)
