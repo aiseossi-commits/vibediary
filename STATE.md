@@ -113,6 +113,12 @@
   - VoyageLogScreen.tsx 삭제 (하단 탭 4→3개)
   - AppNavigator.tsx: VoyageLog 탭 제거
   - SearchScreen.tsx 인사이트/Q&A 카드 탭 expand/collapse (전문 보기)
+- [x] 백업 복원 태그 유실 근본 수정:
+  - BackupData.tags에 child_id 추가
+  - 내보내기: SELECT child_id FROM tags 포함
+  - restoreOverwrite: child_id 포함 삽입
+  - restoreMerge: name+child_id 조합으로 중복 체크, childIdMap 적용
+  - 구버전 백업 호환: NULL child_id 태그를 record_tags 기반으로 per-child 복구
 - [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
 - [x] DiaryRecord 타입 + mapRowToRecordWithTags에 childId 필드 추가
 - [x] TagsScreen useFocusEffect stale closure 수정 + useEffect([loadTags]) 추가 (activeChild 비동기 로드 대응)

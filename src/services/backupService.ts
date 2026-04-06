@@ -4,7 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from '../db/database';
 import { getAllChildren } from '../db/childrenDao';
-import { getAllTags, getAllRecordTags } from '../db/tagsDao';
+import { getAllRecordTags } from '../db/tagsDao';
 import { getAllRecordsForBackup } from '../db/recordsDao';
 
 const BACKUP_VERSION = 1;
@@ -23,18 +23,21 @@ export interface BackupData {
     is_synced: number;
     child_id: string | null;
   }[];
-  tags: { id: number; name: string }[];
+  tags: { id: number; name: string; child_id?: string | null }[];
   recordTags: { record_id: string; tag_id: number }[];
 }
 
 // 전체 DB를 JSON 파일로 내보내고 공유 시트 표시
 export async function exportBackup(): Promise<void> {
-  const [children, records, tags, recordTags] = await Promise.all([
+  const db = await getDatabase();
+  const [children, records, recordTags] = await Promise.all([
     getAllChildren(),
     getAllRecordsForBackup(),
-    getAllTags(),
     getAllRecordTags(),
   ]);
+  const tags = await db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
+    'SELECT id, name, child_id FROM tags ORDER BY name'
+  );
 
   const data: BackupData = {
     version: BACKUP_VERSION,
@@ -121,7 +124,10 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
   }
 
   for (const t of data.tags) {
-    await db.runAsync('INSERT OR IGNORE INTO tags (id, name) VALUES (?, ?)', t.id, t.name);
+    await db.runAsync(
+      'INSERT OR IGNORE INTO tags (id, name, child_id) VALUES (?, ?, ?)',
+      t.id, t.name, t.child_id ?? null
+    );
   }
 
   for (const r of data.records) {
@@ -138,6 +144,12 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
       'INSERT OR IGNORE INTO record_tags (record_id, tag_id) VALUES (?, ?)',
       rt.record_id, rt.tag_id
     );
+  }
+
+  // 구버전 백업 호환: child_id 없이 저장된 태그를 record_tags 기반으로 복구
+  const hasLegacyTags = data.tags.some(t => t.child_id === undefined || t.child_id === null);
+  if (hasLegacyTags) {
+    await _recoverNullTagChildIds(db);
   }
 }
 
@@ -177,22 +189,30 @@ export async function restoreMerge(data: BackupData): Promise<void> {
     }
   }
 
-  // tags 삽입 (name UNIQUE 충돌 시 기존 태그 id 사용)
-  const existingTags = await getAllTags();
-  const tagNameToId = new Map(existingTags.map(t => [t.name, t.id]));
+  // tags 삽입 (name+child_id 조합으로 중복 체크)
+  const existingTagRows = await db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
+    'SELECT id, name, child_id FROM tags'
+  );
+  // key: "name|child_id" → id
+  const existingTagKey = new Map(existingTagRows.map(t => [`${t.name}|${t.child_id ?? ''}`, t.id]));
   const tagIdMap = new Map<number, number>(); // 백업 tag id → 실제 tag id
 
   for (const t of data.tags) {
-    if (tagNameToId.has(t.name)) {
-      tagIdMap.set(t.id, tagNameToId.get(t.name)!);
+    const mappedChildId = t.child_id ? (childIdMap.get(t.child_id) ?? t.child_id) : null;
+    const key = `${t.name}|${mappedChildId ?? ''}`;
+    if (existingTagKey.has(key)) {
+      tagIdMap.set(t.id, existingTagKey.get(key)!);
     } else {
-      await db.runAsync('INSERT OR IGNORE INTO tags (name) VALUES (?)', t.name);
+      await db.runAsync('INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)', t.name, mappedChildId);
       const inserted = await db.getFirstAsync<{ id: number }>(
-        'SELECT id FROM tags WHERE name = ?', t.name
+        mappedChildId
+          ? 'SELECT id FROM tags WHERE name = ? AND child_id = ?'
+          : 'SELECT id FROM tags WHERE name = ? AND child_id IS NULL',
+        ...(mappedChildId ? [t.name, mappedChildId] : [t.name])
       );
       if (inserted) {
         tagIdMap.set(t.id, inserted.id);
-        tagNameToId.set(t.name, inserted.id);
+        existingTagKey.set(key, inserted.id);
       }
     }
   }
@@ -216,6 +236,49 @@ export async function restoreMerge(data: BackupData): Promise<void> {
         'INSERT OR IGNORE INTO record_tags (record_id, tag_id) VALUES (?, ?)',
         rt.record_id, mappedTagId
       );
+    }
+  }
+
+  // 구버전 백업 호환: child_id 없이 저장된 태그를 record_tags 기반으로 복구
+  const hasLegacyTags = data.tags.some(t => t.child_id === undefined || t.child_id === null);
+  if (hasLegacyTags) {
+    await _recoverNullTagChildIds(db);
+  }
+}
+
+// NULL child_id 태그를 record_tags 기반으로 per-child 태그로 복구 (v8 마이그레이션과 동일 로직)
+async function _recoverNullTagChildIds(db: Awaited<ReturnType<typeof getDatabase>>): Promise<void> {
+  const nullTags = await db.getAllAsync<{ id: number; name: string }>(
+    'SELECT id, name FROM tags WHERE child_id IS NULL'
+  );
+  for (const nullTag of nullTags) {
+    const linkedRecords = await db.getAllAsync<{ record_id: string }>(
+      'SELECT rt.record_id FROM record_tags rt WHERE rt.tag_id = ?', nullTag.id
+    );
+    for (const { record_id } of linkedRecords) {
+      const record = await db.getFirstAsync<{ child_id: string | null }>(
+        'SELECT child_id FROM records WHERE id = ?', record_id
+      );
+      if (!record?.child_id) continue;
+      await db.runAsync(
+        'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)', nullTag.name, record.child_id
+      );
+      const perChildTag = await db.getFirstAsync<{ id: number }>(
+        'SELECT id FROM tags WHERE name = ? AND child_id = ?', nullTag.name, record.child_id
+      );
+      if (perChildTag) {
+        await db.runAsync(
+          `UPDATE record_tags SET tag_id = ? WHERE tag_id = ? AND record_id = ?`,
+          perChildTag.id, nullTag.id, record_id
+        );
+      }
+    }
+    // 모든 연결이 이전된 NULL 태그 삭제
+    const remaining = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM record_tags WHERE tag_id = ?', nullTag.id
+    );
+    if ((remaining?.count ?? 0) === 0) {
+      await db.runAsync('DELETE FROM tags WHERE id = ?', nullTag.id);
     }
   }
 }
