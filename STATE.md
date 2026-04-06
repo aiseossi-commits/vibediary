@@ -113,6 +113,9 @@
   - VoyageLogScreen.tsx 삭제 (하단 탭 4→3개)
   - AppNavigator.tsx: VoyageLog 탭 제거
   - SearchScreen.tsx 인사이트/Q&A 카드 탭 expand/collapse (전문 보기)
+- [x] 바다 삭제 모달 개선:
+  - Alert → 커스텀 하단 시트 Modal로 교체 (Android 버튼 누락 + 뒤로가기 버그 수정)
+  - "기록 포함 삭제" 옵션 명시, onRequestClose로 하드웨어 뒤로가기 지원
 - [x] 시간 수정 기능:
   - RecordDetailScreen: 시간 수정 버튼 + 12시간제 picker modal (오전/오후 토글)
   - CalendarScreen: 시간 입력 picker 12시간제로 교체 (오전/오후 + 1-12시)
