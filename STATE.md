@@ -116,6 +116,9 @@
 - [x] 바다 삭제 모달 개선:
   - Alert → 커스텀 하단 시트 Modal로 교체 (Android 버튼 누락 + 뒤로가기 버그 수정)
   - "기록 포함 삭제" 옵션 명시, onRequestClose로 하드웨어 뒤로가기 지원
+- [x] bare workflow 전환: expo prebuild로 ios/ 네이티브 프로젝트 생성 (로컬 Xcode/Gradle 빌드 지원)
+- [x] 캘린더 시간 picker 개선: 오전/오후를 시간/분과 동일한 컬럼 형태로 통일, 너비 축소로 화면 잘림 수정
+- [x] 백업 synthesis_articles 포함: 항해일지 데이터 백업/복원 대상 추가 (BACKUP_VERSION 1→2, 병합 복원 시 child_id 매핑 적용)
 - [x] 시간 수정 기능:
   - RecordDetailScreen: 시간 수정 버튼 + 12시간제 picker modal (오전/오후 토글)
   - CalendarScreen: 시간 입력 picker 12시간제로 교체 (오전/오후 + 1-12시)

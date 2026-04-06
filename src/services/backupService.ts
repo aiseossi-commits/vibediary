@@ -7,7 +7,7 @@ import { getAllChildren } from '../db/childrenDao';
 import { getAllRecordTags } from '../db/tagsDao';
 import { getAllRecordsForBackup } from '../db/recordsDao';
 
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2;
 
 export interface BackupData {
   version: number;
@@ -25,6 +25,18 @@ export interface BackupData {
   }[];
   tags: { id: number; name: string; child_id?: string | null }[];
   recordTags: { record_id: string; tag_id: number }[];
+  synthesisArticles: {
+    id: number;
+    child_id: string;
+    type: string;
+    title: string;
+    body: string;
+    source_record_ids: string | null;
+    period_start: number | null;
+    period_end: number | null;
+    created_at: number;
+    updated_at: number;
+  }[];
 }
 
 // 전체 DB를 JSON 파일로 내보내고 공유 시트 표시
@@ -35,9 +47,16 @@ export async function exportBackup(): Promise<void> {
     getAllRecordsForBackup(),
     getAllRecordTags(),
   ]);
-  const tags = await db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
-    'SELECT id, name, child_id FROM tags ORDER BY name'
-  );
+  const [tags, synthesisArticles] = await Promise.all([
+    db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
+      'SELECT id, name, child_id FROM tags ORDER BY name'
+    ),
+    db.getAllAsync<{
+      id: number; child_id: string; type: string; title: string; body: string;
+      source_record_ids: string | null; period_start: number | null; period_end: number | null;
+      created_at: number; updated_at: number;
+    }>('SELECT id, child_id, type, title, body, source_record_ids, period_start, period_end, created_at, updated_at FROM synthesis_articles ORDER BY created_at ASC'),
+  ]);
 
   const data: BackupData = {
     version: BACKUP_VERSION,
@@ -46,6 +65,7 @@ export async function exportBackup(): Promise<void> {
     records,
     tags,
     recordTags,
+    synthesisArticles,
   };
 
   const d = new Date();
@@ -111,6 +131,7 @@ export async function parseBackupFromUri(uri: string): Promise<BackupData> {
 export async function restoreOverwrite(data: BackupData): Promise<void> {
   const db = await getDatabase();
 
+  await db.execAsync('DELETE FROM synthesis_articles');
   await db.execAsync('DELETE FROM record_tags');
   await db.execAsync('DELETE FROM records');
   await db.execAsync('DELETE FROM tags');
@@ -143,6 +164,15 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
     await db.runAsync(
       'INSERT OR IGNORE INTO record_tags (record_id, tag_id) VALUES (?, ?)',
       rt.record_id, rt.tag_id
+    );
+  }
+
+  for (const a of (data.synthesisArticles ?? [])) {
+    await db.runAsync(
+      `INSERT OR IGNORE INTO synthesis_articles (id, child_id, type, title, body, source_record_ids, period_start, period_end, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      a.id, a.child_id, a.type, a.title, a.body,
+      a.source_record_ids, a.period_start, a.period_end, a.created_at, a.updated_at
     );
   }
 
@@ -237,6 +267,17 @@ export async function restoreMerge(data: BackupData): Promise<void> {
         rt.record_id, mappedTagId
       );
     }
+  }
+
+  // synthesis_articles 삽입 (child_id 매핑 적용, 중복 id 건너뜀)
+  for (const a of (data.synthesisArticles ?? [])) {
+    const mappedChildId = childIdMap.get(a.child_id) ?? a.child_id;
+    await db.runAsync(
+      `INSERT OR IGNORE INTO synthesis_articles (id, child_id, type, title, body, source_record_ids, period_start, period_end, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      a.id, mappedChildId, a.type, a.title, a.body,
+      a.source_record_ids, a.period_start, a.period_end, a.created_at, a.updated_at
+    );
   }
 
   // 구버전 백업 호환: child_id 없이 저장된 태그를 record_tags 기반으로 복구
