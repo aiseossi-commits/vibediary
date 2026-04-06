@@ -566,19 +566,38 @@ setDayRecords(records);
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerTitle}>시간 설정</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginBottom: SPACING.lg }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', marginBottom: SPACING.lg }}>
+              {/* 오전/오후 토글 */}
+              <TouchableOpacity
+                onPress={() => setInputHour(h => h < 12 ? h + 12 : h - 12)}
+                style={{ paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, backgroundColor: colors.primary }}
+              >
+                <Text style={{ fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textOnPrimary }}>
+                  {inputHour < 12 ? '오전' : '오후'}
+                </Text>
+              </TouchableOpacity>
+              {/* 시간 (1-12) */}
               <View style={{ alignItems: 'center', gap: SPACING.sm }}>
                 <Text style={styles.pickerCancelText}>시간</Text>
                 <View style={styles.pickerYearRow}>
-                  <TouchableOpacity onPress={() => setInputHour(h => (h - 1 + 24) % 24)}>
+                  <TouchableOpacity onPress={() => setInputHour(h => {
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    const newH12 = h12 === 1 ? 12 : h12 - 1;
+                    return h < 12 ? (newH12 === 12 ? 0 : newH12) : (newH12 === 12 ? 12 : newH12 + 12);
+                  })}>
                     <Text style={styles.pickerArrow}>‹</Text>
                   </TouchableOpacity>
-                  <Text style={styles.pickerYearText}>{String(inputHour).padStart(2, '0')}</Text>
-                  <TouchableOpacity onPress={() => setInputHour(h => (h + 1) % 24)}>
+                  <Text style={styles.pickerYearText}>{inputHour % 12 === 0 ? 12 : inputHour % 12}</Text>
+                  <TouchableOpacity onPress={() => setInputHour(h => {
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    const newH12 = h12 === 12 ? 1 : h12 + 1;
+                    return h < 12 ? (newH12 === 12 ? 0 : newH12) : (newH12 === 12 ? 12 : newH12 + 12);
+                  })}>
                     <Text style={styles.pickerArrow}>›</Text>
                   </TouchableOpacity>
                 </View>
               </View>
+              {/* 분 */}
               <View style={{ alignItems: 'center', gap: SPACING.sm }}>
                 <Text style={styles.pickerCancelText}>분</Text>
                 <View style={styles.pickerYearRow}>

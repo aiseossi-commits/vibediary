@@ -113,6 +113,10 @@
   - VoyageLogScreen.tsx 삭제 (하단 탭 4→3개)
   - AppNavigator.tsx: VoyageLog 탭 제거
   - SearchScreen.tsx 인사이트/Q&A 카드 탭 expand/collapse (전문 보기)
+- [x] 시간 수정 기능:
+  - RecordDetailScreen: 시간 수정 버튼 + 12시간제 picker modal (오전/오후 토글)
+  - CalendarScreen: 시간 입력 picker 12시간제로 교체 (오전/오후 + 1-12시)
+  - recordsDao.ts: updateRecord에 createdAt 업데이트 지원 추가
 - [x] 백업 복원 태그 유실 근본 수정:
   - BackupData.tags에 child_id 추가
   - 내보내기: SELECT child_id FROM tags 포함
