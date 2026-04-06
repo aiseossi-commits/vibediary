@@ -169,6 +169,15 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   const [articles, setArticles] = useState<SynthesisArticle[]>([]);
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = useCallback((key: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!childId) { setIsLoading(false); return; }
@@ -236,37 +245,45 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
           {articles.length > 0 && (
             <>
               <Text style={styles.sectionHeader}>인사이트</Text>
-              {articles.map(article => (
-                <View key={article.id} style={styles.insightCard}>
-                  <View style={styles.insightCardHeader}>
-                    <Text style={styles.insightTypeLabel}>{SYNTHESIS_TYPE_LABEL[article.type] ?? article.type}</Text>
-                    <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteArticle(article.id)}>
-                      <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.insightTitle}>{article.title}</Text>
-                  <Text style={styles.insightBody} numberOfLines={4}>{article.body}</Text>
-                  <Text style={styles.insightDate}>{formatRelativeDate(article.updatedAt)} 업데이트</Text>
-                </View>
-              ))}
+              {articles.map(article => {
+                const key = `a-${article.id}`;
+                const expanded = expandedIds.has(key);
+                return (
+                  <TouchableOpacity key={article.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
+                    <View style={styles.insightCardHeader}>
+                      <Text style={styles.insightTypeLabel}>{SYNTHESIS_TYPE_LABEL[article.type] ?? article.type}</Text>
+                      <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteArticle(article.id)}>
+                        <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.insightTitle}>{article.title}</Text>
+                    <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{article.body}</Text>
+                    <Text style={styles.insightDate}>{formatRelativeDate(article.updatedAt)} 업데이트 · {expanded ? '접기' : '전체 보기'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
 
           {logs.length > 0 && (
             <>
               <Text style={styles.sectionHeader}>저장된 질문</Text>
-              {logs.map(log => (
-                <View key={log.id} style={styles.qaCard}>
-                  <Text style={styles.qaQuery}>{log.query}</Text>
-                  <Text style={styles.qaAnswer} numberOfLines={4}>{log.answer}</Text>
-                  <View style={styles.qaFooter}>
-                    <Text style={styles.qaDate}>{formatRelativeDate(log.createdAt)}</Text>
-                    <TouchableOpacity style={styles.qaDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
-                      <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+              {logs.map(log => {
+                const key = `l-${log.id}`;
+                const expanded = expandedIds.has(key);
+                return (
+                  <TouchableOpacity key={log.id} style={styles.qaCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
+                    <Text style={styles.qaQuery}>{log.query}</Text>
+                    <Text style={styles.qaAnswer} numberOfLines={expanded ? undefined : 4}>{log.answer}</Text>
+                    <View style={styles.qaFooter}>
+                      <Text style={styles.qaDate}>{formatRelativeDate(log.createdAt)} · {expanded ? '접기' : '전체 보기'}</Text>
+                      <TouchableOpacity style={styles.qaDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
+                        <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </>
           )}
         </>

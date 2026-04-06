@@ -109,6 +109,10 @@
   - aiProcessor.ts: ontology_code + is_milestone 프롬프트 추가
   - searchPipeline.ts: synthesis 우선 컨텍스트 + raw 30개 보조 방식으로 전환
   - SearchScreen.tsx: 등대/항해일지 세그먼트 컨트롤, 인사이트 카드 피드, absorb 배너, 저장된 질문 섹션
+- [x] 항해일지 탭 통합:
+  - VoyageLogScreen.tsx 삭제 (하단 탭 4→3개)
+  - AppNavigator.tsx: VoyageLog 탭 제거
+  - SearchScreen.tsx 인사이트/Q&A 카드 탭 expand/collapse (전문 보기)
 - [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
 - [x] DiaryRecord 타입 + mapRowToRecordWithTags에 childId 필드 추가
 - [x] TagsScreen useFocusEffect stale closure 수정 + useEffect([loadTags]) 추가 (activeChild 비동기 로드 대응)

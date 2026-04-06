@@ -8,7 +8,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import SearchScreen from '../screens/SearchScreen';
-import VoyageLogScreen from '../screens/VoyageLogScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
@@ -40,7 +39,6 @@ const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> 
   Home:       { active: 'home',            inactive: 'home-outline' },
   Calendar:   { active: 'calendar',        inactive: 'calendar-outline' },
   Search:     { active: 'search',          inactive: 'search-outline' },
-  VoyageLog:  { active: 'journal',         inactive: 'journal-outline' },
 };
 
 function TabNavigator() {
@@ -76,7 +74,6 @@ function TabNavigator() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
-      <Tab.Screen name="VoyageLog" component={VoyageLogScreen} />
     </Tab.Navigator>
   );
 }
