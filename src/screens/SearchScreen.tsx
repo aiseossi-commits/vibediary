@@ -93,11 +93,6 @@ function createStyles(colors: AppColors) {
     assistantBubbleRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm },
     assistantBubble: { maxWidth: '88%', backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderBottomLeftRadius: 4, padding: SPACING.md, ...SHADOW.sm },
     assistantBubbleText: { fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: 24 },
-    assistantBubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SPACING.sm },
-    saveButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
-    saveButtonSaved: { backgroundColor: colors.border },
-    saveButtonText: { fontSize: FONT_SIZE.xs, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
-    saveButtonTextSaved: { color: colors.textTertiary },
     typingRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
     typingBubble: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderBottomLeftRadius: 4, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, ...SHADOW.sm },
     typingText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
@@ -119,35 +114,13 @@ function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnT
   );
 }
 
-function AssistantBubble({ message, userQuery, isSaved, onSave, styles, colors }: {
-  message: ChatMessage; userQuery: string; isSaved: boolean;
-  onSave: (messageId: string, query: string, answer: string) => Promise<void>;
-  styles: ReturnType<typeof createStyles>; colors: AppColors;
+function AssistantBubble({ message, styles }: {
+  message: ChatMessage; styles: ReturnType<typeof createStyles>;
 }) {
-  const [isSaving, setIsSaving] = useState(false);
-  const handleSave = useCallback(async () => {
-    if (isSaved || isSaving) return;
-    setIsSaving(true);
-    try { await onSave(message.id, userQuery, message.text); }
-    catch { Alert.alert('저장 실패', '항해일지 저장에 실패했어요. 다시 시도해 주세요.'); }
-    finally { setIsSaving(false); }
-  }, [isSaved, isSaving, onSave, message.id, userQuery, message.text]);
-
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
         <Text style={styles.assistantBubbleText}>{message.text}</Text>
-        <View style={styles.assistantBubbleFooter}>
-          <View />
-          <TouchableOpacity style={[styles.saveButton, isSaved && styles.saveButtonSaved]} onPress={handleSave} disabled={isSaved || isSaving}>
-            {isSaving ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : (
-              <>
-                <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={12} color={isSaved ? colors.textTertiary : colors.textOnPrimary} />
-                <Text style={[styles.saveButtonText, isSaved && styles.saveButtonTextSaved]}>{isSaved ? '저장됨' : '저장'}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
       </View>
     </Animated.View>
   );
@@ -302,7 +275,6 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [savedMessageIds, setSavedMessageIds] = useState<Set<string>>(new Set());
   const [showAbsorbBanner, setShowAbsorbBanner] = useState(false);
   const [isAbsorbing, setIsAbsorbing] = useState(false);
 
@@ -311,7 +283,6 @@ export default function SearchScreen() {
   // activeChild 변경 시 초기화
   useEffect(() => {
     setMessages([]);
-    setSavedMessageIds(new Set());
     setShowAbsorbBanner(false);
   }, [activeChild?.id]);
 
@@ -352,6 +323,7 @@ export default function SearchScreen() {
     try {
       const searchResult = await searchRecords(trimmed, activeChild?.id, history, activeChild?.name);
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: searchResult.answer, createdAt: Date.now() }]);
+      createSearchLog(activeChild?.id ?? null, trimmed, searchResult.answer).catch(() => {});
     } catch {
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: '검색 중 오류가 발생했어요. 다시 시도해 주세요.', createdAt: Date.now() }]);
     } finally {
@@ -359,25 +331,15 @@ export default function SearchScreen() {
     }
   }, [query, messages, activeChild?.id, activeChild?.name]);
 
-  const handleSave = useCallback(async (messageId: string, userQuery: string, answer: string) => {
-    if (savedMessageIds.has(messageId)) return;
-    await createSearchLog(activeChild?.id ?? null, userQuery, answer);
-    setSavedMessageIds(prev => new Set(prev).add(messageId));
-  }, [savedMessageIds, activeChild?.id]);
-
-  const getUserQueryForAssistant = useCallback((index: number): string => {
-    for (let i = index - 1; i >= 0; i--) { if (messages[i].role === 'user') return messages[i].text; }
-    return '';
-  }, [messages]);
 
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages.length, isSearching]);
 
-  const renderMessage = useCallback(({ item, index }: { item: ChatMessage; index: number }) => {
+  const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
     if (item.role === 'user') return <UserBubble message={item} styles={styles} />;
-    return <AssistantBubble message={item} userQuery={getUserQueryForAssistant(index)} isSaved={savedMessageIds.has(item.id)} onSave={handleSave} styles={styles} colors={colors} />;
-  }, [styles, colors, savedMessageIds, handleSave, getUserQueryForAssistant]);
+    return <AssistantBubble message={item} styles={styles} />;
+  }, [styles]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -411,7 +373,7 @@ export default function SearchScreen() {
           {messages.length === 0 && !isSearching ? (
             <View style={[styles.messageList, styles.emptyState]}>
               <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
-              <Text style={styles.emptyDescription}>기록된 내용을 바탕으로 무엇이든 물어보세요.{'\n'}대화 내용은 저장되지 않아요.{'\n'}매번 새로운 질문으로 시작됩니다.</Text>
+              <Text style={styles.emptyDescription}>기록된 내용을 바탕으로 무엇이든 물어보세요.{'\n'}대화 내용은 항해일지에 자동으로 저장됩니다.</Text>
             </View>
           ) : (
             <FlatList

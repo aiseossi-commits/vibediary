@@ -120,6 +120,8 @@
 - [x] ios/ 네이티브 파일 업데이트: 아이콘, 스플래시, Info.plist, xcscheme (prebuild 결과물 커밋)
 - [x] 캘린더 시간 picker 개선: 오전/오후를 시간/분과 동일한 컬럼 형태로 통일, 너비 축소로 화면 잘림 수정
 - [x] 백업 synthesis_articles 포함: 항해일지 데이터 백업/복원 대상 추가 (BACKUP_VERSION 1→2, 병합 복원 시 child_id 매핑 적용)
+- [x] AI 등대 대화 자동 저장: 답변 수신 즉시 항해일지에 저장, 수동 저장 버튼 제거
+- [x] 시간 picker 통일: RecordDetailScreen 오전/오후를 ‹ › 컬럼 형태로 변경 (CalendarScreen과 동일)
 - [x] 시간 수정 기능:
   - RecordDetailScreen: 시간 수정 버튼 + 12시간제 picker modal (오전/오후 토글)
   - CalendarScreen: 시간 입력 picker 12시간제로 교체 (오전/오후 + 1-12시)
