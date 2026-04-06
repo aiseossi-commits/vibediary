@@ -1,13 +1,18 @@
 import { getAllRecordsForSearch } from '../db/queries';
+import { getSynthesisArticles } from '../db/synthesisDao';
 import { getNetworkState } from '../utils/network';
-import type { SearchResult, RecordWithTags } from '../types/record';
+import type { SearchResult, RecordWithTags, SynthesisArticle } from '../types/record';
 
-const SEARCH_SYSTEM_PROMPT = (today: string, childName?: string) =>
+const SEARCH_SYSTEM_PROMPT = (today: string, childName?: string, hasSynthesis?: boolean) =>
   `당신은 발달장애인 돌봄 기록을 분석해 답변하는 AI 비서입니다.
 오늘: ${today}${childName ? `\n돌봄 대상: ${childName}` : ''}
-
-아래 <records>에 모든 돌봄 기록이 포함되어 있습니다. 사용자의 질문에 대해 이 기록들을 근거로 답변하세요.
-
+${hasSynthesis ? `
+<synthesis> 섹션에는 AI가 기록들을 분석해 합성한 패턴·발달 궤적·이정표가 담겨 있습니다.
+<records> 섹션에는 최근 원본 기록이 담겨 있습니다.
+답변 시 synthesis의 인사이트를 먼저 활용하고, 구체적 날짜/사례는 records에서 인용하세요.
+synthesis와 records가 상충하면 records를 우선하세요.
+` : `아래 <records>에 모든 돌봄 기록이 포함되어 있습니다. 사용자의 질문에 대해 이 기록들을 근거로 답변하세요.
+`}
 규칙:
 1. 기록에 있는 사실만 답변하세요. 날짜를 언급할 때는 [YYYY-MM-DD] 형식으로 인용하세요.
 2. 답변은 따뜻하고 간결하게 작성하세요.${childName ? ` 돌봄 대상은 "${childName}"으로 부르세요.` : ''}
@@ -51,6 +56,19 @@ function formatRecord(record: RecordWithTags): string {
   return data ? `${base} [${data}]` : base;
 }
 
+function formatSynthesisArticle(article: SynthesisArticle): string {
+  const typeLabel: Record<string, string> = {
+    weekly_overview: '주간 요약',
+    developmental_domain: '발달 성장',
+    milestone_timeline: '발달 이정표',
+    behavioral_pattern: '행동 패턴',
+    medical_summary: '의료 요약',
+    therapy_log: '치료 기록',
+  };
+  const label = typeLabel[article.type] ?? article.type;
+  return `[${label}] ${article.title}\n${article.body}`;
+}
+
 function getToday(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -73,9 +91,23 @@ export async function searchRecords(
     return { answer: '아직 기록이 없어요. 녹음이나 텍스트로 기록을 남겨보세요.' };
   }
 
-  const context = records.map(formatRecord).join('\n');
-  const answer = await generateAnswer(query, context, records.length, conversationHistory, childName);
+  // synthesis 아티클 로드 (childId 있을 때만)
+  const synthesisArticles = childId ? await getSynthesisArticles(childId).catch(() => []) : [];
+  const hasSynthesis = synthesisArticles.length > 0;
 
+  let contextText: string;
+  if (hasSynthesis) {
+    // synthesis 우선 + 최근 30개 raw records 보조
+    const synthesisContext = synthesisArticles.map(formatSynthesisArticle).join('\n\n---\n\n');
+    const recentRecords = records.slice(0, 30);
+    const rawContext = recentRecords.map(formatRecord).join('\n');
+    contextText = `<synthesis>\n${synthesisContext}\n</synthesis>\n\n<records>\n${rawContext}\n</records>`;
+  } else {
+    // synthesis 없음 → 기존 방식 fallback
+    contextText = records.map(formatRecord).join('\n');
+  }
+
+  const answer = await generateAnswer(query, contextText, records.length, conversationHistory, childName, hasSynthesis);
   return { answer };
 }
 
@@ -84,7 +116,8 @@ async function generateAnswer(
   context: string,
   recordCount: number,
   conversationHistory?: { role: 'user' | 'assistant'; text: string }[],
-  childName?: string
+  childName?: string,
+  hasSynthesis?: boolean
 ): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
@@ -115,7 +148,7 @@ async function generateAnswer(
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SEARCH_SYSTEM_PROMPT(getToday(), childName) }] },
+          systemInstruction: { parts: [{ text: SEARCH_SYSTEM_PROMPT(getToday(), childName, hasSynthesis) }] },
           contents,
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },

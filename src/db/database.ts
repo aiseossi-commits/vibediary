@@ -8,7 +8,10 @@ import {
   CREATE_OFFLINE_QUEUE_TABLE,
   CREATE_DAILY_AI_CACHE_TABLE,
   CREATE_SEARCH_LOGS_TABLE,
+  CREATE_SYNTHESIS_ARTICLES_TABLE,
+  CREATE_ABSORB_LOG_TABLE,
   CREATE_INDEXES,
+  CREATE_SYNTHESIS_INDEXES,
   MIGRATE_TAGS_V3,
   CLEANUP_DUPLICATE_DEFAULT_TAGS,
   CLEANUP_NULL_DUPLICATE_TAGS,
@@ -55,12 +58,17 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_OFFLINE_QUEUE_TABLE);
     await database.execAsync(CREATE_DAILY_AI_CACHE_TABLE);
     await database.execAsync(CREATE_SEARCH_LOGS_TABLE);
+    await database.execAsync(CREATE_SYNTHESIS_ARTICLES_TABLE);
+    await database.execAsync(CREATE_ABSORB_LOG_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
 
     // 인덱스 생성
     for (const indexSQL of CREATE_INDEXES) {
+      await database.execAsync(indexSQL);
+    }
+    for (const indexSQL of CREATE_SYNTHESIS_INDEXES) {
       await database.execAsync(indexSQL);
     }
 
@@ -173,6 +181,16 @@ export async function initializeDatabase(): Promise<void> {
       }
       await database.runAsync('DELETE FROM tags WHERE child_id IS NULL');
       await database.execAsync('PRAGMA user_version = 8');
+    }
+
+    if (currentVersion < 9) {
+      // v8 → v9: synthesis_articles, absorb_log 테이블 추가
+      await database.execAsync(CREATE_SYNTHESIS_ARTICLES_TABLE);
+      await database.execAsync(CREATE_ABSORB_LOG_TABLE);
+      for (const indexSQL of CREATE_SYNTHESIS_INDEXES) {
+        await database.execAsync(indexSQL);
+      }
+      await database.execAsync('PRAGMA user_version = 9');
     }
 
     dbInitialized = true;

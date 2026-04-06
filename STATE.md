@@ -101,6 +101,14 @@
 
 - [x] 태그 버그 근본 수정: setTagsForRecord에 childId 미전달로 tags.child_id=NULL 저장되던 문제 — recordPipeline(2곳) + offlineQueue 수정
 - [x] 태그 버그 재발 수정: RecordDetailScreen 원본 텍스트 수정 후 AI 재분석 시 setTagsForRecord childId 미전달 (line 164)
+- [x] AI 등대 리뉴얼 (lighthouse-renewal, feat/lighthouse-renewal):
+  - DB v9: synthesis_articles + absorb_log 테이블 추가
+  - types/record.ts: SynthesisArticle, AbsorbResult 타입 추가, StructuredData에 ontology_code + is_milestone 추가
+  - synthesisDao.ts: synthesis CRUD (getSynthesisArticles, upsertSynthesisArticle, deleteSynthesisArticle, getLastAbsorbTime, insertAbsorbLog)
+  - absorbService.ts: shouldAbsorb + runAbsorb (weekly_overview / developmental_domain / milestone_timeline 3종 합성)
+  - aiProcessor.ts: ontology_code + is_milestone 프롬프트 추가
+  - searchPipeline.ts: synthesis 우선 컨텍스트 + raw 30개 보조 방식으로 전환
+  - SearchScreen.tsx: 등대/항해일지 세그먼트 컨트롤, 인사이트 카드 피드, absorb 배너, 저장된 질문 섹션
 - [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
 - [x] DiaryRecord 타입 + mapRowToRecordWithTags에 childId 필드 추가
 - [x] TagsScreen useFocusEffect stale closure 수정 + useEffect([loadTags]) 추가 (activeChild 비동기 로드 대응)

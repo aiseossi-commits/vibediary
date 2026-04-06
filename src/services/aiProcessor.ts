@@ -46,6 +46,9 @@ ${customTagSection}
       - ABC를 명확히 구분하기 어려우면 해당 필드는 생략 (빈 문자열 사용 금지)
    c. event_type이 "developmental"이면:
       - domain: 관찰된 발달 영역 (예: "언어", "사회성", "인지", "운동", "자조")
+      - ontology_code: 발달 영역 코드 (아래 중 가장 가까운 것 하나 선택)
+        GROSS(대근육), FINE(소근육), LANG_R(수용언어), LANG_E(표현언어), COGN(인지), SOCIAL(사회성), DAILY(일상생활), SENSORY(감각처리)
+      - is_milestone: 기록에 "처음", "첫", "드디어", "오늘 해냈", "새로", "성공" 등 이정표 표현이 있으면 true. 없으면 이 필드를 포함하지 않음.
    d. event_type이 "medical"이면:
       - 체온, 약물명, 용량, 횟수, 시간 등 수치 데이터 추출
 
@@ -152,11 +155,11 @@ function parseAIResponse(content: string): AIProcessingResult {
     const rawStructured = parsed.structured_data || {};
     const validEventTypes = ['behavioral_incident', 'medical', 'developmental', 'daily'];
     // 빈 문자열 필드 제거 + 유효하지 않은 event_type 제거
-    const structuredData: Record<string, string | number> = {};
+    const structuredData: Record<string, string | number | boolean> = {};
     for (const [k, v] of Object.entries(rawStructured)) {
       if (v === '' || v === null || v === undefined) continue;
       if (k === 'event_type' && !validEventTypes.includes(String(v))) continue;
-      structuredData[k] = v as string | number;
+      structuredData[k] = v as string | number | boolean;
     }
 
     return {
