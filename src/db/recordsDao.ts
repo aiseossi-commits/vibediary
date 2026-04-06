@@ -91,12 +91,16 @@ export async function getAllRecordsForBackup(): Promise<{
 // 기록 수정
 export async function updateRecord(
   id: string,
-  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'aiPending'>>
+  updates: Partial<Pick<DiaryRecord, 'rawText' | 'summary' | 'structuredData' | 'aiPending' | 'createdAt'>>
 ): Promise<void> {
   const db = await getDatabase();
   const sets: string[] = [];
   const values: any[] = [];
 
+  if (updates.createdAt !== undefined) {
+    sets.push('created_at = ?');
+    values.push(updates.createdAt);
+  }
   if (updates.rawText !== undefined) {
     sets.push('raw_text = ?');
     values.push(updates.rawText);

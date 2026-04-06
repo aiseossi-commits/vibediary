@@ -118,6 +118,37 @@ export const CLEANUP_NULL_DUPLICATE_TAGS = `
   CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name_global ON tags(name) WHERE child_id IS NULL;
 `;
 
+export const CREATE_SYNTHESIS_ARTICLES_TABLE = `
+  CREATE TABLE IF NOT EXISTS synthesis_articles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    source_record_ids TEXT,
+    period_start INTEGER,
+    period_end INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`;
+
+export const CREATE_ABSORB_LOG_TABLE = `
+  CREATE TABLE IF NOT EXISTS absorb_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT NOT NULL,
+    absorbed_count INTEGER NOT NULL,
+    articles_created INTEGER NOT NULL,
+    articles_updated INTEGER NOT NULL,
+    ran_at INTEGER NOT NULL
+  );
+`;
+
+export const CREATE_SYNTHESIS_INDEXES = [
+  `CREATE INDEX IF NOT EXISTS idx_synthesis_child ON synthesis_articles(child_id, type);`,
+  `CREATE INDEX IF NOT EXISTS idx_synthesis_updated ON synthesis_articles(updated_at);`,
+];
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   '#의료',

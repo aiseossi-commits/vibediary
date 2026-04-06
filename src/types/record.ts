@@ -14,7 +14,7 @@ export interface DiaryRecord {
 }
 
 export interface StructuredData {
-  [key: string]: string | number | undefined;
+  [key: string]: string | number | boolean | undefined;
   // 기록 유형 분류
   event_type?: 'behavioral_incident' | 'medical' | 'developmental' | 'daily';
   // 행동 사건 ABC
@@ -23,6 +23,10 @@ export interface StructuredData {
   consequence?: string;
   // 발달 관찰 영역
   domain?: string;
+  // 발달 영역 온톨로지 코드 (GROSS/FINE/LANG_R/LANG_E/COGN/SOCIAL/DAILY/SENSORY)
+  ontology_code?: string;
+  // 이정표 여부 (첫 성공, 처음 달성 등)
+  is_milestone?: boolean;
 }
 
 export interface Tag {
@@ -68,6 +72,29 @@ export interface SearchLog {
   query: string;
   answer: string;
   createdAt: number;
+}
+
+// Synthesis 아티클 (absorb 결과)
+export type SynthesisArticleType = 'weekly_overview' | 'developmental_domain' | 'milestone_timeline' | 'behavioral_pattern' | 'medical_summary' | 'therapy_log';
+
+export interface SynthesisArticle {
+  id: number;
+  childId: string;
+  type: SynthesisArticleType;
+  title: string;
+  body: string;
+  sourceRecordIds: string[] | null;
+  periodStart: number | null;
+  periodEnd: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Absorb 실행 결과
+export interface AbsorbResult {
+  absorbedCount: number;
+  articlesCreated: number;
+  articlesUpdated: number;
 }
 
 // 날짜별 기록 요약 (캘린더용)

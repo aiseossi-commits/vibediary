@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -102,6 +103,26 @@ function createStyles(colors: AppColors) {
     tagPickerItemSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
     tagPickerText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     tagPickerTextSelected: { color: colors.primary, fontWeight: FONT_WEIGHT.medium },
+    // 시간 수정
+    timeRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.xs - 2 },
+    timeEditBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
+    timeEditBtnText: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
+    // 시간 picker modal
+    pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    pickerContainer: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.lg, width: '85%' },
+    pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', marginBottom: SPACING.md },
+    pickerRow: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', marginBottom: SPACING.lg },
+    pickerLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.xs, textAlign: 'center' },
+    pickerArrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+    pickerArrow: { fontSize: 24, color: colors.primary, paddingHorizontal: SPACING.sm },
+    pickerValueText: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
+    pickerAmPmBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, backgroundColor: colors.primary },
+    pickerAmPmText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textOnPrimary },
+    pickerButtonRow: { flexDirection: 'row', gap: SPACING.sm },
+    pickerCancelBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.surfaceSecondary },
+    pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
+    pickerConfirmBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.primary },
+    pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
   });
 }
 
@@ -121,6 +142,9 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [editingTagIds, setEditingTagIds] = useState<number[]>([]);
   const [isSavingTags, setIsSavingTags] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pickerHour, setPickerHour] = useState(0); // 0-23
+  const [pickerMinute, setPickerMinute] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const loadRecord = useCallback(async () => {
@@ -133,6 +157,27 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       setIsLoading(false);
     }
   }, [recordId]);
+
+  const handleOpenTimePicker = useCallback(() => {
+    if (!record) return;
+    const d = new Date(record.createdAt);
+    setPickerHour(d.getHours());
+    setPickerMinute(d.getMinutes());
+    setShowTimePicker(true);
+  }, [record]);
+
+  const handleConfirmTime = useCallback(async () => {
+    if (!record) return;
+    setShowTimePicker(false);
+    const d = new Date(record.createdAt);
+    d.setHours(pickerHour, pickerMinute, 0, 0);
+    try {
+      await updateRecord(record.id, { createdAt: d.getTime() });
+      await loadRecord();
+    } catch {
+      Alert.alert('오류', '시간 저장에 실패했습니다');
+    }
+  }, [record, pickerHour, pickerMinute, loadRecord]);
 
   useEffect(() => {
     loadRecord();
@@ -265,7 +310,12 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       >
         <View style={styles.dateSection}>
           <Text style={styles.dateText}>{formatFullDate(record.createdAt)}</Text>
-          <Text style={styles.timeText}>{formatTime(record.createdAt)}</Text>
+          <View style={styles.timeRow}>
+            <Text style={styles.timeText}>{formatTime(record.createdAt)}</Text>
+            <TouchableOpacity style={styles.timeEditBtn} onPress={handleOpenTimePicker}>
+              <Text style={styles.timeEditBtnText}>시간 수정</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {record.aiPending && (
@@ -365,6 +415,62 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showTimePicker} transparent animationType="fade">
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>시간 수정</Text>
+            <View style={styles.pickerRow}>
+              <TouchableOpacity
+                style={styles.pickerAmPmBtn}
+                onPress={() => setPickerHour(h => h < 12 ? h + 12 : h - 12)}
+              >
+                <Text style={styles.pickerAmPmText}>{pickerHour < 12 ? '오전' : '오후'}</Text>
+              </TouchableOpacity>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.pickerLabel}>시간</Text>
+                <View style={styles.pickerArrowRow}>
+                  <TouchableOpacity onPress={() => setPickerHour(h => {
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    const n = h12 === 1 ? 12 : h12 - 1;
+                    return h < 12 ? (n === 12 ? 0 : n) : (n === 12 ? 12 : n + 12);
+                  })}>
+                    <Text style={styles.pickerArrow}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerValueText}>{pickerHour % 12 === 0 ? 12 : pickerHour % 12}</Text>
+                  <TouchableOpacity onPress={() => setPickerHour(h => {
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    const n = h12 === 12 ? 1 : h12 + 1;
+                    return h < 12 ? (n === 12 ? 0 : n) : (n === 12 ? 12 : n + 12);
+                  })}>
+                    <Text style={styles.pickerArrow}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.pickerLabel}>분</Text>
+                <View style={styles.pickerArrowRow}>
+                  <TouchableOpacity onPress={() => setPickerMinute(m => (m - 5 + 60) % 60)}>
+                    <Text style={styles.pickerArrow}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerValueText}>{String(pickerMinute).padStart(2, '0')}</Text>
+                  <TouchableOpacity onPress={() => setPickerMinute(m => (m + 5) % 60)}>
+                    <Text style={styles.pickerArrow}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            <View style={styles.pickerButtonRow}>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerCancelBtn}>
+                <Text style={styles.pickerCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleConfirmTime} style={styles.pickerConfirmBtn}>
+                <Text style={styles.pickerConfirmText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

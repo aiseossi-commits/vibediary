@@ -101,6 +101,34 @@
 
 - [x] 태그 버그 근본 수정: setTagsForRecord에 childId 미전달로 tags.child_id=NULL 저장되던 문제 — recordPipeline(2곳) + offlineQueue 수정
 - [x] 태그 버그 재발 수정: RecordDetailScreen 원본 텍스트 수정 후 AI 재분석 시 setTagsForRecord childId 미전달 (line 164)
+- [x] AI 등대 리뉴얼 (lighthouse-renewal, feat/lighthouse-renewal):
+  - DB v9: synthesis_articles + absorb_log 테이블 추가
+  - types/record.ts: SynthesisArticle, AbsorbResult 타입 추가, StructuredData에 ontology_code + is_milestone 추가
+  - synthesisDao.ts: synthesis CRUD (getSynthesisArticles, upsertSynthesisArticle, deleteSynthesisArticle, getLastAbsorbTime, insertAbsorbLog)
+  - absorbService.ts: shouldAbsorb + runAbsorb (weekly_overview / developmental_domain / milestone_timeline 3종 합성)
+  - aiProcessor.ts: ontology_code + is_milestone 프롬프트 추가
+  - searchPipeline.ts: synthesis 우선 컨텍스트 + raw 30개 보조 방식으로 전환
+  - SearchScreen.tsx: 등대/항해일지 세그먼트 컨트롤, 인사이트 카드 피드, absorb 배너, 저장된 질문 섹션
+- [x] 항해일지 탭 통합:
+  - VoyageLogScreen.tsx 삭제 (하단 탭 4→3개)
+  - AppNavigator.tsx: VoyageLog 탭 제거
+  - SearchScreen.tsx 인사이트/Q&A 카드 탭 expand/collapse (전문 보기)
+- [x] 바다 삭제 모달 개선:
+  - Alert → 커스텀 하단 시트 Modal로 교체 (Android 버튼 누락 + 뒤로가기 버그 수정)
+  - "기록 포함 삭제" 옵션 명시, onRequestClose로 하드웨어 뒤로가기 지원
+- [x] bare workflow 전환: expo prebuild로 ios/ 네이티브 프로젝트 생성 (로컬 Xcode/Gradle 빌드 지원)
+- [x] 캘린더 시간 picker 개선: 오전/오후를 시간/분과 동일한 컬럼 형태로 통일, 너비 축소로 화면 잘림 수정
+- [x] 백업 synthesis_articles 포함: 항해일지 데이터 백업/복원 대상 추가 (BACKUP_VERSION 1→2, 병합 복원 시 child_id 매핑 적용)
+- [x] 시간 수정 기능:
+  - RecordDetailScreen: 시간 수정 버튼 + 12시간제 picker modal (오전/오후 토글)
+  - CalendarScreen: 시간 입력 picker 12시간제로 교체 (오전/오후 + 1-12시)
+  - recordsDao.ts: updateRecord에 createdAt 업데이트 지원 추가
+- [x] 백업 복원 태그 유실 근본 수정:
+  - BackupData.tags에 child_id 추가
+  - 내보내기: SELECT child_id FROM tags 포함
+  - restoreOverwrite: child_id 포함 삽입
+  - restoreMerge: name+child_id 조합으로 중복 체크, childIdMap 적용
+  - 구버전 백업 호환: NULL child_id 태그를 record_tags 기반으로 per-child 복구
 - [x] DB v8 마이그레이션: child_id=NULL 잘못 저장된 기존 태그 레코드 child_id 기준으로 복구
 - [x] DiaryRecord 타입 + mapRowToRecordWithTags에 childId 필드 추가
 - [x] TagsScreen useFocusEffect stale closure 수정 + useEffect([loadTags]) 추가 (activeChild 비동기 로드 대응)

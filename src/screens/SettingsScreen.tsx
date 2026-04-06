@@ -80,6 +80,17 @@ function createStyles(colors: AppColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
     },
+    // 삭제 모달
+    deleteModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    deleteModalBox: { backgroundColor: colors.surface, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, padding: SPACING.lg, paddingBottom: SPACING.xxl },
+    deleteModalTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginBottom: SPACING.xs },
+    deleteModalDesc: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.lg, lineHeight: 20 },
+    deleteModalBtn: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginBottom: SPACING.sm, backgroundColor: colors.surfaceSecondary },
+    deleteModalBtnDestructive: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginBottom: SPACING.sm, backgroundColor: colors.error + '18' },
+    deleteModalBtnCancel: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginTop: SPACING.xs, backgroundColor: colors.surfaceSecondary },
+    deleteModalBtnText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    deleteModalBtnTextDestructive: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.error },
+    deleteModalBtnTextCancel: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     // 팔레트 선택
     paletteCard: {
       backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
@@ -198,6 +209,10 @@ export default function SettingsScreen() {
   const [nameInputValue, setNameInputValue] = useState('');
   const [nameModalOnConfirm, setNameModalOnConfirm] = useState<(name: string) => void>(() => () => {});
 
+  // 삭제 모달 상태
+  const [deleteModalChild, setDeleteModalChild] = useState<{ id: string; name: string } | null>(null);
+  const [deleteModalOthers, setDeleteModalOthers] = useState<{ id: string; name: string }[]>([]);
+
   useEffect(() => { loadCounts(); }, []);
 
   const loadCounts = async () => {
@@ -246,53 +261,8 @@ export default function SettingsScreen() {
         text: '삭제',
         style: 'destructive',
         onPress: () => {
-          const otherChildren = childList.filter(c => c.id !== child.id);
-          if (otherChildren.length > 0) {
-            // 다른 바다가 있으면 기록 이동 옵션 제공
-            const moveOptions = otherChildren.map(target => ({
-              text: `"${target.name}"으로 기록 이동 후 삭제`,
-              onPress: async () => {
-                await reassignChildRecords(child.id, target.id);
-                await deleteChild(child.id);
-                if (activeChild?.id === child.id) setActiveChild(target.id);
-                await refreshChildren();
-                await loadCounts();
-                navigation.goBack();
-              },
-            }));
-            Alert.alert(
-              '바다 삭제',
-              `${child.name}의 바다를 삭제할까요?\n기록을 다른 바다로 이동하거나, 그냥 삭제할 수 있습니다.`,
-              [
-                { text: '취소', style: 'cancel' },
-                ...moveOptions,
-                {
-                  text: '기록 유지 없이 삭제',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await deleteChild(child.id);
-                    if (activeChild?.id === child.id) setActiveChild(null);
-                    await refreshChildren();
-                    await loadCounts();
-                    navigation.goBack();
-                  },
-                },
-              ]
-            );
-          } else {
-            Alert.alert('바다 삭제', `${child.name}의 바다를 삭제할까요?\n기존 기록은 앱에서 더 이상 볼 수 없게 됩니다.`, [
-              { text: '취소', style: 'cancel' },
-              {
-                text: '삭제', style: 'destructive', onPress: async () => {
-                  await deleteChild(child.id);
-                  setActiveChild(null);
-                  await refreshChildren();
-                  await loadCounts();
-                  navigation.goBack();
-                },
-              },
-            ]);
-          }
+          setDeleteModalChild(child);
+          setDeleteModalOthers(childList.filter(c => c.id !== child.id));
         },
       },
       { text: '취소', style: 'cancel' },
@@ -363,6 +333,60 @@ export default function SettingsScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* 바다 삭제 모달 */}
+      <Modal
+        visible={deleteModalChild !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDeleteModalChild(null)}
+      >
+        <View style={styles.deleteModalOverlay}>
+          <View style={styles.deleteModalBox}>
+            <Text style={styles.deleteModalTitle}>{deleteModalChild?.name} 삭제</Text>
+            <Text style={styles.deleteModalDesc}>
+              {deleteModalOthers.length > 0
+                ? '기록을 다른 바다로 이동하거나, 기록을 포함하여 삭제할 수 있습니다.'
+                : '기존 기록은 앱에서 더 이상 볼 수 없게 됩니다.'}
+            </Text>
+            {deleteModalOthers.map(target => (
+              <TouchableOpacity
+                key={target.id}
+                style={styles.deleteModalBtn}
+                onPress={async () => {
+                  if (!deleteModalChild) return;
+                  setDeleteModalChild(null);
+                  await reassignChildRecords(deleteModalChild.id, target.id);
+                  await deleteChild(deleteModalChild.id);
+                  if (activeChild?.id === deleteModalChild.id) setActiveChild(target.id);
+                  await refreshChildren();
+                  await loadCounts();
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.deleteModalBtnText}>"{target.name}"으로 기록 이동 후 삭제</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.deleteModalBtnDestructive}
+              onPress={async () => {
+                if (!deleteModalChild) return;
+                setDeleteModalChild(null);
+                await deleteChild(deleteModalChild.id);
+                if (activeChild?.id === deleteModalChild.id) setActiveChild(deleteModalOthers[0]?.id ?? null);
+                await refreshChildren();
+                await loadCounts();
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.deleteModalBtnTextDestructive}>기록 포함 삭제</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteModalBtnCancel} onPress={() => setDeleteModalChild(null)}>
+              <Text style={styles.deleteModalBtnTextCancel}>취소</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       <ScrollView showsVerticalScrollIndicator={false}>
