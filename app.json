@@ -42,7 +42,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE"
       ],
-      "versionCode": 11,
+      "versionCode": 12,
       "package": "com.aiseossi.vibediary",
       "intentFilters": [
         {

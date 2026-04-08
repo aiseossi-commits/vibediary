@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
+import TimePickerModal from '../components/TimePickerModal';
 import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
@@ -562,70 +563,14 @@ setDayRecords(records);
           </TouchableOpacity>
         </Animated.View>
       )}
-      <Modal visible={showTimePicker} transparent animationType="fade">
-        <View style={styles.pickerOverlay}>
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerTitle}>시간 설정</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', gap: SPACING.md, marginBottom: SPACING.lg }}>
-              {/* 오전/오후 */}
-              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
-                <Text style={styles.pickerCancelText}>오전/오후</Text>
-                <View style={styles.pickerYearRow}>
-                  <TouchableOpacity onPress={() => setInputHour(h => h < 12 ? h + 12 : h - 12)}>
-                    <Text style={styles.pickerArrow}>‹</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.pickerYearText, { minWidth: 48 }]}>{inputHour < 12 ? '오전' : '오후'}</Text>
-                  <TouchableOpacity onPress={() => setInputHour(h => h < 12 ? h + 12 : h - 12)}>
-                    <Text style={styles.pickerArrow}>›</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {/* 시간 (1-12) */}
-              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
-                <Text style={styles.pickerCancelText}>시간</Text>
-                <View style={styles.pickerYearRow}>
-                  <TouchableOpacity onPress={() => setInputHour(h => {
-                    const h12 = h % 12 === 0 ? 12 : h % 12;
-                    const newH12 = h12 === 1 ? 12 : h12 - 1;
-                    return h < 12 ? (newH12 === 12 ? 0 : newH12) : (newH12 === 12 ? 12 : newH12 + 12);
-                  })}>
-                    <Text style={styles.pickerArrow}>‹</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.pickerYearText, { minWidth: 40 }]}>{inputHour % 12 === 0 ? 12 : inputHour % 12}</Text>
-                  <TouchableOpacity onPress={() => setInputHour(h => {
-                    const h12 = h % 12 === 0 ? 12 : h % 12;
-                    const newH12 = h12 === 12 ? 1 : h12 + 1;
-                    return h < 12 ? (newH12 === 12 ? 0 : newH12) : (newH12 === 12 ? 12 : newH12 + 12);
-                  })}>
-                    <Text style={styles.pickerArrow}>›</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {/* 분 */}
-              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
-                <Text style={styles.pickerCancelText}>분</Text>
-                <View style={styles.pickerYearRow}>
-                  <TouchableOpacity onPress={() => setInputMinute(m => (m - 5 + 60) % 60)}>
-                    <Text style={styles.pickerArrow}>‹</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.pickerYearText, { minWidth: 40 }]}>{String(inputMinute).padStart(2, '0')}</Text>
-                  <TouchableOpacity onPress={() => setInputMinute(m => (m + 5) % 60)}>
-                    <Text style={styles.pickerArrow}>›</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-            <View style={styles.pickerButtonRow}>
-              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerCancelBtn}>
-                <Text style={styles.pickerCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerConfirmBtn}>
-                <Text style={styles.pickerConfirmText}>확인</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <TimePickerModal
+        visible={showTimePicker}
+        hour={inputHour}
+        minute={inputMinute}
+        title="시간 설정"
+        onConfirm={(h, m) => { setInputHour(h); setInputMinute(m); setShowTimePicker(false); }}
+        onCancel={() => setShowTimePicker(false)}
+      />
       <Modal visible={showDatePicker} transparent animationType="fade">
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerContainer}>

@@ -86,7 +86,9 @@
 
 - [x] weekly-report-visualization: DB v10 visual_data 컬럼, SynthesisArticle 타입, synthesisDao, absorbService VISUAL_DATA 파싱, SearchScreen 패턴 칩 UI
 - [x] fix: DB v10 신규 설치 버그 — CREATE TABLE에 이미 visual_data 있는데 ALTER TABLE 중복 시도 → try-catch로 수정
-- [x] version bump: Android versionCode 10 → 11
+- [x] version bump: Android versionCode 10 → 11 → 12
+- [x] feat: 스크롤 휠 시간 피커 (TimePickerModal 공용 컴포넌트, RecordDetailScreen + CalendarScreen 적용)
+- [x] chore: 기본 테마 다크(밤바다) → 라이트(바다) 변경
 - [x] iOS 빌드 수정: ENABLE_USER_SCRIPT_SANDBOXING = NO (project.pbxproj Debug+Release, Podfile post_install)
 - [x] version bump: 1.0.3 / iOS build 4 / Android versionCode 10
 - [x] build_ios.sh 추가: 로컬 xcodebuild archive 스크립트

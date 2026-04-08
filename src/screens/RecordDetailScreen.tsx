@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -30,6 +29,7 @@ import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { onQueueProcessed } from '../services/offlineQueue';
 import { useChild } from '../context/ChildContext';
 import TagChip from '../components/TagChip';
+import TimePickerModal from '../components/TimePickerModal';
 
 interface RecordDetailScreenProps {
   route: any;
@@ -108,19 +108,6 @@ function createStyles(colors: AppColors) {
     timeEditBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
     timeEditBtnText: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
     // 시간 picker modal
-    pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    pickerContainer: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.lg, width: '85%' },
-    pickerTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', marginBottom: SPACING.md },
-    pickerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', gap: SPACING.md, marginBottom: SPACING.lg },
-    pickerLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.xs, textAlign: 'center' },
-    pickerArrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-    pickerArrow: { fontSize: 24, color: colors.primary, paddingHorizontal: SPACING.sm },
-    pickerValueText: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
-    pickerButtonRow: { flexDirection: 'row', gap: SPACING.sm },
-    pickerCancelBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.surfaceSecondary },
-    pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
-    pickerConfirmBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.primary },
-    pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
   });
 }
 
@@ -141,8 +128,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [editingTagIds, setEditingTagIds] = useState<number[]>([]);
   const [isSavingTags, setIsSavingTags] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [pickerHour, setPickerHour] = useState(0); // 0-23
-  const [pickerMinute, setPickerMinute] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const loadRecord = useCallback(async () => {
@@ -156,26 +141,18 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
     }
   }, [recordId]);
 
-  const handleOpenTimePicker = useCallback(() => {
-    if (!record) return;
-    const d = new Date(record.createdAt);
-    setPickerHour(d.getHours());
-    setPickerMinute(d.getMinutes());
-    setShowTimePicker(true);
-  }, [record]);
-
-  const handleConfirmTime = useCallback(async () => {
+  const handleConfirmTime = useCallback(async (hour: number, minute: number) => {
     if (!record) return;
     setShowTimePicker(false);
     const d = new Date(record.createdAt);
-    d.setHours(pickerHour, pickerMinute, 0, 0);
+    d.setHours(hour, minute, 0, 0);
     try {
       await updateRecord(record.id, { createdAt: d.getTime() });
       await loadRecord();
     } catch {
       Alert.alert('오류', '시간 저장에 실패했습니다');
     }
-  }, [record, pickerHour, pickerMinute, loadRecord]);
+  }, [record, loadRecord]);
 
   useEffect(() => {
     loadRecord();
@@ -310,7 +287,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           <Text style={styles.dateText}>{formatFullDate(record.createdAt)}</Text>
           <View style={styles.timeRow}>
             <Text style={styles.timeText}>{formatTime(record.createdAt)}</Text>
-            <TouchableOpacity style={styles.timeEditBtn} onPress={handleOpenTimePicker}>
+            <TouchableOpacity style={styles.timeEditBtn} onPress={() => setShowTimePicker(true)}>
               <Text style={styles.timeEditBtnText}>시간 수정</Text>
             </TouchableOpacity>
           </View>
@@ -414,67 +391,14 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal visible={showTimePicker} transparent animationType="fade">
-        <View style={styles.pickerOverlay}>
-          <View style={styles.pickerContainer}>
-            <Text style={styles.pickerTitle}>시간 수정</Text>
-            <View style={styles.pickerRow}>
-              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
-                <Text style={styles.pickerLabel}>오전/오후</Text>
-                <View style={styles.pickerArrowRow}>
-                  <TouchableOpacity onPress={() => setPickerHour(h => h < 12 ? h + 12 : h - 12)}>
-                    <Text style={styles.pickerArrow}>‹</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.pickerValueText, { minWidth: 48 }]}>{pickerHour < 12 ? '오전' : '오후'}</Text>
-                  <TouchableOpacity onPress={() => setPickerHour(h => h < 12 ? h + 12 : h - 12)}>
-                    <Text style={styles.pickerArrow}>›</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
-                <Text style={styles.pickerLabel}>시간</Text>
-                <View style={styles.pickerArrowRow}>
-                  <TouchableOpacity onPress={() => setPickerHour(h => {
-                    const h12 = h % 12 === 0 ? 12 : h % 12;
-                    const n = h12 === 1 ? 12 : h12 - 1;
-                    return h < 12 ? (n === 12 ? 0 : n) : (n === 12 ? 12 : n + 12);
-                  })}>
-                    <Text style={styles.pickerArrow}>‹</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.pickerValueText, { minWidth: 40 }]}>{pickerHour % 12 === 0 ? 12 : pickerHour % 12}</Text>
-                  <TouchableOpacity onPress={() => setPickerHour(h => {
-                    const h12 = h % 12 === 0 ? 12 : h % 12;
-                    const n = h12 === 12 ? 1 : h12 + 1;
-                    return h < 12 ? (n === 12 ? 0 : n) : (n === 12 ? 12 : n + 12);
-                  })}>
-                    <Text style={styles.pickerArrow}>›</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={{ alignItems: 'center', gap: SPACING.sm }}>
-                <Text style={styles.pickerLabel}>분</Text>
-                <View style={styles.pickerArrowRow}>
-                  <TouchableOpacity onPress={() => setPickerMinute(m => (m - 5 + 60) % 60)}>
-                    <Text style={styles.pickerArrow}>‹</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.pickerValueText, { minWidth: 40 }]}>{String(pickerMinute).padStart(2, '0')}</Text>
-                  <TouchableOpacity onPress={() => setPickerMinute(m => (m + 5) % 60)}>
-                    <Text style={styles.pickerArrow}>›</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-            <View style={styles.pickerButtonRow}>
-              <TouchableOpacity onPress={() => setShowTimePicker(false)} style={styles.pickerCancelBtn}>
-                <Text style={styles.pickerCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleConfirmTime} style={styles.pickerConfirmBtn}>
-                <Text style={styles.pickerConfirmText}>확인</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <TimePickerModal
+        visible={showTimePicker}
+        hour={record ? new Date(record.createdAt).getHours() : 0}
+        minute={record ? new Date(record.createdAt).getMinutes() : 0}
+        title="시간 수정"
+        onConfirm={handleConfirmTime}
+        onCancel={() => setShowTimePicker(false)}
+      />
     </SafeAreaView>
   );
 }
