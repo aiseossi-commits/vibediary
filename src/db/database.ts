@@ -195,7 +195,12 @@ export async function initializeDatabase(): Promise<void> {
 
     if (currentVersion < 10) {
       // v9 → v10: synthesis_articles에 visual_data 컬럼 추가
-      await database.execAsync('ALTER TABLE synthesis_articles ADD COLUMN visual_data TEXT');
+      // 신규 설치 시 v9 CREATE TABLE에 이미 포함된 경우 skip
+      try {
+        await database.execAsync('ALTER TABLE synthesis_articles ADD COLUMN visual_data TEXT');
+      } catch {
+        // 컬럼이 이미 존재하면 무시 (신규 설치 케이스)
+      }
       await database.execAsync('PRAGMA user_version = 10');
     }
 
