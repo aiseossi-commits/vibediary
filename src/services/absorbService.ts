@@ -160,10 +160,32 @@ function buildWeeklyOverviewPrompt(records: RecordWithTags[]): string {
 - 길이: 15~40줄
 - 섹션: ## 이번 주 주요 기록, ## 패턴 및 빈도, ## 특이사항 순서로 작성
 
+출력 형식 (반드시 지킬 것):
+1. 첫 번째 줄: VISUAL_DATA:{"patterns":[{"emoji":"이모지","label":"패턴명","count":횟수},...]}
+   - ## 패턴 및 빈도 섹션에서 반복 패턴만 포함 (최대 6개)
+   - 패턴이 없으면: VISUAL_DATA:{"patterns":[]}
+2. 두 번째 줄: ---
+3. 이후: 마크다운 요약 본문
+
 기록:
 ${lines}
 
-위 기록을 바탕으로 주간 요약을 작성하세요. 마크다운 형식으로 작성하세요.`;
+위 기록을 바탕으로 주간 요약을 작성하세요.`;
+}
+
+function parseWeeklyOverviewResponse(raw: string): { body: string; visualData: string | null } {
+  try {
+    const lines = raw.split('\n');
+    if (lines[0]?.startsWith('VISUAL_DATA:') && lines[1]?.trim() === '---') {
+      const jsonStr = lines[0].slice('VISUAL_DATA:'.length).trim();
+      JSON.parse(jsonStr); // 유효성 검증
+      const body = lines.slice(2).join('\n').trim();
+      return { body, visualData: jsonStr };
+    }
+  } catch {
+    // fallback
+  }
+  return { body: raw, visualData: null };
 }
 
 function buildDevelopmentalDomainPrompt(records: RecordWithTags[], existingBody?: string): string {
@@ -221,7 +243,8 @@ export async function runAbsorb(childId: string): Promise<AbsorbResult> {
     const recentRecords = await getRecentRecordsForAbsorb(childId, 14);
     if (recentRecords.length > 0) {
       const prompt = buildWeeklyOverviewPrompt(recentRecords);
-      const body = await callAbsorbAI(prompt);
+      const raw = await callAbsorbAI(prompt);
+      const { body, visualData } = parseWeeklyOverviewResponse(raw);
       if (isBodyQualityOk(body)) {
         const now = Date.now();
         const result = await upsertSynthesisArticle({
@@ -229,6 +252,7 @@ export async function runAbsorb(childId: string): Promise<AbsorbResult> {
           type: 'weekly_overview',
           title: `주간 요약 (${formatDate(now)})`,
           body,
+          visualData,
           sourceRecordIds: recentRecords.map(r => r.id),
           periodStart: recentRecords[0]?.createdAt,
           periodEnd: recentRecords[recentRecords.length - 1]?.createdAt,

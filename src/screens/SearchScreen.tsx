@@ -74,6 +74,9 @@ function createStyles(colors: AppColors) {
     insightTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
     insightBody: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20 },
     insightDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginTop: SPACING.xs },
+    visualChipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.sm },
+    visualChip: { backgroundColor: colors.primaryLight, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 3 },
+    visualChipText: { fontSize: FONT_SIZE.xs, color: colors.primary },
     // Q&A 카드
     qaCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
     qaQuery: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
@@ -230,6 +233,23 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
                       </TouchableOpacity>
                     </View>
                     <Text style={styles.insightTitle}>{article.title}</Text>
+                    {article.type === 'weekly_overview' && article.visualData && (() => {
+                      try {
+                        const { patterns } = JSON.parse(article.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
+                        if (patterns.length === 0) return null;
+                        return (
+                          <View style={styles.visualChipsContainer}>
+                            {patterns.map((p, i) => (
+                              <View key={i} style={styles.visualChip}>
+                                <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      } catch {
+                        return null;
+                      }
+                    })()}
                     <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{article.body}</Text>
                     <Text style={styles.insightDate}>{formatRelativeDate(article.updatedAt)} 업데이트 · {expanded ? '접기' : '전체 보기'}</Text>
                   </TouchableOpacity>

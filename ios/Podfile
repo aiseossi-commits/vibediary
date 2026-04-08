@@ -60,6 +60,13 @@ target 'VibeDiary' do
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
 
+    # Xcode 15+ User Script Sandboxing 비활성화 (CocoaPods 스크립트 페이즈 EPERM 방지)
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      end
+    end
+
     # ExpoModulesCore SDK 55에서 헤더가 하위 폴더로 이동 또는 삭제됨
     # expo-av가 <ExpoModulesCore/EX*.h> 경로로 참조하므로 상위 폴더로 복사 + 삭제된 헤더 shim 생성
     parent_dir = File.join(installer.sandbox.root, 'Headers', 'Public', 'ExpoModulesCore')

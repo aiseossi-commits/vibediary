@@ -86,6 +86,7 @@ export interface SynthesisArticle {
   sourceRecordIds: string[] | null;
   periodStart: number | null;
   periodEnd: number | null;
+  visualData: string | null;
   createdAt: number;
   updatedAt: number;
 }

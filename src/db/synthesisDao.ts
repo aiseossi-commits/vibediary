@@ -11,6 +11,7 @@ function mapRow(row: any): SynthesisArticle {
     sourceRecordIds: row.source_record_ids ? (() => { try { return JSON.parse(row.source_record_ids); } catch { return null; } })() : null,
     periodStart: row.period_start ?? null,
     periodEnd: row.period_end ?? null,
+    visualData: row.visual_data ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -45,23 +46,25 @@ export async function upsertSynthesisArticle(params: {
   sourceRecordIds?: string[] | null;
   periodStart?: number | null;
   periodEnd?: number | null;
+  visualData?: string | null;
 }): Promise<'created' | 'updated'> {
   const db = await getDatabase();
   const now = Date.now();
   const sourceJson = params.sourceRecordIds ? JSON.stringify(params.sourceRecordIds) : null;
+  const visualData = params.visualData ?? null;
 
   const existing = await getSynthesisArticleByType(params.childId, params.type);
 
   if (existing) {
     await db.runAsync(
-      `UPDATE synthesis_articles SET title = ?, body = ?, source_record_ids = ?, period_start = ?, period_end = ?, updated_at = ? WHERE id = ?`,
-      params.title, params.body, sourceJson, params.periodStart ?? null, params.periodEnd ?? null, now, existing.id
+      `UPDATE synthesis_articles SET title = ?, body = ?, source_record_ids = ?, period_start = ?, period_end = ?, visual_data = ?, updated_at = ? WHERE id = ?`,
+      params.title, params.body, sourceJson, params.periodStart ?? null, params.periodEnd ?? null, visualData, now, existing.id
     );
     return 'updated';
   } else {
     await db.runAsync(
-      `INSERT INTO synthesis_articles (child_id, type, title, body, source_record_ids, period_start, period_end, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      params.childId, params.type, params.title, params.body, sourceJson, params.periodStart ?? null, params.periodEnd ?? null, now, now
+      `INSERT INTO synthesis_articles (child_id, type, title, body, source_record_ids, period_start, period_end, visual_data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      params.childId, params.type, params.title, params.body, sourceJson, params.periodStart ?? null, params.periodEnd ?? null, visualData, now, now
     );
     return 'created';
   }

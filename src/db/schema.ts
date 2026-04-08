@@ -128,6 +128,7 @@ export const CREATE_SYNTHESIS_ARTICLES_TABLE = `
     source_record_ids TEXT,
     period_start INTEGER,
     period_end INTEGER,
+    visual_data TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );

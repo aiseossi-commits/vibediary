@@ -193,6 +193,12 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 9');
     }
 
+    if (currentVersion < 10) {
+      // v9 → v10: synthesis_articles에 visual_data 컬럼 추가
+      await database.execAsync('ALTER TABLE synthesis_articles ADD COLUMN visual_data TEXT');
+      await database.execAsync('PRAGMA user_version = 10');
+    }
+
     dbInitialized = true;
   })();
 

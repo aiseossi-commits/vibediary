@@ -84,6 +84,11 @@
 
 ## 최근 완료된 작업 (이번 세션)
 
+- [x] weekly-report-visualization: DB v10 visual_data 컬럼, SynthesisArticle 타입, synthesisDao, absorbService VISUAL_DATA 파싱, SearchScreen 패턴 칩 UI
+- [x] iOS 빌드 수정: ENABLE_USER_SCRIPT_SANDBOXING = NO (project.pbxproj Debug+Release, Podfile post_install)
+- [x] version bump: 1.0.3 / iOS build 4 / Android versionCode 10
+- [x] build_ios.sh 추가: 로컬 xcodebuild archive 스크립트
+
 - [x] UI 개선 4종:
   - RecordCard "추가 기록" 배지 제거 (HomeScreen 오표기 수정)
   - CalendarScreen 카드 customLabel에 시간 포함 (오전 10:30 · 직접 입력)
