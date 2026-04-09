@@ -112,7 +112,7 @@ function createStyles(colors: AppColors) {
     modalCancelText: { fontSize: 15, color: colors.textTertiary },
     eventBadgeRow: {
       flexDirection: 'row', alignItems: 'center',
-      paddingHorizontal: SPACING.lg, paddingBottom: SPACING.sm,
+      paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
       gap: SPACING.xs,
     },
     eventBadge: {

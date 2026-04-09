@@ -380,3 +380,109 @@ export async function runAbsorb(childId: string): Promise<AbsorbResult> {
 
   return absorbResult;
 }
+
+// ─── 항해일지 수동 생성 ───────────────────────────────────────────────────────
+
+export type VoyageReportType = 'weekly' | 'monthly' | 'sleep' | 'food' | 'behavior';
+
+export const VOYAGE_REPORT_OPTIONS: { type: VoyageReportType; label: string; description: string; days: number }[] = [
+  { type: 'weekly',   label: '최근 7일 요약',      description: '지난 일주일의 기록을 종합합니다',      days: 7  },
+  { type: 'monthly',  label: '최근 한달 종합',      description: '한달치 패턴과 변화를 분석합니다',      days: 30 },
+  { type: 'sleep',    label: '수면 인사이트',       description: '수면 관련 기록을 집중 분석합니다',     days: 30 },
+  { type: 'food',     label: '음식 반응 분석',      description: '식이 반응과 선호도를 정리합니다',      days: 30 },
+  { type: 'behavior', label: '행동 패턴 분석',      description: '반복 행동과 감정 패턴을 분석합니다',   days: 30 },
+];
+
+async function getRecordsForPeriod(childId: string, days: number): Promise<RecordWithTags[]> {
+  const db = await getDatabase();
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
+  const rows = await db.getAllAsync<any>(
+    'SELECT * FROM records WHERE child_id = ? AND created_at >= ? ORDER BY created_at ASC',
+    childId, since
+  );
+  return rows.map((row: any) => ({
+    id: row.id,
+    createdAt: row.created_at,
+    audioPath: row.audio_path,
+    rawText: row.raw_text,
+    summary: row.summary,
+    structuredData: (() => { try { return row.structured_data ? JSON.parse(row.structured_data) : null; } catch { return null; } })(),
+    isSynced: row.is_synced === 1,
+    aiPending: row.ai_pending === 1,
+    source: row.source ?? undefined,
+    childId: row.child_id ?? null,
+    tags: [],
+  }));
+}
+
+function buildVoyagePrompt(type: VoyageReportType, records: RecordWithTags[]): { prompt: string; title: string } {
+  const recordLines = records.map(formatRecordLine).join('\n');
+  const dateStr = formatDate(Date.now());
+
+  const configs: Record<VoyageReportType, { title: string; instruction: string }> = {
+    weekly: {
+      title: `주간 요약 (${dateStr})`,
+      instruction: `지난 7일간의 기록을 종합한 주간 요약을 작성하세요.
+섹션: ## 이번 주 주요 기록 / ## 패턴 및 빈도 / ## 특이사항
+반복 패턴은 횟수와 함께 서술하세요.`,
+    },
+    monthly: {
+      title: `한달 종합 인사이트 (${dateStr})`,
+      instruction: `지난 30일간의 기록을 종합 분석하세요.
+섹션: ## 이달의 주요 변화 / ## 반복 패턴 / ## 성장 & 주목할 점 / ## 다음 달 주목 사항`,
+    },
+    sleep: {
+      title: `수면 인사이트 (${dateStr})`,
+      instruction: `수면 관련 기록을 분석하세요.
+수면 시간, 입면 어려움, 야간 각성, 낮잠 패턴을 정리하세요.
+수면 관련 기록이 충분하지 않으면 "수면 관련 기록이 충분하지 않습니다."로 작성하세요.`,
+    },
+    food: {
+      title: `음식 반응 분석 (${dateStr})`,
+      instruction: `음식 및 식이 관련 기록을 분석하세요.
+선호 음식, 거부 음식, 새로운 도전, 식사 거부 패턴을 정리하세요.
+음식 관련 기록이 충분하지 않으면 "음식 관련 기록이 충분하지 않습니다."로 작성하세요.`,
+    },
+    behavior: {
+      title: `행동 패턴 분석 (${dateStr})`,
+      instruction: `행동·감정 패턴을 분석하세요.
+반복 행동, 자해·공격 행동, 감정 조절 패턴, ABC 분석을 정리하세요.
+행동 관련 기록이 충분하지 않으면 "행동 관련 기록이 충분하지 않습니다."로 작성하세요.`,
+    },
+  };
+
+  const { title, instruction } = configs[type];
+  const prompt = `당신은 발달장애 아동 돌봄 기록을 분석하는 AI입니다.
+아래 기록들을 바탕으로 다음 분석을 수행하세요.
+
+${instruction}
+
+기록 (${records.length}건):
+${recordLines}
+
+출력: 마크다운 본문만, 다른 설명 없이.`;
+
+  return { prompt, title };
+}
+
+export async function generateVoyageReport(childId: string, type: VoyageReportType): Promise<void> {
+  const isOnline = await getNetworkState();
+  if (!isOnline) throw new Error('OFFLINE');
+
+  const option = VOYAGE_REPORT_OPTIONS.find(o => o.type === type)!;
+  const records = await getRecordsForPeriod(childId, option.days);
+  if (records.length === 0) throw new Error('NO_RECORDS');
+
+  const { prompt, title } = buildVoyagePrompt(type, records);
+  const body = await callAbsorbAI(prompt);
+
+  const slug = `voyage/${type}/${formatDate(Date.now())}`;
+  await upsertWikiPage({
+    childId,
+    slug,
+    title,
+    type: 'overview',
+    body,
+    sourceRecordIds: records.map(r => r.id),
+  });
+}

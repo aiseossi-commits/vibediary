@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 스크롤 휠 시간 피커 + 기본 테마 라이트 모드` (2026-04-08)
+**마지막 커밋**: `feat: 항해일지 수동 생성 + 타입 선택 + 누적 저장` (2026-04-10)
 
 **현재 브랜치**: main
 
@@ -16,6 +16,9 @@
 
 ## 최근 완료된 작업
 
+- [x] HomeScreen 이벤트 배지 paddingTop 추가 (텍스트 입력창 겹침 수정)
+- [x] 항해일지 수동 생성: 타입 선택 모달 (주간/월간/수면/음식/행동), voyage/{type}/{date} slug로 누적 저장
+- [x] SearchScreen 항해일지 탭: voyage/* 섹션 분리, 빈 상태 메시지 개선
 - [x] fix: AI 등대 바다 전환 시 대화 히스토리 초기화 — cross-child 컨텍스트 오염 버그 수정 (SearchScreen.tsx)
 - [x] rich ingestion pipeline: StructuredData 타입 확장 (event_type/antecedent/behavior/consequence/domain)
 - [x] aiProcessor.ts 프롬프트 강화: 기록 유형 분류 + ABC + domain 추출 + JSON 예시 + maxOutputTokens 256→700

@@ -11,6 +11,7 @@ import {
   FlatList,
   Alert,
   ScrollView,
+  Modal,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +21,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
-import { shouldAbsorb, runAbsorb } from '../services/absorbService';
+import { shouldAbsorb, runAbsorb, generateVoyageReport, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
 import { runLint } from '../services/wikiLintService';
 import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
 import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
@@ -40,6 +41,11 @@ type ActiveTab = 'chat' | 'log';
 
 function getWikiTypeLabel(page: WikiPage): string {
   if (page.slug === 'wiki-index') return '인덱스';
+  if (page.slug.startsWith('voyage/weekly/')) return '주간 일지';
+  if (page.slug.startsWith('voyage/monthly/')) return '월간 일지';
+  if (page.slug.startsWith('voyage/sleep/')) return '수면 분석';
+  if (page.slug.startsWith('voyage/food/')) return '음식 반응';
+  if (page.slug.startsWith('voyage/behavior/')) return '행동 패턴';
   if (page.slug === 'overview/weekly') return '주간 요약';
   if (page.slug === 'timeline/milestones') return '이정표';
   if (page.slug.startsWith('entity/food/')) return '음식 반응';
@@ -108,6 +114,17 @@ function createStyles(colors: AppColors) {
     searchButton: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     searchButtonDisabled: { backgroundColor: colors.border },
     searchButtonText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: colors.primary, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm },
+    generateBtnText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    typeModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    typeModalSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: SPACING.md, paddingBottom: SPACING.xxl },
+    typeModalTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', marginBottom: SPACING.sm, paddingHorizontal: SPACING.lg },
+    typeModalOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, gap: SPACING.md },
+    typeModalOptionLabel: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    typeModalOptionDesc: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginTop: 2 },
+    typeModalDivider: { height: 1, backgroundColor: colors.divider, marginHorizontal: SPACING.lg },
+    typeModalCancel: { alignItems: 'center', paddingTop: SPACING.md },
+    typeModalCancelText: { fontSize: FONT_SIZE.md, color: colors.textTertiary },
   });
 }
 
@@ -144,12 +161,14 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   isAbsorbing: boolean;
   onAbsorb: () => void;
 }) {
-  const [wikiPages, setWikiPages] = useState<WikiPage[]>([]);
+  const [allWikiPages, setAllWikiPages] = useState<WikiPage[]>([]);
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isLinting, setIsLinting] = useState(false);
   const [lintResult, setLintResult] = useState<LintResult | null>(null);
+  const [showTypeModal, setShowTypeModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const toggleExpand = useCallback((key: string) => {
     setExpandedIds(prev => {
@@ -163,8 +182,7 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
     if (!childId) { setIsLoading(false); return; }
     try {
       const [pages, l] = await Promise.all([getWikiPages(childId), getSearchLogs(childId)]);
-      // wiki-index는 UI에서 숨김 (내부 탐색용)
-      setWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
+      setAllWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
       setLogs(l);
     } catch (e) {
       console.error('[VoyageLogFeed] 로드 실패:', e);
@@ -179,12 +197,16 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
     if (!isAbsorbing) loadData();
   }, [isAbsorbing, loadData]);
 
+  // voyage/로 시작하는 수동 생성 항해일지 vs 자동 위키 페이지
+  const voyagePages = allWikiPages.filter(p => p.slug.startsWith('voyage/'));
+  const wikiPages = allWikiPages.filter(p => !p.slug.startsWith('voyage/'));
+
   const handleDeleteWikiPage = useCallback((id: number) => {
-    Alert.alert('인사이트 삭제', '이 인사이트를 삭제하시겠습니까?', [
+    Alert.alert('삭제', '이 항목을 삭제하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: async () => {
         await deleteWikiPage(id);
-        setWikiPages(prev => prev.filter(p => p.id !== id));
+        setAllWikiPages(prev => prev.filter(p => p.id !== id));
       }},
     ]);
   }, []);
@@ -213,123 +235,192 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
     }
   }, [childId, isLinting]);
 
+  const handleGenerateReport = useCallback(async (type: VoyageReportType) => {
+    if (!childId || isGenerating) return;
+    setShowTypeModal(false);
+    setIsGenerating(true);
+    try {
+      await generateVoyageReport(childId, type);
+      await loadData();
+    } catch (e: any) {
+      if (e?.message === 'OFFLINE') Alert.alert('오프라인', '네트워크에 연결되어 있지 않아요.');
+      else if (e?.message === 'NO_RECORDS') Alert.alert('기록 없음', '분석할 기록이 없어요.');
+      else Alert.alert('오류', '항해일지 생성 중 오류가 발생했어요.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [childId, isGenerating, loadData]);
+
+  const renderInsightCard = useCallback((page: WikiPage) => {
+    const key = `p-${page.id}`;
+    const expanded = expandedIds.has(key);
+    return (
+      <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
+        <View style={styles.insightCardHeader}>
+          <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
+          <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteWikiPage(page.id)}>
+            <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.insightTitle}>{page.title}</Text>
+        {page.visualData && (() => {
+          try {
+            const { patterns } = JSON.parse(page.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
+            if (!patterns || patterns.length === 0) return null;
+            return (
+              <View style={styles.visualChipsContainer}>
+                {patterns.map((p, i) => (
+                  <View key={i} style={styles.visualChip}>
+                    <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
+                  </View>
+                ))}
+              </View>
+            );
+          } catch { return null; }
+        })()}
+        <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{page.body}</Text>
+        <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {expanded ? '접기' : '전체 보기'}</Text>
+      </TouchableOpacity>
+    );
+  }, [expandedIds, toggleExpand, handleDeleteWikiPage, styles, colors]);
+
   if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
 
-  const isEmpty = wikiPages.length === 0 && logs.length === 0;
+  const isEmpty = voyagePages.length === 0 && logs.length === 0 && wikiPages.length === 0;
 
   return (
-    <ScrollView style={styles.logScroll} contentContainerStyle={styles.logContent} showsVerticalScrollIndicator={false}>
-      {showAbsorbBanner && (
-        <TouchableOpacity style={styles.absorbBanner} onPress={onAbsorb} disabled={isAbsorbing} activeOpacity={0.8}>
-          {isAbsorbing ? <ActivityIndicator size="small" color={colors.accent} /> : <Ionicons name="sparkles-outline" size={16} color={colors.accent} />}
-          <Text style={styles.absorbBannerText}>
-            {isAbsorbing ? '위키를 업데이트하고 있어요...' : '새 기록이 쌓였어요. 위키를 업데이트할 수 있어요.'}
-          </Text>
-          {!isAbsorbing && <Ionicons name="chevron-forward" size={14} color={colors.accent} />}
+    <>
+      <Modal visible={showTypeModal} transparent animationType="slide" onRequestClose={() => setShowTypeModal(false)}>
+        <TouchableOpacity style={styles.typeModalOverlay} activeOpacity={1} onPress={() => setShowTypeModal(false)}>
+          <View style={styles.typeModalSheet}>
+            <Text style={styles.typeModalTitle}>어떤 항해일지를 만들까요?</Text>
+            {VOYAGE_REPORT_OPTIONS.map((opt, i) => (
+              <React.Fragment key={opt.type}>
+                {i > 0 && <View style={styles.typeModalDivider} />}
+                <TouchableOpacity style={styles.typeModalOption} onPress={() => handleGenerateReport(opt.type)} activeOpacity={0.7}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.typeModalOptionLabel}>{opt.label}</Text>
+                    <Text style={styles.typeModalOptionDesc}>{opt.description}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+            <View style={[styles.typeModalDivider, { marginTop: SPACING.sm }]} />
+            <TouchableOpacity style={styles.typeModalCancel} onPress={() => setShowTypeModal(false)}>
+              <Text style={styles.typeModalCancelText}>취소</Text>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      )}
+      </Modal>
 
-      {/* Lint 버튼 */}
-      {wikiPages.length > 0 && (
-        <TouchableOpacity style={styles.lintBanner} onPress={handleLint} disabled={isLinting} activeOpacity={0.8}>
-          {isLinting ? <ActivityIndicator size="small" color={colors.textTertiary} /> : <Ionicons name="checkmark-circle-outline" size={16} color={colors.textTertiary} />}
-          <Text style={styles.lintBannerText}>{isLinting ? '위키 건강 체크 중...' : '위키 건강 체크'}</Text>
+      <ScrollView style={styles.logScroll} contentContainerStyle={styles.logContent} showsVerticalScrollIndicator={false}>
+        {/* 항해일지 생성 버튼 (항상 표시) */}
+        <TouchableOpacity
+          style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
+          onPress={() => setShowTypeModal(true)}
+          disabled={isGenerating}
+          activeOpacity={0.85}
+        >
+          {isGenerating
+            ? <ActivityIndicator size="small" color={colors.textOnPrimary} />
+            : <Ionicons name="add-circle-outline" size={16} color={colors.textOnPrimary} />
+          }
+          <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '새 항해일지 생성'}</Text>
         </TouchableOpacity>
-      )}
 
-      {/* Lint 결과 */}
-      {lintResult && (
-        <View style={styles.lintResultCard}>
-          {lintResult.issues.length > 0 ? (
-            <>
-              <Text style={styles.lintResultTitle}>발견된 이슈 {lintResult.issues.length}건</Text>
-              {lintResult.issues.map((issue, i) => (
-                <Text key={i} style={styles.lintIssueText}>• {issue.slug}: {issue.reason}</Text>
-              ))}
-            </>
-          ) : (
-            <Text style={styles.lintResultTitle}>이슈 없음 ✓</Text>
-          )}
-          {lintResult.suggestions.length > 0 && (
-            <>
-              <Text style={[styles.lintResultTitle, { marginTop: SPACING.xs }]}>제안</Text>
-              {lintResult.suggestions.map((s, i) => (
-                <Text key={i} style={styles.lintSuggestionText}>• {s}</Text>
-              ))}
-            </>
-          )}
-        </View>
-      )}
+        {/* 자동 위키 업데이트 배너 */}
+        {showAbsorbBanner && (
+          <TouchableOpacity style={styles.absorbBanner} onPress={onAbsorb} disabled={isAbsorbing} activeOpacity={0.8}>
+            {isAbsorbing ? <ActivityIndicator size="small" color={colors.accent} /> : <Ionicons name="sparkles-outline" size={16} color={colors.accent} />}
+            <Text style={styles.absorbBannerText}>
+              {isAbsorbing ? '위키를 업데이트하고 있어요...' : '새 기록이 쌓였어요. AI 검색 위키를 업데이트할 수 있어요.'}
+            </Text>
+            {!isAbsorbing && <Ionicons name="chevron-forward" size={14} color={colors.accent} />}
+          </TouchableOpacity>
+        )}
 
-      {isEmpty && !showAbsorbBanner ? (
-        <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
-          <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
-          <Text style={styles.emptyDescription}>기록이 10개 이상 쌓이면{'\n'}위키를 생성할 수 있어요.</Text>
-        </View>
-      ) : (
-        <>
-          {wikiPages.length > 0 && (
-            <>
-              <Text style={styles.sectionHeader}>인사이트</Text>
-              {wikiPages.map(page => {
-                const key = `p-${page.id}`;
-                const expanded = expandedIds.has(key);
-                return (
-                  <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
-                    <View style={styles.insightCardHeader}>
-                      <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
-                      <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteWikiPage(page.id)}>
-                        <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.insightTitle}>{page.title}</Text>
-                    {page.visualData && (() => {
-                      try {
-                        const { patterns } = JSON.parse(page.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
-                        if (!patterns || patterns.length === 0) return null;
-                        return (
-                          <View style={styles.visualChipsContainer}>
-                            {patterns.map((p, i) => (
-                              <View key={i} style={styles.visualChip}>
-                                <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
-                              </View>
-                            ))}
-                          </View>
-                        );
-                      } catch { return null; }
-                    })()}
-                    <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{page.body}</Text>
-                    <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} 업데이트 · {expanded ? '접기' : '전체 보기'}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </>
-          )}
+        {/* Lint 버튼 */}
+        {wikiPages.length > 0 && (
+          <TouchableOpacity style={styles.lintBanner} onPress={handleLint} disabled={isLinting} activeOpacity={0.8}>
+            {isLinting ? <ActivityIndicator size="small" color={colors.textTertiary} /> : <Ionicons name="checkmark-circle-outline" size={16} color={colors.textTertiary} />}
+            <Text style={styles.lintBannerText}>{isLinting ? '위키 건강 체크 중...' : '위키 건강 체크'}</Text>
+          </TouchableOpacity>
+        )}
 
-          {logs.length > 0 && (
-            <>
-              <Text style={styles.sectionHeader}>저장된 질문</Text>
-              {logs.map(log => {
-                const key = `l-${log.id}`;
-                const expanded = expandedIds.has(key);
-                return (
-                  <TouchableOpacity key={log.id} style={styles.qaCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
-                    <Text style={styles.qaQuery}>{log.query}</Text>
-                    <Text style={styles.qaAnswer} numberOfLines={expanded ? undefined : 4}>{log.answer}</Text>
-                    <View style={styles.qaFooter}>
-                      <Text style={styles.qaDate}>{formatRelativeDate(log.createdAt)} · {expanded ? '접기' : '전체 보기'}</Text>
-                      <TouchableOpacity style={styles.qaDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
-                        <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </>
-          )}
-        </>
-      )}
-    </ScrollView>
+        {/* Lint 결과 */}
+        {lintResult && (
+          <View style={styles.lintResultCard}>
+            {lintResult.issues.length > 0 ? (
+              <>
+                <Text style={styles.lintResultTitle}>발견된 이슈 {lintResult.issues.length}건</Text>
+                {lintResult.issues.map((issue, i) => (
+                  <Text key={i} style={styles.lintIssueText}>• {issue.slug}: {issue.reason}</Text>
+                ))}
+              </>
+            ) : (
+              <Text style={styles.lintResultTitle}>이슈 없음 ✓</Text>
+            )}
+            {lintResult.suggestions.length > 0 && (
+              <>
+                <Text style={[styles.lintResultTitle, { marginTop: SPACING.xs }]}>제안</Text>
+                {lintResult.suggestions.map((s, i) => (
+                  <Text key={i} style={styles.lintSuggestionText}>• {s}</Text>
+                ))}
+              </>
+            )}
+          </View>
+        )}
+
+        {isEmpty ? (
+          <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
+            <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
+            <Text style={styles.emptyDescription}>아직 항해일지가 없어요.{'\n'}위에서 새 항해일지를 만들어보세요.</Text>
+          </View>
+        ) : (
+          <>
+            {/* 수동 생성 항해일지 (voyage/*) - 날짜별로 쌓임 */}
+            {voyagePages.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>항해일지</Text>
+                {voyagePages.map(page => renderInsightCard(page))}
+              </>
+            )}
+
+            {/* 자동 위키 인사이트 (overview/*, entity/*, timeline/*) */}
+            {wikiPages.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>AI 인사이트</Text>
+                {wikiPages.map(page => renderInsightCard(page))}
+              </>
+            )}
+
+            {/* 저장된 질문 */}
+            {logs.length > 0 && (
+              <>
+                <Text style={styles.sectionHeader}>저장된 질문</Text>
+                {logs.map(log => {
+                  const key = `l-${log.id}`;
+                  const expanded = expandedIds.has(key);
+                  return (
+                    <TouchableOpacity key={log.id} style={styles.qaCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
+                      <Text style={styles.qaQuery}>{log.query}</Text>
+                      <Text style={styles.qaAnswer} numberOfLines={expanded ? undefined : 4}>{log.answer}</Text>
+                      <View style={styles.qaFooter}>
+                        <Text style={styles.qaDate}>{formatRelativeDate(log.createdAt)} · {expanded ? '접기' : '전체 보기'}</Text>
+                        <TouchableOpacity style={styles.qaDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
+                          <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </>
   );
 }
 
