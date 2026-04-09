@@ -98,6 +98,34 @@ export interface AbsorbResult {
   articlesUpdated: number;
 }
 
+// Wiki 페이지 타입 (LLM Wiki 패턴)
+export type WikiPageType = 'wiki-index' | 'overview' | 'timeline' | 'entity';
+
+export interface WikiPage {
+  id: number;
+  childId: string;
+  slug: string;         // 예: "overview/weekly", "entity/food/돼지고기"
+  title: string;
+  type: WikiPageType;
+  body: string;
+  sourceRecordIds: string[] | null;
+  crossRefs: string[] | null;   // 참조하는 slug 목록
+  visualData: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Wiki Lint 결과
+export interface LintIssue {
+  slug: string;
+  reason: string;
+}
+
+export interface LintResult {
+  issues: LintIssue[];
+  suggestions: string[];
+}
+
 // 날짜별 기록 요약 (캘린더용)
 export interface DailyRecordSummary {
   date: string; // YYYY-MM-DD

@@ -21,8 +21,9 @@ import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { shouldAbsorb, runAbsorb } from '../services/absorbService';
+import { runLint } from '../services/wikiLintService';
 import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
-import { getSynthesisArticles, deleteSynthesisArticle } from '../db/synthesisDao';
+import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import {
@@ -33,18 +34,22 @@ import {
   SHADOW,
   type AppColors,
 } from '../constants/theme';
-import type { ChatMessage, SearchLog, SynthesisArticle } from '../types/record';
+import type { ChatMessage, SearchLog, WikiPage, LintResult } from '../types/record';
 
 type ActiveTab = 'chat' | 'log';
 
-const SYNTHESIS_TYPE_LABEL: Record<string, string> = {
-  weekly_overview: '주간 요약',
-  developmental_domain: '발달 성장',
-  milestone_timeline: '이정표',
-  behavioral_pattern: '행동 패턴',
-  medical_summary: '의료 요약',
-  therapy_log: '치료 기록',
-};
+function getWikiTypeLabel(page: WikiPage): string {
+  if (page.slug === 'wiki-index') return '인덱스';
+  if (page.slug === 'overview/weekly') return '주간 요약';
+  if (page.slug === 'timeline/milestones') return '이정표';
+  if (page.slug.startsWith('entity/food/')) return '음식 반응';
+  if (page.slug.startsWith('entity/behavior/')) return '행동 패턴';
+  if (page.slug.startsWith('entity/therapy/')) return '치료 기록';
+  if (page.slug.startsWith('entity/')) return '토픽';
+  if (page.type === 'overview') return '개요';
+  if (page.type === 'timeline') return '타임라인';
+  return page.type;
+}
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -53,20 +58,22 @@ function createStyles(colors: AppColors) {
     header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
     title: { fontSize: FONT_SIZE.title, fontWeight: FONT_WEIGHT.bold, fontFamily: 'Pretendard-Bold', color: colors.textPrimary, letterSpacing: -0.6, marginBottom: SPACING.sm },
     subtitle: { fontSize: FONT_SIZE.md, color: colors.textSecondary, lineHeight: 26, letterSpacing: 0.2 },
-    // 세그먼트 컨트롤
     segmentRow: { flexDirection: 'row', marginHorizontal: SPACING.lg, marginBottom: SPACING.sm, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary, padding: 3 },
     segmentBtn: { flex: 1, paddingVertical: SPACING.sm - 2, alignItems: 'center', borderRadius: BORDER_RADIUS.sm - 2 },
     segmentBtnActive: { backgroundColor: colors.surface, ...SHADOW.sm },
     segmentBtnText: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textTertiary },
     segmentBtnTextActive: { color: colors.textPrimary, fontWeight: FONT_WEIGHT.semibold },
-    // 배너
     absorbBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, backgroundColor: colors.accentLight, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm },
     absorbBannerText: { flex: 1, fontSize: FONT_SIZE.sm, color: colors.accent, fontWeight: FONT_WEIGHT.medium },
-    // 항해일지 피드
+    lintBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, backgroundColor: colors.surfaceSecondary, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm },
+    lintBannerText: { flex: 1, fontSize: FONT_SIZE.sm, color: colors.textSecondary },
+    lintResultCard: { backgroundColor: colors.surface, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm, ...SHADOW.sm },
+    lintResultTitle: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
+    lintIssueText: { fontSize: FONT_SIZE.xs, color: colors.textSecondary, lineHeight: 18, marginBottom: 2 },
+    lintSuggestionText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, lineHeight: 18, marginBottom: 2 },
     logScroll: { flex: 1 },
     logContent: { padding: SPACING.md, paddingBottom: SPACING.xxl },
     sectionHeader: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACING.sm, marginTop: SPACING.md },
-    // 인사이트 카드
     insightCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
     insightCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
     insightTypeLabel: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
@@ -77,17 +84,14 @@ function createStyles(colors: AppColors) {
     visualChipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.sm },
     visualChip: { backgroundColor: colors.primaryLight, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 3 },
     visualChipText: { fontSize: FONT_SIZE.xs, color: colors.primary },
-    // Q&A 카드
     qaCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
     qaQuery: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
     qaAnswer: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20 },
     qaFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SPACING.xs },
     qaDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     qaDeleteBtn: { padding: SPACING.xs },
-    // 빈 상태
     emptyState: { alignItems: 'center', paddingTop: SPACING.xxl * 2, gap: SPACING.lg },
     emptyDescription: { fontSize: FONT_SIZE.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 26 },
-    // 채팅
     messageList: { flex: 1 },
     messageListContent: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: SPACING.xl },
     userBubbleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: SPACING.sm },
@@ -117,9 +121,7 @@ function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnT
   );
 }
 
-function AssistantBubble({ message, styles }: {
-  message: ChatMessage; styles: ReturnType<typeof createStyles>;
-}) {
+function AssistantBubble({ message, styles }: { message: ChatMessage; styles: ReturnType<typeof createStyles> }) {
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
@@ -142,10 +144,12 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   isAbsorbing: boolean;
   onAbsorb: () => void;
 }) {
-  const [articles, setArticles] = useState<SynthesisArticle[]>([]);
+  const [wikiPages, setWikiPages] = useState<WikiPage[]>([]);
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isLinting, setIsLinting] = useState(false);
+  const [lintResult, setLintResult] = useState<LintResult | null>(null);
 
   const toggleExpand = useCallback((key: string) => {
     setExpandedIds(prev => {
@@ -158,8 +162,9 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   const loadData = useCallback(async () => {
     if (!childId) { setIsLoading(false); return; }
     try {
-      const [a, l] = await Promise.all([getSynthesisArticles(childId), getSearchLogs(childId)]);
-      setArticles(a);
+      const [pages, l] = await Promise.all([getWikiPages(childId), getSearchLogs(childId)]);
+      // wiki-index는 UI에서 숨김 (내부 탐색용)
+      setWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
       setLogs(l);
     } catch (e) {
       console.error('[VoyageLogFeed] 로드 실패:', e);
@@ -170,17 +175,16 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // absorb 완료 시 재로드
   useEffect(() => {
     if (!isAbsorbing) loadData();
   }, [isAbsorbing, loadData]);
 
-  const handleDeleteArticle = useCallback((id: number) => {
+  const handleDeleteWikiPage = useCallback((id: number) => {
     Alert.alert('인사이트 삭제', '이 인사이트를 삭제하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: async () => {
-        await deleteSynthesisArticle(id);
-        setArticles(prev => prev.filter(a => a.id !== id));
+        await deleteWikiPage(id);
+        setWikiPages(prev => prev.filter(p => p.id !== id));
       }},
     ]);
   }, []);
@@ -195,9 +199,23 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
     ]);
   }, []);
 
+  const handleLint = useCallback(async () => {
+    if (!childId || isLinting) return;
+    setIsLinting(true);
+    setLintResult(null);
+    try {
+      const result = await runLint(childId);
+      setLintResult(result);
+    } catch {
+      setLintResult({ issues: [], suggestions: ['건강 체크 중 오류가 발생했어요.'] });
+    } finally {
+      setIsLinting(false);
+    }
+  }, [childId, isLinting]);
+
   if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
 
-  const isEmpty = articles.length === 0 && logs.length === 0;
+  const isEmpty = wikiPages.length === 0 && logs.length === 0;
 
   return (
     <ScrollView style={styles.logScroll} contentContainerStyle={styles.logContent} showsVerticalScrollIndicator={false}>
@@ -205,38 +223,70 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
         <TouchableOpacity style={styles.absorbBanner} onPress={onAbsorb} disabled={isAbsorbing} activeOpacity={0.8}>
           {isAbsorbing ? <ActivityIndicator size="small" color={colors.accent} /> : <Ionicons name="sparkles-outline" size={16} color={colors.accent} />}
           <Text style={styles.absorbBannerText}>
-            {isAbsorbing ? '인사이트를 생성하고 있어요...' : '새 기록이 쌓였어요. 인사이트를 업데이트할 수 있어요.'}
+            {isAbsorbing ? '위키를 업데이트하고 있어요...' : '새 기록이 쌓였어요. 위키를 업데이트할 수 있어요.'}
           </Text>
           {!isAbsorbing && <Ionicons name="chevron-forward" size={14} color={colors.accent} />}
         </TouchableOpacity>
       )}
 
+      {/* Lint 버튼 */}
+      {wikiPages.length > 0 && (
+        <TouchableOpacity style={styles.lintBanner} onPress={handleLint} disabled={isLinting} activeOpacity={0.8}>
+          {isLinting ? <ActivityIndicator size="small" color={colors.textTertiary} /> : <Ionicons name="checkmark-circle-outline" size={16} color={colors.textTertiary} />}
+          <Text style={styles.lintBannerText}>{isLinting ? '위키 건강 체크 중...' : '위키 건강 체크'}</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Lint 결과 */}
+      {lintResult && (
+        <View style={styles.lintResultCard}>
+          {lintResult.issues.length > 0 ? (
+            <>
+              <Text style={styles.lintResultTitle}>발견된 이슈 {lintResult.issues.length}건</Text>
+              {lintResult.issues.map((issue, i) => (
+                <Text key={i} style={styles.lintIssueText}>• {issue.slug}: {issue.reason}</Text>
+              ))}
+            </>
+          ) : (
+            <Text style={styles.lintResultTitle}>이슈 없음 ✓</Text>
+          )}
+          {lintResult.suggestions.length > 0 && (
+            <>
+              <Text style={[styles.lintResultTitle, { marginTop: SPACING.xs }]}>제안</Text>
+              {lintResult.suggestions.map((s, i) => (
+                <Text key={i} style={styles.lintSuggestionText}>• {s}</Text>
+              ))}
+            </>
+          )}
+        </View>
+      )}
+
       {isEmpty && !showAbsorbBanner ? (
         <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
           <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
-          <Text style={styles.emptyDescription}>기록이 10개 이상 쌓이면{'\n'}인사이트를 생성할 수 있어요.</Text>
+          <Text style={styles.emptyDescription}>기록이 10개 이상 쌓이면{'\n'}위키를 생성할 수 있어요.</Text>
         </View>
       ) : (
         <>
-          {articles.length > 0 && (
+          {wikiPages.length > 0 && (
             <>
               <Text style={styles.sectionHeader}>인사이트</Text>
-              {articles.map(article => {
-                const key = `a-${article.id}`;
+              {wikiPages.map(page => {
+                const key = `p-${page.id}`;
                 const expanded = expandedIds.has(key);
                 return (
-                  <TouchableOpacity key={article.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
+                  <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
                     <View style={styles.insightCardHeader}>
-                      <Text style={styles.insightTypeLabel}>{SYNTHESIS_TYPE_LABEL[article.type] ?? article.type}</Text>
-                      <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteArticle(article.id)}>
+                      <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
+                      <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteWikiPage(page.id)}>
                         <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
                       </TouchableOpacity>
                     </View>
-                    <Text style={styles.insightTitle}>{article.title}</Text>
-                    {article.type === 'weekly_overview' && article.visualData && (() => {
+                    <Text style={styles.insightTitle}>{page.title}</Text>
+                    {page.visualData && (() => {
                       try {
-                        const { patterns } = JSON.parse(article.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
-                        if (patterns.length === 0) return null;
+                        const { patterns } = JSON.parse(page.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
+                        if (!patterns || patterns.length === 0) return null;
                         return (
                           <View style={styles.visualChipsContainer}>
                             {patterns.map((p, i) => (
@@ -246,12 +296,10 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
                             ))}
                           </View>
                         );
-                      } catch {
-                        return null;
-                      }
+                      } catch { return null; }
                     })()}
-                    <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{article.body}</Text>
-                    <Text style={styles.insightDate}>{formatRelativeDate(article.updatedAt)} 업데이트 · {expanded ? '접기' : '전체 보기'}</Text>
+                    <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{page.body}</Text>
+                    <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} 업데이트 · {expanded ? '접기' : '전체 보기'}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -300,13 +348,11 @@ export default function SearchScreen() {
 
   const flatListRef = useRef<FlatList>(null);
 
-  // activeChild 변경 시 초기화
   useEffect(() => {
     setMessages([]);
     setShowAbsorbBanner(false);
   }, [activeChild?.id]);
 
-  // 항해일지 탭 활성화 시 absorb 체크
   useEffect(() => {
     if (activeTab === 'log' && activeChild?.id) {
       shouldAbsorb(activeChild.id).then(setShowAbsorbBanner).catch(() => {});
@@ -325,8 +371,8 @@ export default function SearchScreen() {
     try {
       await runAbsorb(activeChild.id);
       setShowAbsorbBanner(false);
-    } catch (e) {
-      Alert.alert('오류', '인사이트 생성에 실패했어요. 네트워크를 확인해주세요.');
+    } catch {
+      Alert.alert('오류', '위키 업데이트에 실패했어요. 네트워크를 확인해주세요.');
     } finally {
       setIsAbsorbing(false);
     }
@@ -351,7 +397,6 @@ export default function SearchScreen() {
     }
   }, [query, messages, activeChild?.id, activeChild?.name]);
 
-
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages.length, isSearching]);
@@ -368,7 +413,6 @@ export default function SearchScreen() {
         {activeTab === 'chat' && <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>}
       </View>
 
-      {/* 세그먼트 컨트롤 */}
       <View style={styles.segmentRow}>
         {(['chat', 'log'] as ActiveTab[]).map(tab => (
           <TouchableOpacity key={tab} style={[styles.segmentBtn, activeTab === tab && styles.segmentBtnActive]} onPress={() => setActiveTab(tab)}>

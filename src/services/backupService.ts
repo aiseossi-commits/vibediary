@@ -37,6 +37,19 @@ export interface BackupData {
     created_at: number;
     updated_at: number;
   }[];
+  wikiPages?: {
+    id: number;
+    child_id: string;
+    slug: string;
+    title: string;
+    type: string;
+    body: string;
+    source_record_ids: string | null;
+    cross_refs: string | null;
+    visual_data: string | null;
+    created_at: number;
+    updated_at: number;
+  }[];
 }
 
 // 전체 DB를 JSON 파일로 내보내고 공유 시트 표시
@@ -47,7 +60,7 @@ export async function exportBackup(): Promise<void> {
     getAllRecordsForBackup(),
     getAllRecordTags(),
   ]);
-  const [tags, synthesisArticles] = await Promise.all([
+  const [tags, synthesisArticles, wikiPages] = await Promise.all([
     db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
       'SELECT id, name, child_id FROM tags ORDER BY name'
     ),
@@ -56,6 +69,11 @@ export async function exportBackup(): Promise<void> {
       source_record_ids: string | null; period_start: number | null; period_end: number | null;
       created_at: number; updated_at: number;
     }>('SELECT id, child_id, type, title, body, source_record_ids, period_start, period_end, created_at, updated_at FROM synthesis_articles ORDER BY created_at ASC'),
+    db.getAllAsync<{
+      id: number; child_id: string; slug: string; title: string; type: string; body: string;
+      source_record_ids: string | null; cross_refs: string | null; visual_data: string | null;
+      created_at: number; updated_at: number;
+    }>('SELECT id, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at FROM wiki_pages ORDER BY created_at ASC'),
   ]);
 
   const data: BackupData = {
@@ -66,6 +84,7 @@ export async function exportBackup(): Promise<void> {
     tags,
     recordTags,
     synthesisArticles,
+    wikiPages,
   };
 
   const d = new Date();
@@ -131,6 +150,7 @@ export async function parseBackupFromUri(uri: string): Promise<BackupData> {
 export async function restoreOverwrite(data: BackupData): Promise<void> {
   const db = await getDatabase();
 
+  await db.execAsync('DELETE FROM wiki_pages');
   await db.execAsync('DELETE FROM synthesis_articles');
   await db.execAsync('DELETE FROM record_tags');
   await db.execAsync('DELETE FROM records');
@@ -173,6 +193,15 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       a.id, a.child_id, a.type, a.title, a.body,
       a.source_record_ids, a.period_start, a.period_end, a.created_at, a.updated_at
+    );
+  }
+
+  for (const p of (data.wikiPages ?? [])) {
+    await db.runAsync(
+      `INSERT OR IGNORE INTO wiki_pages (id, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      p.id, p.child_id, p.slug, p.title, p.type, p.body,
+      p.source_record_ids, p.cross_refs, p.visual_data, p.created_at, p.updated_at
     );
   }
 
@@ -277,6 +306,17 @@ export async function restoreMerge(data: BackupData): Promise<void> {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       a.id, mappedChildId, a.type, a.title, a.body,
       a.source_record_ids, a.period_start, a.period_end, a.created_at, a.updated_at
+    );
+  }
+
+  // wiki_pages 삽입 (child_id 매핑 적용, child_id+slug UNIQUE로 중복 건너뜀)
+  for (const p of (data.wikiPages ?? [])) {
+    const mappedChildId = childIdMap.get(p.child_id) ?? p.child_id;
+    await db.runAsync(
+      `INSERT OR IGNORE INTO wiki_pages (child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      mappedChildId, p.slug, p.title, p.type, p.body,
+      p.source_record_ids, p.cross_refs, p.visual_data, p.created_at, p.updated_at
     );
   }
 

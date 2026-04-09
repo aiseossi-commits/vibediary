@@ -11,6 +11,8 @@ import {
   CREATE_SYNTHESIS_ARTICLES_TABLE,
   CREATE_ABSORB_LOG_TABLE,
   CREATE_ACTIVE_EVENTS_TABLE,
+  CREATE_WIKI_PAGES_TABLE,
+  CREATE_WIKI_PAGES_INDEXES,
   CREATE_INDEXES,
   CREATE_SYNTHESIS_INDEXES,
   MIGRATE_TAGS_V3,
@@ -210,6 +212,43 @@ export async function initializeDatabase(): Promise<void> {
       // v10 → v11: active_events 테이블 추가
       await database.execAsync(CREATE_ACTIVE_EVENTS_TABLE);
       await database.execAsync('PRAGMA user_version = 11');
+    }
+
+    if (currentVersion < 12) {
+      // v11 → v12: wiki_pages 테이블 추가 + synthesis_articles 데이터 이전
+      await database.execAsync(CREATE_WIKI_PAGES_TABLE);
+      for (const indexSQL of CREATE_WIKI_PAGES_INDEXES) {
+        await database.execAsync(indexSQL);
+      }
+      // synthesis_articles → wiki_pages slug 매핑 이전
+      const typeToSlug: Record<string, { slug: string; type: string }> = {
+        weekly_overview:    { slug: 'overview/weekly',       type: 'overview' },
+        developmental_domain: { slug: 'domain/developmental', type: 'overview' },
+        milestone_timeline: { slug: 'timeline/milestones',   type: 'timeline' },
+        behavioral_pattern: { slug: 'domain/behavioral',     type: 'overview' },
+        medical_summary:    { slug: 'domain/medical',        type: 'overview' },
+        therapy_log:        { slug: 'domain/therapy',        type: 'overview' },
+      };
+      const existing = await database.getAllAsync<{
+        child_id: string; type: string; title: string; body: string;
+        source_record_ids: string | null; visual_data: string | null;
+        created_at: number; updated_at: number;
+      }>('SELECT * FROM synthesis_articles');
+      for (const row of existing) {
+        const mapped = typeToSlug[row.type];
+        if (!mapped) continue;
+        try {
+          await database.runAsync(
+            `INSERT OR IGNORE INTO wiki_pages (child_id, slug, title, type, body, source_record_ids, visual_data, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            row.child_id, mapped.slug, row.title, mapped.type, row.body,
+            row.source_record_ids, row.visual_data, row.created_at, row.updated_at
+          );
+        } catch {
+          // 개별 행 이전 실패 무시
+        }
+      }
+      await database.execAsync('PRAGMA user_version = 12');
     }
 
     dbInitialized = true;

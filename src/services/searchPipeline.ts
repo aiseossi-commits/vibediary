@@ -1,16 +1,16 @@
 import { getAllRecordsForSearch } from '../db/queries';
-import { getSynthesisArticles } from '../db/synthesisDao';
+import { getWikiPages } from '../db/wikiDao';
 import { getNetworkState } from '../utils/network';
-import type { SearchResult, RecordWithTags, SynthesisArticle } from '../types/record';
+import type { SearchResult, RecordWithTags, WikiPage } from '../types/record';
 
-const SEARCH_SYSTEM_PROMPT = (today: string, childName?: string, hasSynthesis?: boolean) =>
+const SEARCH_SYSTEM_PROMPT = (today: string, childName?: string, hasWiki?: boolean) =>
   `당신은 발달장애인 돌봄 기록을 분석해 답변하는 AI 비서입니다.
 오늘: ${today}${childName ? `\n돌봄 대상: ${childName}` : ''}
-${hasSynthesis ? `
-<synthesis> 섹션에는 AI가 기록들을 분석해 합성한 패턴·발달 궤적·이정표가 담겨 있습니다.
+${hasWiki ? `
+<wiki> 섹션에는 AI가 기록들을 분석해 합성한 위키 페이지(패턴·발달 궤적·이정표·토픽별 요약)가 담겨 있습니다.
 <records> 섹션에는 최근 원본 기록이 담겨 있습니다.
-답변 시 synthesis의 인사이트를 먼저 활용하고, 구체적 날짜/사례는 records에서 인용하세요.
-synthesis와 records가 상충하면 records를 우선하세요.
+답변 시 wiki의 인사이트를 먼저 활용하고, 구체적 날짜/사례는 records에서 인용하세요.
+wiki와 records가 상충하면 records를 우선하세요.
 ` : `아래 <records>에 모든 돌봄 기록이 포함되어 있습니다. 사용자의 질문에 대해 이 기록들을 근거로 답변하세요.
 `}
 규칙:
@@ -48,7 +48,6 @@ function formatRecord(record: RecordWithTags): string {
     return `${base} [${parts.join(', ')}]`;
   }
 
-  // 기존 key:value 방식 유지 (event_type 없거나 medical/daily)
   const data = Object.entries(sd)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `${k}:${v}`)
@@ -56,17 +55,8 @@ function formatRecord(record: RecordWithTags): string {
   return data ? `${base} [${data}]` : base;
 }
 
-function formatSynthesisArticle(article: SynthesisArticle): string {
-  const typeLabel: Record<string, string> = {
-    weekly_overview: '주간 요약',
-    developmental_domain: '발달 성장',
-    milestone_timeline: '발달 이정표',
-    behavioral_pattern: '행동 패턴',
-    medical_summary: '의료 요약',
-    therapy_log: '치료 기록',
-  };
-  const label = typeLabel[article.type] ?? article.type;
-  return `[${label}] ${article.title}\n${article.body}`;
+function formatWikiPage(page: WikiPage): string {
+  return `[${page.title}]\n${page.body}`;
 }
 
 function getToday(): string {
@@ -91,23 +81,25 @@ export async function searchRecords(
     return { answer: '아직 기록이 없어요. 녹음이나 텍스트로 기록을 남겨보세요.' };
   }
 
-  // synthesis 아티클 로드 (childId 있을 때만)
-  const synthesisArticles = childId ? await getSynthesisArticles(childId).catch(() => []) : [];
-  const hasSynthesis = synthesisArticles.length > 0;
+  const wikiPages = childId ? await getWikiPages(childId).catch(() => []) : [];
+  const hasWiki = wikiPages.length > 0;
 
   let contextText: string;
-  if (hasSynthesis) {
-    // synthesis 우선 + 최근 30개 raw records 보조
-    const synthesisContext = synthesisArticles.map(formatSynthesisArticle).join('\n\n---\n\n');
+  if (hasWiki) {
+    // wiki-index를 선두에 배치
+    const indexPage = wikiPages.find(p => p.slug === 'wiki-index');
+    const otherPages = wikiPages.filter(p => p.slug !== 'wiki-index');
+    const orderedPages = indexPage ? [indexPage, ...otherPages] : otherPages;
+
+    const wikiContext = orderedPages.map(formatWikiPage).join('\n\n---\n\n');
     const recentRecords = records.slice(0, 30);
     const rawContext = recentRecords.map(formatRecord).join('\n');
-    contextText = `<synthesis>\n${synthesisContext}\n</synthesis>\n\n<records>\n${rawContext}\n</records>`;
+    contextText = `<wiki>\n${wikiContext}\n</wiki>\n\n<records>\n${rawContext}\n</records>`;
   } else {
-    // synthesis 없음 → 기존 방식 fallback
     contextText = records.map(formatRecord).join('\n');
   }
 
-  const answer = await generateAnswer(query, contextText, records.length, conversationHistory, childName, hasSynthesis);
+  const answer = await generateAnswer(query, contextText, records.length, conversationHistory, childName, hasWiki);
   return { answer };
 }
 
@@ -117,7 +109,7 @@ async function generateAnswer(
   recordCount: number,
   conversationHistory?: { role: 'user' | 'assistant'; text: string }[],
   childName?: string,
-  hasSynthesis?: boolean
+  hasWiki?: boolean
 ): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
@@ -134,7 +126,7 @@ async function generateAnswer(
   contents.push({
     role: 'user',
     parts: [{
-      text: `<records>\n${context}\n</records>\n\n<record_count>${recordCount}건</record_count>\n\n<user_query>\n${query}\n</user_query>`,
+      text: `${context}\n\n<record_count>${recordCount}건</record_count>\n\n<user_query>\n${query}\n</user_query>`,
     }],
   });
 
@@ -148,7 +140,7 @@ async function generateAnswer(
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SEARCH_SYSTEM_PROMPT(getToday(), childName, hasSynthesis) }] },
+          systemInstruction: { parts: [{ text: SEARCH_SYSTEM_PROMPT(getToday(), childName, hasWiki) }] },
           contents,
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },

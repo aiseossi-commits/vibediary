@@ -356,13 +356,26 @@
 - [x] Android AI 등대 입력창 키보드 위치 버그 수정: adjustNothing + behavior='height' + keyboardVerticalOffset=0 (adjustResize 타이밍 불일치 근본 수정)
 - [x] 사진 첨부 기능 백로그 등록 (999.1): 해비유저 페르소나 니즈, 핵심 플로우 안정화 후 재검토
 
+## 최근 완료된 작업 (2026-04-10, llm-wiki-synthesis)
+
+- [x] feat: LLM Wiki 패턴 적용 — Karpathy 철학 기반 동적 wiki 레이어 도입
+  - DB v12: wiki_pages 테이블 (slug 기반 동적 페이지, UNIQUE(child_id, slug))
+  - v12 마이그레이션: synthesis_articles → wiki_pages slug 매핑 변환
+  - wikiDao.ts 신규: getWikiPages, getWikiPageBySlug, upsertWikiPage, deleteWikiPage, absorb_log CRUD
+  - absorbService.ts 전면 교체: WIKI_SCHEMA 상수, 1회 AI 호출 JSON 멀티페이지, entity pages, fallback, 타임아웃 45초
+  - searchPipeline.ts: getSynthesisArticles → getWikiPages, wiki-index 선두 배치, `<wiki>/<records>` 컨텍스트 구조
+  - wikiLintService.ts 신규: stale/orphan 클라이언트 감지 + AI content gap 감지
+  - SearchScreen.tsx: wiki pages 렌더링, 위키 건강 체크 버튼 + LintResult 표시
+  - backupService.ts: wiki_pages 백업/복원 추가 (synthesisArticles 하위호환 유지)
+
 ## 진행 중인 작업
 
 (없음)
 
 ## 미해결 이슈 (다음 세션)
 
-(없음)
+- synthesisDao.ts 파일은 하위호환을 위해 아직 존재 (v13에서 drop 예정, synthesis_articles 테이블도 동일)
+- wiki_pages entity pages 폭증 시 Lint orphan 정리 기능 필요 (현재 감지만, 삭제는 수동)
 
 ## 최근 완료된 작업 (2026-03-24 — 미비 정리)
 

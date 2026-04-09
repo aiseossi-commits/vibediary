@@ -150,6 +150,28 @@ export const CREATE_SYNTHESIS_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_synthesis_updated ON synthesis_articles(updated_at);`,
 ];
 
+export const CREATE_WIKI_PAGES_TABLE = `
+  CREATE TABLE IF NOT EXISTS wiki_pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    slug TEXT NOT NULL,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    body TEXT NOT NULL,
+    source_record_ids TEXT,
+    cross_refs TEXT,
+    visual_data TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    UNIQUE(child_id, slug)
+  );
+`;
+
+export const CREATE_WIKI_PAGES_INDEXES = [
+  `CREATE INDEX IF NOT EXISTS idx_wiki_child ON wiki_pages(child_id, slug);`,
+  `CREATE INDEX IF NOT EXISTS idx_wiki_updated ON wiki_pages(updated_at);`,
+];
+
 export const CREATE_ACTIVE_EVENTS_TABLE = `
   CREATE TABLE IF NOT EXISTS active_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
