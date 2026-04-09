@@ -87,7 +87,8 @@
 ## 최근 완료된 작업 (이번 세션)
 
 - [x] feat: 이벤트 추적(event-tracker) — DB v11 active_events, 홈화면 뱃지, EventTrackerModal, 캘린더 기간 dot
-- [x] fix: app.json LSSupportsOpeningDocumentsInPlace + LSHandlerRank 추가 (TestFlight 90737/90788 심사 오류 해결)
+- [x] fix: Info.plist LSHandlerRank + LSSupportsOpeningDocumentsInPlace 추가 (TestFlight 90737/90788 심사 오류 해결)
+- [x] chore: build_ios.sh archive+export 스크립트 업데이트, ios/ExportOptions.plist 추가
 
 - [x] weekly-report-visualization: DB v10 visual_data 컬럼, SynthesisArticle 타입, synthesisDao, absorbService VISUAL_DATA 파싱, SearchScreen 패턴 칩 UI
 - [x] fix: DB v10 신규 설치 버그 — CREATE TABLE에 이미 visual_data 있는데 ALTER TABLE 중복 시도 → try-catch로 수정

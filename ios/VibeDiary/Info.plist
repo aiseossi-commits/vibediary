@@ -15,6 +15,8 @@
         <string>VibeDiary Backup</string>
         <key>CFBundleTypeRole</key>
         <string>Editor</string>
+        <key>LSHandlerRank</key>
+        <string>Alternate</string>
         <key>LSItemContentTypes</key>
         <array>
           <string>public.json</string>
@@ -54,6 +56,8 @@
     <string>4</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
