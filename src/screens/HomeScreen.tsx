@@ -117,14 +117,14 @@ function createStyles(colors: AppColors) {
     },
     eventBadge: {
       flexDirection: 'row', alignItems: 'center', gap: 4,
-      backgroundColor: colors.primary + '22',
+      backgroundColor: colors.primary + '20',
       borderRadius: BORDER_RADIUS.full,
       paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
-      borderWidth: 1, borderColor: colors.primary + '44',
+      borderWidth: 1.5, borderColor: colors.primary + '88',
     },
-    eventBadgeText: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: '600' },
+    eventBadgeText: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: '700' },
     eventBadgeAdd: {
-      backgroundColor: colors.surfaceSecondary,
+      backgroundColor: 'transparent',
       borderRadius: BORDER_RADIUS.full,
       paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
       borderWidth: 1, borderColor: colors.border,
@@ -363,6 +363,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           >
             {activeEvents.map(ev => (
               <TouchableOpacity key={ev.id} style={styles.eventBadge} onPress={() => setEventModalVisible(true)}>
+                <Ionicons name="time-outline" size={12} color={colors.primary} />
                 <Text style={styles.eventBadgeText}>{ev.name} · {formatEventDuration(ev.startedAt)}</Text>
               </TouchableOpacity>
             ))}
