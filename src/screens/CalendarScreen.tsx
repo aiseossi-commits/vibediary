@@ -20,7 +20,7 @@ import { Calendar } from 'react-native-calendars';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
 import TimePickerModal from '../components/TimePickerModal';
-import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady } from '../db';
+import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady, getEventsByDateRange, type ActiveEvent } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { useTheme } from '../context/ThemeContext';
@@ -69,6 +69,8 @@ function createStyles(colors: AppColors) {
     dayTextSelected: { fontWeight: FONT_WEIGHT.bold },
     dayTextDisabled: { color: colors.textTertiary },
     pearlDot: { position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.secondary },
+    eventDotsRow: { flexDirection: 'row', gap: 2, marginTop: 1 },
+    eventDot: { width: 4, height: 4, borderRadius: 2 },
     legend: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs },
     legendLabel: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     legendDot: { width: 14, height: 14, borderRadius: 3 },
@@ -147,6 +149,7 @@ export default function CalendarScreen() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [dailySummaries, setDailySummaries] = useState<DailyRecordSummary[]>([]);
+  const [monthEvents, setMonthEvents] = useState<ActiveEvent[]>([]);
   const [dayRecords, setDayRecords] = useState<RecordWithTags[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
@@ -206,6 +209,15 @@ export default function CalendarScreen() {
     try {
       const summaries = await getDailyRecordSummaries(yearMonth, activeChild?.id);
       setDailySummaries(summaries);
+      if (activeChild?.id) {
+        const [y, m] = yearMonth.split('-').map(Number);
+        const from = new Date(y, m - 1, 1).getTime();
+        const to = new Date(y, m, 0, 23, 59, 59, 999).getTime();
+        const events = await getEventsByDateRange(activeChild.id, from, to);
+        setMonthEvents(events);
+      } else {
+        setMonthEvents([]);
+      }
     } catch (error) {
       console.warn('캘린더 데이터 로드 실패:', error);
     }
@@ -361,6 +373,26 @@ setDayRecords(records);
     return map;
   }, [dailySummaries]);
 
+  const EVENT_DOT_COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#A855F7', '#F59E0B', '#06B6D4'];
+
+  const eventDateMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const ev of monthEvents) {
+      const start = new Date(ev.startedAt);
+      const end = ev.endedAt ? new Date(ev.endedAt) : new Date();
+      const color = EVENT_DOT_COLORS[monthEvents.indexOf(ev) % EVENT_DOT_COLORS.length];
+      const cur = new Date(start);
+      cur.setHours(0, 0, 0, 0);
+      while (cur <= end) {
+        const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+        if (!map[key]) map[key] = [];
+        if (!map[key].includes(color)) map[key].push(color);
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+    return map;
+  }, [monthEvents]);
+
   const CustomDay = useCallback(({ date, state }: any) => {
     const dateStr = date?.dateString ?? '';
     const summary = summaryMap[dateStr];
@@ -369,6 +401,9 @@ setDayRecords(records);
     const isSelected = dateStr === selectedDate;
     const isToday = state === 'today';
     const bgColor = getDensityColor(count, densityColors);
+    const eventColors = eventDateMap[dateStr] ?? [];
+    const visibleDots = eventColors.slice(0, 3);
+    const hasMore = eventColors.length > 3;
 
     return (
       <TouchableOpacity
@@ -384,9 +419,17 @@ setDayRecords(records);
         ]}>
           {date?.day}
         </Text>
+        {visibleDots.length > 0 && (
+          <View style={styles.eventDotsRow}>
+            {visibleDots.map((c, i) => (
+              <View key={i} style={[styles.eventDot, { backgroundColor: c }]} />
+            ))}
+            {hasMore && <Text style={{ fontSize: 6, color: colors.textTertiary, lineHeight: 6 }}>…</Text>}
+          </View>
+        )}
       </TouchableOpacity>
     );
-  }, [summaryMap, selectedDate, handleDayPress, styles, densityColors]);
+  }, [summaryMap, eventDateMap, selectedDate, handleDayPress, styles, densityColors, colors]);
 
   const formattedDate = useMemo(() => {
     const d = new Date(selectedDate + 'T00:00:00');

@@ -10,6 +10,7 @@ import {
   CREATE_SEARCH_LOGS_TABLE,
   CREATE_SYNTHESIS_ARTICLES_TABLE,
   CREATE_ABSORB_LOG_TABLE,
+  CREATE_ACTIVE_EVENTS_TABLE,
   CREATE_INDEXES,
   CREATE_SYNTHESIS_INDEXES,
   MIGRATE_TAGS_V3,
@@ -60,6 +61,7 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_SEARCH_LOGS_TABLE);
     await database.execAsync(CREATE_SYNTHESIS_ARTICLES_TABLE);
     await database.execAsync(CREATE_ABSORB_LOG_TABLE);
+    await database.execAsync(CREATE_ACTIVE_EVENTS_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
@@ -202,6 +204,12 @@ export async function initializeDatabase(): Promise<void> {
         // 컬럼이 이미 존재하면 무시 (신규 설치 케이스)
       }
       await database.execAsync('PRAGMA user_version = 10');
+    }
+
+    if (currentVersion < 11) {
+      // v10 → v11: active_events 테이블 추가
+      await database.execAsync(CREATE_ACTIVE_EVENTS_TABLE);
+      await database.execAsync('PRAGMA user_version = 11');
     }
 
     dbInitialized = true;

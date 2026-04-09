@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -22,14 +23,18 @@ import { useChild } from '../context/ChildContext';
 import {
   SPACING,
   TOUCH_TARGET,
+  BORDER_RADIUS,
+  FONT_SIZE,
   type AppColors,
 } from '../constants/theme';
 import type { RecordWithTags } from '../types/record';
-import { getAllRecords, isDatabaseReady } from '../db';
+import { getAllRecords, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
+import { formatEventDuration } from '../constants/events';
 import RecordCard from '../components/RecordCard';
+import EventTrackerModal from '../components/EventTrackerModal';
 
 interface HomeScreenProps {
   navigation: any;
@@ -105,6 +110,26 @@ function createStyles(colors: AppColors) {
       borderTopWidth: 1, borderTopColor: colors.divider,
     },
     modalCancelText: { fontSize: 15, color: colors.textTertiary },
+    eventBadgeRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: SPACING.lg, paddingBottom: SPACING.sm,
+      gap: SPACING.xs,
+    },
+    eventBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: colors.primary + '22',
+      borderRadius: BORDER_RADIUS.full,
+      paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs,
+      borderWidth: 1, borderColor: colors.primary + '44',
+    },
+    eventBadgeText: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: '600' },
+    eventBadgeAdd: {
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: BORDER_RADIUS.full,
+      paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    eventBadgeAddText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
   });
 }
 
@@ -120,6 +145,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [textInput, setTextInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [childModalVisible, setChildModalVisible] = useState(false);
+  const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
+  const [eventModalVisible, setEventModalVisible] = useState(false);
 
   const pulseAnims = useRef(
     Array.from({ length: PULSE_COUNT }, () => ({
@@ -154,6 +181,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const activeChildIdRef = useRef(activeChild?.id);
   useEffect(() => { activeChildIdRef.current = activeChild?.id; }, [activeChild?.id]);
 
+  const loadActiveEvents = useCallback(async () => {
+    if (!activeChild?.id) { setActiveEvents([]); return; }
+    try {
+      const events = await getActiveEvents(activeChild.id);
+      setActiveEvents(events);
+    } catch (e) {
+      console.error('[Home] loadActiveEvents error:', e);
+    }
+  }, [activeChild?.id]);
+
   const loadRecords = useCallback(async () => {
     try {
       if (!isDatabaseReady()) { setRecords([]); return; }
@@ -176,13 +213,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     useCallback(() => {
       setIsLoading(true);
       loadRecords();
+      loadActiveEvents();
       warmDeno();
       processOfflineQueue().then(() => loadRecords()).catch(() => {});
       return () => setShowEmptyState(false);
-    }, [loadRecords])
+    }, [loadRecords, loadActiveEvents])
   );
 
-  useEffect(() => { loadRecords(); }, [activeChild?.id]);
+  useEffect(() => { loadRecords(); loadActiveEvents(); }, [activeChild?.id]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -228,6 +266,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {activeChild && (
+        <EventTrackerModal
+          visible={eventModalVisible}
+          onClose={() => setEventModalVisible(false)}
+          childId={activeChild.id}
+          activeEvents={activeEvents}
+          onChanged={() => { setEventModalVisible(false); loadActiveEvents(); }}
+        />
+      )}
+
       <Modal visible={childModalVisible} transparent animationType="fade" onRequestClose={() => setChildModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setChildModalVisible(false)}>
           <View style={styles.modalBox}>
@@ -306,6 +354,30 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             )}
           </TouchableOpacity>
         </View>
+
+        {(activeEvents.length > 0) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.eventBadgeRow}
+          >
+            {activeEvents.map(ev => (
+              <TouchableOpacity key={ev.id} style={styles.eventBadge} onPress={() => setEventModalVisible(true)}>
+                <Text style={styles.eventBadgeText}>{ev.name} · {formatEventDuration(ev.startedAt)}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.eventBadgeAdd} onPress={() => setEventModalVisible(true)}>
+              <Text style={styles.eventBadgeAddText}>+ 추가</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+        {activeEvents.length === 0 && (
+          <View style={[styles.eventBadgeRow, { justifyContent: 'center' }]}>
+            <TouchableOpacity style={styles.eventBadgeAdd} onPress={() => setEventModalVisible(true)}>
+              <Text style={styles.eventBadgeAddText}>+ 이벤트 추가</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.pearlCenter}>
           {PearlButton}

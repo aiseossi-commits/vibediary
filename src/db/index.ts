@@ -3,3 +3,4 @@ export * from './recordsDao';
 export * from './tagsDao';
 export * from './queries';
 export * from './childrenDao';
+export * from './activeEventsDao';

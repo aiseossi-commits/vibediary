@@ -150,6 +150,17 @@ export const CREATE_SYNTHESIS_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_synthesis_updated ON synthesis_articles(updated_at);`,
 ];
 
+export const CREATE_ACTIVE_EVENTS_TABLE = `
+  CREATE TABLE IF NOT EXISTS active_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    ended_at INTEGER,
+    created_at INTEGER NOT NULL
+  );
+`;
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   '#의료',
