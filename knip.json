@@ -1,0 +1,12 @@
+{
+  "entry": ["App.tsx", "src/**/*.tsx", "src/**/*.ts", "babel.config.js"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreDependencies": [
+    "expo-updates",
+    "expo-system-ui",
+    "expo-constants",
+    "babel-preset-expo",
+    "babel-plugin-transform-remove-console"
+  ],
+  "ignoreExportsUsedInFile": true
+}

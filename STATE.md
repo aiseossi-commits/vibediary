@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 등대 인사이트 가독성 + 기록 장려 배지` (2026-04-12)
+**마지막 커밋**: `chore: 슬래시 커맨드 4개 + knip 데드코드 탐지 설정` (2026-04-12)
 
 **현재 브랜치**: main
 
@@ -16,6 +16,8 @@
 
 ## 최근 완료된 작업
 
+- [x] 슬래시 커맨드 4개 추가: /check-ontology, /check-db-migration, /pre-release, /check-dead-code
+- [x] knip v6.4.0 설치 + knip.json 설정 (현재 데드코드 없음 확인)
 - [x] 등대 인사이트 카드 마크다운 렌더링: react-native-markdown-display 도입, 전체 보기 시 ## 헤딩/볼드/리스트 정상 표시, 접힌 상태는 plain text 4줄 미리보기 유지
 - [x] 항해일지 탭 기록 장려 배지: getAbsorbProgress() 추가, 1~9개 기록 시 "N개 더 쌓이면 AI 위키 업데이트 가능" 배지 표시
 - [x] 이벤트 추적 기능 대규모 개선 (미커밋):
