@@ -58,6 +58,12 @@ export async function shouldAbsorb(childId: string): Promise<boolean> {
   return newCount >= ABSORB_THRESHOLD;
 }
 
+export async function getAbsorbProgress(childId: string): Promise<{ ready: boolean; current: number; needed: number }> {
+  const lastAbsorb = await getLastAbsorbTime(childId);
+  const current = await getNewRecordCountSince(childId, lastAbsorb);
+  return { ready: current >= ABSORB_THRESHOLD, current, needed: ABSORB_THRESHOLD };
+}
+
 // ─── 기록 조회 ───────────────────────────────────────────────────────────────
 async function getRecordsSinceLastAbsorb(childId: string, since: number | null): Promise<RecordWithTags[]> {
   const db = await getDatabase();

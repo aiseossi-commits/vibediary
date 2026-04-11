@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import Markdown from 'react-native-markdown-display';
 import {
   View,
   Text,
@@ -21,7 +22,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
-import { shouldAbsorb, runAbsorb, generateVoyageReport, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
+import { shouldAbsorb, runAbsorb, generateVoyageReport, getAbsorbProgress, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
 import { runLint } from '../services/wikiLintService';
 import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
 import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
@@ -128,6 +129,17 @@ function createStyles(colors: AppColors) {
   });
 }
 
+function buildMarkdownStyles(colors: AppColors) {
+  return {
+    body: { color: colors.textSecondary, fontSize: FONT_SIZE.sm, lineHeight: 20 },
+    heading2: { color: colors.textPrimary, fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.sm, marginBottom: SPACING.xs },
+    heading3: { color: colors.textPrimary, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.xs, marginBottom: 2 },
+    bullet_list_icon: { color: colors.textTertiary, marginTop: 4 },
+    strong: { color: colors.textPrimary, fontWeight: FONT_WEIGHT.semibold },
+    paragraph: { marginTop: 0, marginBottom: SPACING.xs },
+  };
+}
+
 function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.userBubbleRow}>
@@ -169,6 +181,7 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   const [lintResult, setLintResult] = useState<LintResult | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [absorbProgress, setAbsorbProgress] = useState<{ ready: boolean; current: number; needed: number } | null>(null);
 
   const toggleExpand = useCallback((key: string) => {
     setExpandedIds(prev => {
@@ -181,9 +194,14 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   const loadData = useCallback(async () => {
     if (!childId) { setIsLoading(false); return; }
     try {
-      const [pages, l] = await Promise.all([getWikiPages(childId), getSearchLogs(childId)]);
+      const [pages, l, progress] = await Promise.all([
+        getWikiPages(childId),
+        getSearchLogs(childId),
+        getAbsorbProgress(childId),
+      ]);
       setAllWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
       setLogs(l);
+      setAbsorbProgress(progress);
     } catch (e) {
       console.error('[VoyageLogFeed] 로드 실패:', e);
     } finally {
@@ -251,6 +269,8 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
     }
   }, [childId, isGenerating, loadData]);
 
+  const markdownStyles = useMemo(() => buildMarkdownStyles(colors), [colors]);
+
   const renderInsightCard = useCallback((page: WikiPage) => {
     const key = `p-${page.id}`;
     const expanded = expandedIds.has(key);
@@ -278,11 +298,14 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
             );
           } catch { return null; }
         })()}
-        <Text style={styles.insightBody} numberOfLines={expanded ? undefined : 4}>{page.body}</Text>
+        {expanded
+          ? <Markdown style={markdownStyles}>{page.body}</Markdown>
+          : <Text style={styles.insightBody} numberOfLines={4}>{page.body}</Text>
+        }
         <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {expanded ? '접기' : '전체 보기'}</Text>
       </TouchableOpacity>
     );
-  }, [expandedIds, toggleExpand, handleDeleteWikiPage, styles, colors]);
+  }, [expandedIds, toggleExpand, handleDeleteWikiPage, styles, colors, markdownStyles]);
 
   if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
 
@@ -338,6 +361,16 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
             </Text>
             {!isAbsorbing && <Ionicons name="chevron-forward" size={14} color={colors.accent} />}
           </TouchableOpacity>
+        )}
+
+        {/* 기록 장려 배지 */}
+        {!showAbsorbBanner && absorbProgress && !absorbProgress.ready && absorbProgress.current > 0 && (
+          <View style={styles.lintBanner}>
+            <Ionicons name="document-text-outline" size={16} color={colors.textTertiary} />
+            <Text style={styles.lintBannerText}>
+              기록이 <Text style={{ fontWeight: '600', color: colors.textSecondary }}>{absorbProgress.needed - absorbProgress.current}개</Text> 더 쌓이면 AI 위키를 업데이트할 수 있어요
+            </Text>
+          </View>
         )}
 
         {/* Lint 버튼 */}
