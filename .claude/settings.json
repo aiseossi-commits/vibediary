@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm info:*)",
+      "Bash(npm audit:*)",
+      "Bash(npx knip:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | grep -q 'aiProcessor' && echo '{\"systemMessage\": \"⚠️ aiProcessor.ts 수정 감지 — /check-ontology 로 온톨로지 정합성을 확인하세요.\"}' || true",
+            "statusMessage": "aiProcessor 변경 확인 중..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -q 'git commit' && git -C /Users/jhouse/Documents/newbada/vibediary diff --cached --name-only | grep -qE '(schema|database)\\.ts' && echo '{\"systemMessage\": \"⚠️ DB 파일 변경 감지 — /check-db-migration 으로 마이그레이션 안전성을 확인하세요.\"}' || true",
+            "statusMessage": "DB 변경 감지 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
