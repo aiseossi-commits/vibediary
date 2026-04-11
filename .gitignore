@@ -47,6 +47,9 @@ yarn-error.*
 *.tar.gz
 bundle/
 
+# 루트 디버깅 스크린샷 (CI/빌드 과정 중 임시 캡처)
+/*.png
+
 # Release keystore
 *.keystore
 \!android/app/debug.keystore

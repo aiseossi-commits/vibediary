@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 폴더 구조 정리: synthesisDao.ts 삭제, 루트 PNG gitignore, 이벤트 DAO 3개 → eventDao.ts 통합
 - [x] hooks 설정: aiProcessor.ts 수정 시 /check-ontology 배너, git commit 시 DB 변경 감지 배너
 - [x] 슬래시 커맨드 4개: /check-ontology, /check-db-migration, /pre-release, /check-dead-code
 - [x] knip v6.4.0 설치 + knip.json 설정 (현재 데드코드 없음)

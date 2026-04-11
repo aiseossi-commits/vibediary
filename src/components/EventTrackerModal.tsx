@@ -15,9 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { SPACING, FONT_SIZE, BORDER_RADIUS, type AppColors } from '../constants/theme';
 import { DEFAULT_EVENT_NAMES, formatEventDuration } from '../constants/events';
-import { createEvent, endEvent, type ActiveEvent } from '../db/activeEventsDao';
-import { getEventNamePresets, addEventNamePreset, deleteEventNamePreset, getHiddenDefaultEventNames, hideDefaultEventName } from '../db/eventNamePresetsDao';
-import { upsertDailyLog, getDailyLogsForEvents, todayStr, type EventSeverity } from '../db/eventDailyLogsDao';
+import { createEvent, endEvent, type ActiveEvent, getEventNamePresets, addEventNamePreset, deleteEventNamePreset, getHiddenDefaultEventNames, hideDefaultEventName, upsertDailyLog, getDailyLogsForEvents, todayStr, type EventSeverity } from '../db/eventDao';
 
 interface Props {
   visible: boolean;
