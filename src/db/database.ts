@@ -11,6 +11,9 @@ import {
   CREATE_SYNTHESIS_ARTICLES_TABLE,
   CREATE_ABSORB_LOG_TABLE,
   CREATE_ACTIVE_EVENTS_TABLE,
+  CREATE_EVENT_NAME_PRESETS_TABLE,
+  CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE,
+  CREATE_EVENT_DAILY_LOGS_TABLE,
   CREATE_WIKI_PAGES_TABLE,
   CREATE_WIKI_PAGES_INDEXES,
   CREATE_INDEXES,
@@ -64,6 +67,9 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_SYNTHESIS_ARTICLES_TABLE);
     await database.execAsync(CREATE_ABSORB_LOG_TABLE);
     await database.execAsync(CREATE_ACTIVE_EVENTS_TABLE);
+    await database.execAsync(CREATE_EVENT_NAME_PRESETS_TABLE);
+    await database.execAsync(CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE);
+    await database.execAsync(CREATE_EVENT_DAILY_LOGS_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
@@ -249,6 +255,24 @@ export async function initializeDatabase(): Promise<void> {
         }
       }
       await database.execAsync('PRAGMA user_version = 12');
+    }
+
+    if (currentVersion < 13) {
+      // v12 → v13: event_name_presets 테이블 추가
+      await database.execAsync(CREATE_EVENT_NAME_PRESETS_TABLE);
+      await database.execAsync('PRAGMA user_version = 13');
+    }
+
+    if (currentVersion < 14) {
+      // v13 → v14: hidden_default_event_names 테이블 추가
+      await database.execAsync(CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE);
+      await database.execAsync('PRAGMA user_version = 14');
+    }
+
+    if (currentVersion < 15) {
+      // v14 → v15: event_daily_logs 테이블 추가
+      await database.execAsync(CREATE_EVENT_DAILY_LOGS_TABLE);
+      await database.execAsync('PRAGMA user_version = 15');
     }
 
     dbInitialized = true;

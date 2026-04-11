@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   FlatList,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -32,7 +31,7 @@ import { getAllRecords, isDatabaseReady, getActiveEvents, type ActiveEvent } fro
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
-import { formatEventDuration } from '../constants/events';
+import { formatEventDurationShort } from '../constants/events';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
 
@@ -110,9 +109,18 @@ function createStyles(colors: AppColors) {
       borderTopWidth: 1, borderTopColor: colors.divider,
     },
     modalCancelText: { fontSize: 15, color: colors.textTertiary },
+    eventSection: {
+      paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, paddingBottom: SPACING.xs,
+    },
+    eventSectionHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginBottom: SPACING.xs,
+    },
+    eventSectionLabel: {
+      fontSize: FONT_SIZE.sm, fontWeight: '600', color: colors.textSecondary,
+    },
     eventBadgeRow: {
       flexDirection: 'row', alignItems: 'center',
-      paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
       gap: SPACING.xs,
     },
     eventBadge: {
@@ -130,6 +138,13 @@ function createStyles(colors: AppColors) {
       borderWidth: 1, borderColor: colors.border,
     },
     eventBadgeAddText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
+    eventBadgeMore: {
+      borderRadius: BORDER_RADIUS.full,
+      paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    eventBadgeMoreText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
+    eventBadgeHint: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginTop: 2 },
   });
 }
 
@@ -355,30 +370,29 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {(activeEvents.length > 0) && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.eventBadgeRow}
-          >
-            {activeEvents.map(ev => (
-              <TouchableOpacity key={ev.id} style={styles.eventBadge} onPress={() => setEventModalVisible(true)}>
-                <Ionicons name="time-outline" size={12} color={colors.primary} />
-                <Text style={styles.eventBadgeText}>{ev.name} · {formatEventDuration(ev.startedAt)}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={styles.eventBadgeAdd} onPress={() => setEventModalVisible(true)}>
-              <Text style={styles.eventBadgeAddText}>+ 추가</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
-        {activeEvents.length === 0 && (
-          <View style={[styles.eventBadgeRow, { justifyContent: 'center' }]}>
-            <TouchableOpacity style={styles.eventBadgeAdd} onPress={() => setEventModalVisible(true)}>
-              <Text style={styles.eventBadgeAddText}>+ 이벤트 추가</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.eventSection}>
+          <TouchableOpacity style={styles.eventSectionHeader} onPress={() => setEventModalVisible(true)}>
+            <Text style={styles.eventSectionLabel}>증상·상태 추적</Text>
+            <Ionicons name="add" size={16} color={colors.textTertiary} />
+          </TouchableOpacity>
+          {activeEvents.length > 0 ? (
+            <View style={styles.eventBadgeRow}>
+              {activeEvents.slice(0, 2).map(ev => (
+                <TouchableOpacity key={ev.id} style={styles.eventBadge} onPress={() => setEventModalVisible(true)}>
+                  <Ionicons name="time-outline" size={12} color={colors.primary} />
+                  <Text style={styles.eventBadgeText}>{ev.name} · {formatEventDurationShort(ev.startedAt)}</Text>
+                </TouchableOpacity>
+              ))}
+              {activeEvents.length > 2 && (
+                <TouchableOpacity style={styles.eventBadgeMore} onPress={() => setEventModalVisible(true)}>
+                  <Text style={styles.eventBadgeMoreText}>+{activeEvents.length - 2}개 →</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.eventBadgeHint}>"언제부터 이랬나요?" — 병원·치료사에게 바로 알려줄 수 있어요</Text>
+          )}
+        </View>
 
         <View style={styles.pearlCenter}>
           {PearlButton}

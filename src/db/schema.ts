@@ -183,6 +183,37 @@ export const CREATE_ACTIVE_EVENTS_TABLE = `
   );
 `;
 
+export const CREATE_EVENT_NAME_PRESETS_TABLE = `
+  CREATE TABLE IF NOT EXISTS event_name_presets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(child_id, name)
+  );
+`;
+
+export const CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE = `
+  CREATE TABLE IF NOT EXISTS hidden_default_event_names (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(child_id, name)
+  );
+`;
+
+export const CREATE_EVENT_DAILY_LOGS_TABLE = `
+  CREATE TABLE IF NOT EXISTS event_daily_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL REFERENCES active_events(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(event_id, date)
+  );
+`;
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   '#의료',

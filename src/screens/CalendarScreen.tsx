@@ -20,7 +20,9 @@ import { Calendar } from 'react-native-calendars';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
 import TimePickerModal from '../components/TimePickerModal';
-import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady, getEventsByDateRange, type ActiveEvent } from '../db';
+import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady, getEventsByDateRange, deleteEvent, getDailyLogsForEvents, type ActiveEvent, type EventSeverity } from '../db';
+import { Ionicons } from '@expo/vector-icons';
+import { formatEventDuration } from '../constants/events';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { useTheme } from '../context/ThemeContext';
@@ -127,6 +129,25 @@ function createStyles(colors: AppColors) {
     pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     pickerConfirmBtn: { flex: 1, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, alignItems: 'center', backgroundColor: colors.primary },
     pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    dayEventSection: {
+      marginBottom: SPACING.md,
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md,
+    },
+    dayEventSectionTitle: {
+      fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.textTertiary,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACING.sm,
+    },
+    dayEventRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: 3 },
+    dayEventDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+    dayEventName: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, flexShrink: 1 },
+    dayEventPeriod: { fontSize: FONT_SIZE.xs, color: colors.textSecondary },
+    dayEventBadge: {
+      fontSize: FONT_SIZE.xs, color: colors.error, fontWeight: FONT_WEIGHT.medium,
+      backgroundColor: colors.error + '18', borderRadius: BORDER_RADIUS.sm,
+      paddingHorizontal: 5, paddingVertical: 1, overflow: 'hidden',
+    },
     timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SPACING.sm },
     timeLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     timeButton: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
@@ -150,6 +171,7 @@ export default function CalendarScreen() {
   });
   const [dailySummaries, setDailySummaries] = useState<DailyRecordSummary[]>([]);
   const [monthEvents, setMonthEvents] = useState<ActiveEvent[]>([]);
+  const [dayEventLogs, setDayEventLogs] = useState<Record<number, EventSeverity>>({});
   const [dayRecords, setDayRecords] = useState<RecordWithTags[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
@@ -237,6 +259,11 @@ setDayRecords(records);
       setIsLoadingRecords(false);
     }
   }, [activeChild?.id]);
+
+  const handleDeleteEvent = useCallback(async (id: number) => {
+    await deleteEvent(id);
+    loadMonthData(currentMonthRef.current);
+  }, [loadMonthData]);
 
   const handleDatePickerConfirm = useCallback(() => {
     const yearMonth = `${pickerYear}-${String(pickerMonth).padStart(2, '0')}`;
@@ -375,6 +402,19 @@ setDayRecords(records);
 
   const EVENT_DOT_COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#A855F7', '#F59E0B', '#06B6D4'];
 
+  const dayEvents = useMemo(() => {
+    const dayStart = new Date(selectedDate + 'T00:00:00').getTime();
+    const dayEnd = dayStart + 86399999;
+    return monthEvents.filter(ev =>
+      ev.startedAt <= dayEnd && (ev.endedAt === null || ev.endedAt >= dayStart)
+    );
+  }, [monthEvents, selectedDate]);
+
+  useEffect(() => {
+    if (dayEvents.length === 0) { setDayEventLogs({}); return; }
+    getDailyLogsForEvents(dayEvents.map(e => e.id), selectedDate).then(setDayEventLogs);
+  }, [dayEvents, selectedDate]);
+
   const eventDateMap = useMemo(() => {
     const map: Record<string, string[]> = {};
     for (const ev of monthEvents) {
@@ -489,6 +529,8 @@ setDayRecords(records);
         <View style={styles.legendSpacer} />
         <View style={styles.pearlDotSmall} />
         <Text style={styles.legendLabel}>의료 기록</Text>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: EVENT_DOT_COLORS[0] }} />
+        <Text style={styles.legendLabel}>증상 추적</Text>
       </View>
 
       {isSheetOpen && (
@@ -514,6 +556,47 @@ setDayRecords(records);
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* 이 날 활성 증상 */}
+            {dayEvents.length > 0 && (
+              <View style={styles.dayEventSection}>
+                <Text style={styles.dayEventSectionTitle}>이 날의 증상</Text>
+                {dayEvents.map((ev) => {
+                  const dotColor = EVENT_DOT_COLORS[monthEvents.indexOf(ev) % EVENT_DOT_COLORS.length];
+                  const ended = ev.endedAt !== null && ev.endedAt <= new Date(selectedDate + 'T23:59:59').getTime();
+                  const severity = dayEventLogs[ev.id] ?? null;
+                  const SEVERITY_LABELS: Record<string, { label: string; color: string }> = {
+                    high:   { label: '심함', color: colors.error },
+                    medium: { label: '보통', color: '#f59e0b' },
+                    low:    { label: '약함', color: '#22c55e' },
+                    none:   { label: '없음', color: colors.textTertiary },
+                  };
+                  const severityInfo = severity ? SEVERITY_LABELS[severity] : null;
+                  return (
+                    <View key={ev.id} style={styles.dayEventRow}>
+                      <View style={[styles.dayEventDot, { backgroundColor: dotColor }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.dayEventName}>{ev.name}</Text>
+                        <Text style={styles.dayEventPeriod}>{formatEventDuration(ev.startedAt)}</Text>
+                      </View>
+                      {severityInfo && (
+                        <Text style={[styles.dayEventBadge, { color: severityInfo.color, borderColor: severityInfo.color + '44', backgroundColor: severityInfo.color + '15' }]}>
+                          {severityInfo.label}
+                        </Text>
+                      )}
+                      {ended && !severityInfo && <Text style={styles.dayEventBadge}>종료</Text>}
+                      <TouchableOpacity
+                        onPress={() => handleDeleteEvent(ev.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={{ marginLeft: 4 }}
+                      >
+                        <Ionicons name="trash-outline" size={15} color={colors.textTertiary} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
             {isLoadingRecords ? (
               <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
             ) : dayRecords.length === 0 ? (

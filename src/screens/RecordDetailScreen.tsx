@@ -36,6 +36,53 @@ interface RecordDetailScreenProps {
   navigation: any;
 }
 
+const STRUCTURED_DATA_LABELS: Record<string, string> = {
+  // 공통
+  event_type: '유형',
+  // 행동
+  antecedent: '선행 상황',
+  behavior: '행동',
+  consequence: '결과',
+  // 발달
+  domain: '발달 영역',
+  ontology_code: '영역 코드',
+  is_milestone: '이정표',
+  // 의료
+  temperature: '체온',
+  medication: '투약',
+  dose: '용량',
+  frequency: '횟수',
+  // ATEC
+  ATEC_total: 'ATEC 총점',
+  ATEC_language: 'ATEC 언어',
+  ATEC_social: 'ATEC 사회성',
+  ATEC_sensory: 'ATEC 감각·인지',
+  ATEC_motor: 'ATEC 건강·신체',
+  // 기타 검사
+  CARS_total: 'CARS 총점',
+  score: '점수',
+  test_name: '검사명',
+  assessment_date: '검사일',
+  date: '날짜',
+};
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  behavioral_incident: '행동 사건',
+  medical: '의료',
+  developmental: '발달 관찰',
+  daily: '일상',
+};
+
+function formatStructuredValue(key: string, value: string | number | boolean): string {
+  if (key === 'event_type') return EVENT_TYPE_LABELS[String(value)] ?? String(value);
+  if (key === 'is_milestone') return value ? '예' : '아니오';
+  return String(value);
+}
+
+function labelForKey(key: string): string {
+  return STRUCTURED_DATA_LABELS[key] ?? key;
+}
+
 function formatFullDate(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
@@ -355,8 +402,8 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
             <View style={styles.table}>
               {Object.entries(record.structuredData).map(([key, value], index) => (
                 <View key={key} style={[styles.tableRow, index % 2 === 0 && styles.tableRowEven]}>
-                  <Text style={styles.tableKey}>{key}</Text>
-                  <Text style={styles.tableValue}>{String(value)}</Text>
+                  <Text style={styles.tableKey}>{labelForKey(key)}</Text>
+                  <Text style={styles.tableValue}>{value !== undefined ? formatStructuredValue(key, value) : ''}</Text>
                 </View>
               ))}
             </View>

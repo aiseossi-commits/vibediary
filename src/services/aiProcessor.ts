@@ -51,6 +51,11 @@ ${customTagSection}
       - is_milestone: 기록에 "처음", "첫", "드디어", "오늘 해냈", "새로", "성공" 등 이정표 표현이 있으면 true. 없으면 이 필드를 포함하지 않음.
    d. event_type이 "medical"이면:
       - 체온, 약물명, 용량, 횟수, 시간 등 수치 데이터 추출
+   e. 평가·검사 점수가 포함된 경우 (event_type에 관계없이):
+      - ATEC: ATEC_total(총점), ATEC_language(언어), ATEC_social(사회성), ATEC_sensory(감각/인지), ATEC_motor(건강/신체), assessment_date(검사일, YYYY-MM-DD)
+      - CARS: CARS_total(총점), assessment_date
+      - K-WISC, 언어발달검사 등: score(총점 또는 대표점수), test_name(검사명), assessment_date
+      - **반드시 평면(flat) 구조로 추출. 중첩 객체 사용 금지.**
 
 JSON 응답 예시 (behavioral_incident):
 {"summary": "마트에서 과자 사달라는 요구 거절 후 드러누워 울었음.", "tags": ["#행동"], "structured_data": {"event_type": "behavioral_incident", "antecedent": "마트에서 과자 구매 거절", "behavior": "드러누워 울기", "consequence": "그냥 지나침"}}
@@ -154,13 +159,23 @@ function parseAIResponse(content: string): AIProcessingResult {
 
     const rawStructured = parsed.structured_data || {};
     const validEventTypes = ['behavioral_incident', 'medical', 'developmental', 'daily'];
-    // 빈 문자열 필드 제거 + 유효하지 않은 event_type 제거
+    // 빈 문자열·null·undefined 제거, 중첩 객체는 flat하게 전개, 유효하지 않은 event_type 제거
     const structuredData: Record<string, string | number | boolean> = {};
-    for (const [k, v] of Object.entries(rawStructured)) {
-      if (v === '' || v === null || v === undefined) continue;
-      if (k === 'event_type' && !validEventTypes.includes(String(v))) continue;
-      structuredData[k] = v as string | number | boolean;
+    function flattenInto(obj: Record<string, unknown>, prefix = '') {
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === '' || v === null || v === undefined) continue;
+        const key = prefix ? `${prefix}_${k}` : k;
+        if (k === 'event_type' && !prefix && !validEventTypes.includes(String(v))) continue;
+        if (typeof v === 'object' && !Array.isArray(v)) {
+          flattenInto(v as Record<string, unknown>, key);
+        } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+          structuredData[key] = v;
+        } else if (Array.isArray(v)) {
+          structuredData[key] = v.join(', ');
+        }
+      }
     }
+    flattenInto(rawStructured);
 
     return {
       summary: parsed.summary || '',

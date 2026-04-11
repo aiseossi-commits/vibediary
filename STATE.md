@@ -10,12 +10,23 @@
 
 **현재 브랜치**: main
 
-**미커밋**: build_ios.sh(archive+export 스크립트), ios/ExportOptions.plist
+**미커밋**: 이벤트 추적 대규모 개선 (아래 참조) — 아직 커밋 전
 
 ---
 
 ## 최근 완료된 작업
 
+- [x] 이벤트 추적 기능 대규모 개선 (미커밋):
+  - EventTrackerModal 스테이징 flow: 칩/입력 → 목록 쌓기 → 한 번에 확정
+  - 기본 칩(감기 등) 개별 삭제 가능 (hidden_default_event_names DB v14)
+  - 커스텀 프리셋 칩 삭제 가능 (event_name_presets DB v13, 기존)
+  - 활성 이벤트 row에 심함/보통/약함/없음 일별 상태 버튼 (event_daily_logs DB v15)
+  - CalendarScreen 이벤트 row에 날짜별 severity 뱃지 표시
+  - CalendarScreen 이벤트 row 삭제 버튼 (휴지통 아이콘)
+  - activeEventsDao.ts deleteEvent 추가
+  - EventTrackerModal 진행 중 이벤트 없을 때 빈 상태 메시지 제거
+- [x] RecordDetailScreen structured_data 한글 라벨 매핑 (ATEC/CARS/event_type 등)
+- [x] aiProcessor.ts 검사 점수 flat 추출: ATEC/CARS/K-WISC + flattenInto로 중첩 객체 처리
 - [x] HomeScreen 이벤트 배지 시인성 개선: time-outline 아이콘 + 테두리 강화, + 추가 버튼 transparent 배경으로 구분
 - [x] HomeScreen 이벤트 배지 paddingTop 추가 (텍스트 입력창 겹침 수정)
 - [x] 항해일지 수동 생성: 타입 선택 모달 (주간/월간/수면/음식/행동), voyage/{type}/{date} slug로 누적 저장

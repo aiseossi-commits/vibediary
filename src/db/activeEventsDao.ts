@@ -83,3 +83,8 @@ export async function endEvent(id: number, endedAt: number): Promise<void> {
     endedAt, id
   );
 }
+
+export async function deleteEvent(id: number): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM active_events WHERE id = ?', id);
+}
