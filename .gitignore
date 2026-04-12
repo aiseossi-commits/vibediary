@@ -56,3 +56,6 @@ bundle/
 
 # Keystore credentials
 keystore.properties
+
+# Claude Code
+.claude/worktrees/
