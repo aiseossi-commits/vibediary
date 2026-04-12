@@ -3,7 +3,14 @@
     "allow": [
       "Bash(npm info:*)",
       "Bash(npm audit:*)",
-      "Bash(npx knip:*)"
+      "Bash(npx knip:*)",
+      "Bash(mv event-tracker:*)",
+      "Bash(mv full-context-ai-search:*)",
+      "Bash(mv tag-classification-fix:*)",
+      "Bash(mv llm-wiki-synthesis:*)",
+      "Bash(mv lighthouse-renewal:*)",
+      "Bash(kill 65306)",
+      "Bash(kill 65278)"
     ]
   },
   "hooks": {
