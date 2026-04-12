@@ -214,6 +214,13 @@ export const CREATE_EVENT_DAILY_LOGS_TABLE = `
   );
 `;
 
+export const CREATE_APP_SETTINGS_TABLE = `
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+`;
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   '#의료',

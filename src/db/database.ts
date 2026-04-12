@@ -14,6 +14,7 @@ import {
   CREATE_EVENT_NAME_PRESETS_TABLE,
   CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE,
   CREATE_EVENT_DAILY_LOGS_TABLE,
+  CREATE_APP_SETTINGS_TABLE,
   CREATE_WIKI_PAGES_TABLE,
   CREATE_WIKI_PAGES_INDEXES,
   CREATE_INDEXES,
@@ -70,6 +71,7 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_EVENT_NAME_PRESETS_TABLE);
     await database.execAsync(CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE);
     await database.execAsync(CREATE_EVENT_DAILY_LOGS_TABLE);
+    await database.execAsync(CREATE_APP_SETTINGS_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
@@ -273,6 +275,12 @@ export async function initializeDatabase(): Promise<void> {
       // v14 → v15: event_daily_logs 테이블 추가
       await database.execAsync(CREATE_EVENT_DAILY_LOGS_TABLE);
       await database.execAsync('PRAGMA user_version = 15');
+    }
+
+    if (currentVersion < 16) {
+      // v15 → v16: app_settings 테이블 추가 (홈화면 위젯 on/off 설정)
+      await database.execAsync(CREATE_APP_SETTINGS_TABLE);
+      await database.execAsync('PRAGMA user_version = 16');
     }
 
     dbInitialized = true;

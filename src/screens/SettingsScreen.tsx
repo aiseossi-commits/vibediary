@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
-  Animated, ActivityIndicator, Linking,
+  Animated, ActivityIndicator, Linking, Switch,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Application from 'expo-application';
@@ -18,6 +18,8 @@ import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, PALETTES, type AppColors, type PaletteKey } from '../constants/theme';
+import { HOME_WIDGETS } from '../constants/homeWidgets';
+import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -102,6 +104,17 @@ function createStyles(colors: AppColors) {
     paletteCircleSelected: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.textPrimary },
     paletteName: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textAlign: 'center', maxWidth: 44 },
     paletteNameSelected: { fontSize: FONT_SIZE.xs, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium, textAlign: 'center', maxWidth: 44 },
+    // 홈화면 위젯 토글
+    widgetRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: SPACING.sm,
+      borderBottomWidth: 1, borderBottomColor: colors.divider,
+    },
+    widgetRowLast: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: SPACING.sm,
+    },
+    widgetLabel: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary },
   });
 }
 
@@ -109,6 +122,7 @@ export default function SettingsScreen() {
   const { colors, isDark, palette, setTheme, setPalette } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
+  const { settings: widgetSettings, toggle: toggleWidget } = useHomeWidgetSettings();
   const navigation = useNavigation();
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -505,6 +519,29 @@ export default function SettingsScreen() {
                 );
               })}
             </View>
+          </View>
+        </View>
+
+        {/* 홈화면 구성 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>홈화면 구성</Text>
+          <View style={styles.card}>
+            {[
+              { key: HOME_WIDGETS.VOICE_INPUT,    label: '음성 입력' },
+              { key: HOME_WIDGETS.TEXT_INPUT,     label: '텍스트 입력' },
+              { key: HOME_WIDGETS.EVENT_TRACKER,  label: '증상 추적' },
+              { key: HOME_WIDGETS.RECENT_RECORDS, label: '최근 기록' },
+            ].map(({ key, label }, index, arr) => (
+              <View key={key} style={index === arr.length - 1 ? styles.widgetRowLast : styles.widgetRow}>
+                <Text style={styles.widgetLabel}>{label}</Text>
+                <Switch
+                  value={widgetSettings[key]}
+                  onValueChange={() => toggleWidget(key)}
+                  trackColor={{ false: colors.divider, true: colors.primary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            ))}
           </View>
         </View>
 

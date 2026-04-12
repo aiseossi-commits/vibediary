@@ -4,3 +4,4 @@ export * from './tagsDao';
 export * from './queries';
 export * from './childrenDao';
 export * from './eventDao';
+export * from './appSettingsDao';

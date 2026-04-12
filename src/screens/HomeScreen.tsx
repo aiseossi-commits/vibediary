@@ -26,6 +26,8 @@ import {
   FONT_SIZE,
   type AppColors,
 } from '../constants/theme';
+import { HOME_WIDGETS } from '../constants/homeWidgets';
+import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import type { RecordWithTags } from '../types/record';
 import { getAllRecords, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
@@ -152,6 +154,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild } = useChild();
+  const { settings: widgetSettings, reload: reloadWidgets } = useHomeWidgetSettings();
 
   const [records, setRecords] = useState<RecordWithTags[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -229,10 +232,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       setIsLoading(true);
       loadRecords();
       loadActiveEvents();
+      reloadWidgets();
       warmDeno();
       processOfflineQueue().then(() => loadRecords()).catch(() => {});
       return () => setShowEmptyState(false);
-    }, [loadRecords, loadActiveEvents])
+    }, [loadRecords, loadActiveEvents, reloadWidgets])
   );
 
   useEffect(() => { loadRecords(); loadActiveEvents(); }, [activeChild?.id]);
@@ -343,77 +347,85 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.inputBar}>
-          <TextInput
-            style={styles.typingInput}
-            placeholder="기록을 입력하세요..."
-            placeholderTextColor={colors.textTertiary}
-            value={textInput}
-            onChangeText={setTextInput}
-            onSubmitEditing={handleTextSubmit}
-            returnKeyType="send"
-            multiline={false}
-            editable={!isSaving}
-          />
-          <TouchableOpacity
-            onPress={handleTextSubmit}
-            style={[styles.sendButton, !textInput.trim() && !isSaving && { opacity: 0.35 }]}
-            disabled={isSaving || !textInput.trim()}
-            accessibilityLabel="텍스트 기록 전송"
-            accessibilityRole="button"
-          >
-            {isSaving ? (
-              <ActivityIndicator size="small" color={colors.textOnPrimary} />
-            ) : (
-              <Ionicons name="send" size={18} color={colors.textOnPrimary} />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.eventSection}>
-          <TouchableOpacity style={styles.eventSectionHeader} onPress={() => setEventModalVisible(true)}>
-            <Text style={styles.eventSectionLabel}>증상·상태 추적</Text>
-            <Ionicons name="add" size={16} color={colors.textTertiary} />
-          </TouchableOpacity>
-          {activeEvents.length > 0 ? (
-            <View style={styles.eventBadgeRow}>
-              {activeEvents.slice(0, 2).map(ev => (
-                <TouchableOpacity key={ev.id} style={styles.eventBadge} onPress={() => setEventModalVisible(true)}>
-                  <Ionicons name="time-outline" size={12} color={colors.primary} />
-                  <Text style={styles.eventBadgeText}>{ev.name} · {formatEventDurationShort(ev.startedAt)}</Text>
-                </TouchableOpacity>
-              ))}
-              {activeEvents.length > 2 && (
-                <TouchableOpacity style={styles.eventBadgeMore} onPress={() => setEventModalVisible(true)}>
-                  <Text style={styles.eventBadgeMoreText}>+{activeEvents.length - 2}개 →</Text>
-                </TouchableOpacity>
+        {widgetSettings[HOME_WIDGETS.TEXT_INPUT] && (
+          <View style={styles.inputBar}>
+            <TextInput
+              style={styles.typingInput}
+              placeholder="기록을 입력하세요..."
+              placeholderTextColor={colors.textTertiary}
+              value={textInput}
+              onChangeText={setTextInput}
+              onSubmitEditing={handleTextSubmit}
+              returnKeyType="send"
+              multiline={false}
+              editable={!isSaving}
+            />
+            <TouchableOpacity
+              onPress={handleTextSubmit}
+              style={[styles.sendButton, !textInput.trim() && !isSaving && { opacity: 0.35 }]}
+              disabled={isSaving || !textInput.trim()}
+              accessibilityLabel="텍스트 기록 전송"
+              accessibilityRole="button"
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color={colors.textOnPrimary} />
+              ) : (
+                <Ionicons name="send" size={18} color={colors.textOnPrimary} />
               )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {widgetSettings[HOME_WIDGETS.EVENT_TRACKER] && (
+          <View style={styles.eventSection}>
+            <TouchableOpacity style={styles.eventSectionHeader} onPress={() => setEventModalVisible(true)}>
+              <Text style={styles.eventSectionLabel}>증상·상태 추적</Text>
+              <Ionicons name="add" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+            {activeEvents.length > 0 ? (
+              <View style={styles.eventBadgeRow}>
+                {activeEvents.slice(0, 2).map(ev => (
+                  <TouchableOpacity key={ev.id} style={styles.eventBadge} onPress={() => setEventModalVisible(true)}>
+                    <Ionicons name="time-outline" size={12} color={colors.primary} />
+                    <Text style={styles.eventBadgeText}>{ev.name} · {formatEventDurationShort(ev.startedAt)}</Text>
+                  </TouchableOpacity>
+                ))}
+                {activeEvents.length > 2 && (
+                  <TouchableOpacity style={styles.eventBadgeMore} onPress={() => setEventModalVisible(true)}>
+                    <Text style={styles.eventBadgeMoreText}>+{activeEvents.length - 2}개 →</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.eventBadgeHint}>"언제부터 이랬나요?" — 병원·치료사에게 바로 알려줄 수 있어요</Text>
+            )}
+          </View>
+        )}
+
+        {widgetSettings[HOME_WIDGETS.VOICE_INPUT] && (
+          <View style={styles.pearlCenter}>
+            {PearlButton}
+          </View>
+        )}
+
+        {widgetSettings[HOME_WIDGETS.RECENT_RECORDS] && (
+          !hasRecords && showEmptyState ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyHint}>마이크를 눌러서 말하거나,{'\n'}기록창에 타이핑해서 입력하세요</Text>
             </View>
           ) : (
-            <Text style={styles.eventBadgeHint}>"언제부터 이랬나요?" — 병원·치료사에게 바로 알려줄 수 있어요</Text>
-          )}
-        </View>
-
-        <View style={styles.pearlCenter}>
-          {PearlButton}
-        </View>
-
-        {!hasRecords && showEmptyState ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyHint}>마이크를 눌러서 말하거나,{'\n'}기록창에 타이핑해서 입력하세요</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={records}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
-            }
-            ListEmptyComponent={isLoading ? <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /></View> : null}
-          />
+            <FlatList
+              data={records}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+              }
+              ListEmptyComponent={isLoading ? <View style={styles.loadingContainer}><ActivityIndicator size="large" color={colors.primary} /></View> : null}
+            />
+          )
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>

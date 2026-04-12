@@ -12,12 +12,13 @@
 
 **미커밋**: 없음
 
-**DB 현재 버전**: v15 (event_daily_logs)
+**DB 현재 버전**: v16 (app_settings)
 
 ---
 
 ## 최근 완료된 작업
 
+- [x] 홈화면 위젯 토글: 설정탭에서 음성입력·텍스트입력·증상추적·최근기록 ON/OFF (DB v16 app_settings)
 - [x] 폴더 구조 정리: synthesisDao.ts 삭제, 루트 PNG gitignore, 이벤트 DAO 3개 → eventDao.ts 통합
 - [x] hooks 설정: aiProcessor.ts 수정 시 /check-ontology 배너, git commit 시 DB 변경 감지 배너
 - [x] 슬래시 커맨드 4개: /check-ontology, /check-db-migration, /pre-release, /check-dead-code
@@ -34,6 +35,7 @@
 
 ## 다음 작업 (코드 레벨)
 
+- [ ] 홈화면 위젯 토글 실기기 테스트 (각 섹션 OFF 확인, 재시작 유지 확인)
 - [ ] 등대 추천 질문 템플릿 UI + 답변 공유 버튼
 - [ ] 이벤트 추적 실기기 테스트 후 버전 bump → 배포
 
@@ -47,6 +49,7 @@
 | 녹음→AI→DB 파이프라인 | `src/services/recordPipeline.ts` |
 | DB 스키마 / 마이그레이션 | `src/db/schema.ts` + `src/db/database.ts` |
 | 등대 위키 | `src/services/absorbService.ts` + `src/db/wikiDao.ts` |
-| 이벤트 추적 | `src/components/EventTrackerModal.tsx` + `src/db/activeEventsDao.ts` |
+| 이벤트 추적 | `src/components/EventTrackerModal.tsx` + `src/db/eventDao.ts` |
+| 홈 위젯 설정 | `src/constants/homeWidgets.ts` + `src/db/appSettingsDao.ts` + `src/hooks/useHomeWidgetSettings.ts` |
 | 전역 라우팅 | `src/navigation/AppNavigator.tsx` |
 | 테마/색상 | `src/constants/theme.ts` |
