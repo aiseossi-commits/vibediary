@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: .claude/worktrees/ gitignore 추가` (2026-04-12)
+**마지막 커밋**: `feat: 홈 문구 커스터마이징 + Android 스플래시 설정` (2026-04-12)
 
 **현재 브랜치**: main
 
