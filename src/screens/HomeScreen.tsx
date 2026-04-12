@@ -28,6 +28,10 @@ import {
 } from '../constants/theme';
 import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
+import { getSetting } from '../db/appSettingsDao';
+
+const HOME_SUBTITLE_KEY = 'home_subtitle';
+const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 import type { RecordWithTags } from '../types/record';
 import { getAllRecords, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
 import { processTextRecord } from '../services/recordPipeline';
@@ -165,6 +169,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [childModalVisible, setChildModalVisible] = useState(false);
   const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
   const [eventModalVisible, setEventModalVisible] = useState(false);
+  const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
 
   const pulseAnims = useRef(
     Array.from({ length: PULSE_COUNT }, () => ({
@@ -233,6 +238,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       loadRecords();
       loadActiveEvents();
       reloadWidgets();
+      getSetting(HOME_SUBTITLE_KEY).then(val => {
+        setSubtitle(val ?? HOME_SUBTITLE_DEFAULT);
+      });
       warmDeno();
       processOfflineQueue().then(() => loadRecords()).catch(() => {});
       return () => setShowEmptyState(false);
@@ -334,7 +342,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               <Ionicons name="chevron-down" size={20} color={colors.textSecondary} style={styles.titleChevron} />
             )}
           </TouchableOpacity>
-          <Text style={styles.subtitle}>작은 기록이 큰 추억이 됩니다</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerIcon} accessibilityLabel="설정" accessibilityRole="button">

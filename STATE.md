@@ -18,6 +18,8 @@
 
 ## 최근 완료된 작업
 
+- [x] 홈 문구 커스터마이징 (설정탭 > 홈화면 구성, app_settings 저장)
+- [x] Android 스플래시 iOS와 동일하게 설정
 - [x] 백업 복원 후 태그 없는 기록 AI 재처리 큐 자동 등록 (backupService)
 - [x] 홈화면 위젯 토글: 설정탭에서 음성입력·텍스트입력·증상추적·최근기록 ON/OFF (DB v16 app_settings)
 - [x] 폴더 구조 정리: synthesisDao.ts 삭제, 루트 PNG gitignore, 이벤트 DAO 3개 → eventDao.ts 통합

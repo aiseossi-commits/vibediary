@@ -20,6 +20,10 @@ import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, PALETTES, type AppColors, type PaletteKey } from '../constants/theme';
 import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
+import { getSetting, setSetting } from '../db/appSettingsDao';
+
+const HOME_SUBTITLE_KEY = 'home_subtitle';
+const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -115,6 +119,13 @@ function createStyles(colors: AppColors) {
       paddingVertical: SPACING.sm,
     },
     widgetLabel: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary },
+    subtitleRow: { paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
+    subtitleLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.xs },
+    subtitleInput: {
+      fontSize: FONT_SIZE.md, color: colors.textPrimary,
+      borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.sm,
+      paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
+    },
   });
 }
 
@@ -123,6 +134,11 @@ export default function SettingsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
   const { settings: widgetSettings, toggle: toggleWidget } = useHomeWidgetSettings();
+  const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
+
+  useEffect(() => {
+    getSetting(HOME_SUBTITLE_KEY).then(val => setSubtitle(val ?? HOME_SUBTITLE_DEFAULT));
+  }, []);
   const navigation = useNavigation();
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -526,6 +542,18 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>홈화면 구성</Text>
           <View style={styles.card}>
+            <View style={styles.subtitleRow}>
+              <Text style={styles.subtitleLabel}>홈 문구</Text>
+              <TextInput
+                style={styles.subtitleInput}
+                value={subtitle}
+                onChangeText={setSubtitle}
+                onBlur={() => setSetting(HOME_SUBTITLE_KEY, subtitle.trim() || HOME_SUBTITLE_DEFAULT)}
+                placeholder={HOME_SUBTITLE_DEFAULT}
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="done"
+              />
+            </View>
             {[
               { key: HOME_WIDGETS.VOICE_INPUT,    label: '음성 입력' },
               { key: HOME_WIDGETS.TEXT_INPUT,     label: '텍스트 입력' },
