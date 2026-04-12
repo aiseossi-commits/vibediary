@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: .claude/settings.json 업데이트` (2026-04-12)
+**마지막 커밋**: `chore: .claude/worktrees/ gitignore 추가` (2026-04-12)
 
 **현재 브랜치**: main
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 백업 복원 후 태그 없는 기록 AI 재처리 큐 자동 등록 (backupService)
 - [x] 홈화면 위젯 토글: 설정탭에서 음성입력·텍스트입력·증상추적·최근기록 ON/OFF (DB v16 app_settings)
 - [x] 폴더 구조 정리: synthesisDao.ts 삭제, 루트 PNG gitignore, 이벤트 DAO 3개 → eventDao.ts 통합
 - [x] hooks 설정: aiProcessor.ts 수정 시 /check-ontology 배너, git commit 시 DB 변경 감지 배너

@@ -210,6 +210,9 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
   if (hasLegacyTags) {
     await _recoverNullTagChildIds(db);
   }
+
+  // 태그 없는 기록 AI 재처리 큐 등록 (복구 실패 또는 원래부터 태그 누락된 기록 구제)
+  await _requeueUntaggedRecords(db);
 }
 
 // 병합 복원: 기존 데이터 유지 + 신규 데이터만 추가
@@ -325,6 +328,19 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   if (hasLegacyTags) {
     await _recoverNullTagChildIds(db);
   }
+
+  // 태그 없는 기록 AI 재처리 큐 등록
+  await _requeueUntaggedRecords(db);
+}
+
+// 태그 없는 기록을 AI 재처리 큐에 등록 (raw_text 있고 record_tags 없는 기록)
+async function _requeueUntaggedRecords(db: Awaited<ReturnType<typeof getDatabase>>): Promise<void> {
+  await db.runAsync(`
+    UPDATE records
+    SET ai_pending = 1
+    WHERE raw_text IS NOT NULL
+      AND id NOT IN (SELECT DISTINCT record_id FROM record_tags)
+  `);
 }
 
 // NULL child_id 태그를 record_tags 기반으로 per-child 태그로 복구 (v8 마이그레이션과 동일 로직)
