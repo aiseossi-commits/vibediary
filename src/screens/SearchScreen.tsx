@@ -38,6 +38,13 @@ import type { ChatMessage, WikiPage } from '../types/record';
 
 type ActiveTab = 'chat' | 'log';
 
+const SUGGESTED_QUESTIONS = [
+  '이번 달 주요 변화를 요약해줘',
+  '이번 주 특이사항이 있었어?',
+  '병원 진료 전 브리핑해줘',
+  '최근 식사·수면 패턴 어때?',
+];
+
 function getWikiTypeLabel(page: WikiPage): string {
   if (page.slug === 'wiki-index') return '인덱스';
   if (page.slug.startsWith('voyage/weekly/')) return '주간 일지';
@@ -97,6 +104,9 @@ function createStyles(colors: AppColors) {
     qaDeleteBtn: { padding: SPACING.xs },
     emptyState: { alignItems: 'center', paddingTop: SPACING.xxl * 2, gap: SPACING.lg },
     emptyDescription: { fontSize: FONT_SIZE.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 26 },
+    suggestedContainer: { width: '100%', paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: SPACING.sm },
+    suggestedBtn: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...SHADOW.sm },
+    suggestedBtnText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, flex: 1 },
     messageList: { flex: 1 },
     messageListContent: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: SPACING.xl },
     userBubbleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: SPACING.sm },
@@ -355,8 +365,8 @@ export default function SearchScreen() {
     }
   }, [activeChild?.id]));
 
-  const handleSearch = useCallback(async () => {
-    const trimmed = query.trim();
+  const handleSearch = useCallback(async (overrideText?: string) => {
+    const trimmed = (overrideText ?? query).trim();
     if (!trimmed) return;
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', text: trimmed, createdAt: Date.now() };
     const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
@@ -412,6 +422,14 @@ export default function SearchScreen() {
             <View style={[styles.messageList, styles.emptyState]}>
               <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
               <Text style={styles.emptyDescription}>기록된 내용을 바탕으로{'\n'}무엇이든 물어보세요.</Text>
+              <View style={styles.suggestedContainer}>
+                {SUGGESTED_QUESTIONS.map((q) => (
+                  <TouchableOpacity key={q} style={styles.suggestedBtn} onPress={() => handleSearch(q)} activeOpacity={0.75}>
+                    <Text style={styles.suggestedBtnText}>{q}</Text>
+                    <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           ) : (
             <FlatList
@@ -440,12 +458,12 @@ export default function SearchScreen() {
               placeholderTextColor={colors.textTertiary}
               value={query}
               onChangeText={setQuery}
-              onSubmitEditing={handleSearch}
+              onSubmitEditing={() => handleSearch()}
               returnKeyType="search"
               multiline={false}
               accessibilityLabel="검색어 입력"
             />
-            <TouchableOpacity onPress={handleSearch} style={[styles.searchButton, (!query.trim() || isSearching) && styles.searchButtonDisabled]} disabled={!query.trim() || isSearching} accessibilityLabel="검색" accessibilityRole="button">
+            <TouchableOpacity onPress={() => handleSearch()} style={[styles.searchButton, (!query.trim() || isSearching) && styles.searchButtonDisabled]} disabled={!query.trim() || isSearching} accessibilityLabel="검색" accessibilityRole="button">
               {isSearching ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={styles.searchButtonText}>검색</Text>}
             </TouchableOpacity>
           </View>
