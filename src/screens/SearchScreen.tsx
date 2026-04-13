@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import Markdown from 'react-native-markdown-display';
 import {
   View,
@@ -13,6 +14,7 @@ import {
   Alert,
   ScrollView,
   Modal,
+  Share,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -115,6 +117,9 @@ function createStyles(colors: AppColors) {
     assistantBubbleRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm },
     assistantBubble: { maxWidth: '88%', backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderBottomLeftRadius: 4, padding: SPACING.md, ...SHADOW.sm },
     assistantBubbleText: { fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: 24 },
+    shareRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: SPACING.xs, gap: SPACING.sm },
+    shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: SPACING.xs },
+    shareBtnText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     typingRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
     typingBubble: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderBottomLeftRadius: 4, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, ...SHADOW.sm },
     typingText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
@@ -158,11 +163,27 @@ function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnT
   );
 }
 
-function AssistantBubble({ message, styles }: { message: ChatMessage; styles: ReturnType<typeof createStyles> }) {
+function AssistantBubble({ message, styles, colors }: { message: ChatMessage; styles: ReturnType<typeof createStyles>; colors: AppColors }) {
+  const handleShare = useCallback(async () => {
+    try {
+      const result = await Share.share({ message: message.text });
+      if (result.action === Share.dismissedAction) return;
+    } catch {
+      await Clipboard.setStringAsync(message.text);
+      Alert.alert('복사됨', '클립보드에 복사했어요.');
+    }
+  }, [message.text]);
+
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
         <Text style={styles.assistantBubbleText}>{message.text}</Text>
+        <View style={styles.shareRow}>
+          <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.7}>
+            <Ionicons name="share-outline" size={14} color={colors.textTertiary} />
+            <Text style={styles.shareBtnText}>공유</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Animated.View>
   );
@@ -389,8 +410,8 @@ export default function SearchScreen() {
 
   const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
     if (item.role === 'user') return <UserBubble message={item} styles={styles} />;
-    return <AssistantBubble message={item} styles={styles} />;
-  }, [styles]);
+    return <AssistantBubble message={item} styles={styles} colors={colors} />;
+  }, [styles, colors]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
