@@ -23,7 +23,6 @@ import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { shouldAbsorb, runAbsorb, generateVoyageReport, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
-import { createSearchLog } from '../db/searchLogsDao';
 import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -367,7 +366,6 @@ export default function SearchScreen() {
     try {
       const searchResult = await searchRecords(trimmed, activeChild?.id, history, activeChild?.name);
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: searchResult.answer, createdAt: Date.now() }]);
-      createSearchLog(activeChild?.id ?? null, trimmed, searchResult.answer).catch(() => {});
     } catch {
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: '검색 중 오류가 발생했어요. 다시 시도해 주세요.', createdAt: Date.now() }]);
     } finally {
@@ -413,7 +411,7 @@ export default function SearchScreen() {
           {messages.length === 0 && !isSearching ? (
             <View style={[styles.messageList, styles.emptyState]}>
               <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
-              <Text style={styles.emptyDescription}>기록된 내용을 바탕으로 무엇이든 물어보세요.{'\n'}대화 내용은 항해일지에 자동으로 저장됩니다.</Text>
+              <Text style={styles.emptyDescription}>기록된 내용을 바탕으로{'\n'}무엇이든 물어보세요.</Text>
             </View>
           ) : (
             <FlatList
