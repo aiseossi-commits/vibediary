@@ -22,9 +22,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
-import { shouldAbsorb, runAbsorb, generateVoyageReport, getAbsorbProgress, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
-import { runLint } from '../services/wikiLintService';
-import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
+import { shouldAbsorb, runAbsorb, generateVoyageReport, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
+import { createSearchLog } from '../db/searchLogsDao';
 import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -36,7 +35,7 @@ import {
   SHADOW,
   type AppColors,
 } from '../constants/theme';
-import type { ChatMessage, SearchLog, WikiPage, LintResult } from '../types/record';
+import type { ChatMessage, WikiPage } from '../types/record';
 
 type ActiveTab = 'chat' | 'log';
 
@@ -165,23 +164,17 @@ function formatRelativeDate(ts: number): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing, onAbsorb }: {
+function VoyageLogFeed({ childId, colors, styles, isAbsorbing }: {
   childId: string | undefined;
   colors: AppColors;
   styles: ReturnType<typeof createStyles>;
-  showAbsorbBanner: boolean;
   isAbsorbing: boolean;
-  onAbsorb: () => void;
 }) {
   const [allWikiPages, setAllWikiPages] = useState<WikiPage[]>([]);
-  const [logs, setLogs] = useState<SearchLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [isLinting, setIsLinting] = useState(false);
-  const [lintResult, setLintResult] = useState<LintResult | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [absorbProgress, setAbsorbProgress] = useState<{ ready: boolean; current: number; needed: number } | null>(null);
 
   const toggleExpand = useCallback((key: string) => {
     setExpandedIds(prev => {
@@ -194,14 +187,8 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
   const loadData = useCallback(async () => {
     if (!childId) { setIsLoading(false); return; }
     try {
-      const [pages, l, progress] = await Promise.all([
-        getWikiPages(childId),
-        getSearchLogs(childId),
-        getAbsorbProgress(childId),
-      ]);
+      const pages = await getWikiPages(childId);
       setAllWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
-      setLogs(l);
-      setAbsorbProgress(progress);
     } catch (e) {
       console.error('[VoyageLogFeed] 로드 실패:', e);
     } finally {
@@ -215,9 +202,8 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
     if (!isAbsorbing) loadData();
   }, [isAbsorbing, loadData]);
 
-  // voyage/로 시작하는 수동 생성 항해일지 vs 자동 위키 페이지
+  // voyage/로 시작하는 수동 생성 항해일지만 표시
   const voyagePages = allWikiPages.filter(p => p.slug.startsWith('voyage/'));
-  const wikiPages = allWikiPages.filter(p => !p.slug.startsWith('voyage/'));
 
   const handleDeleteWikiPage = useCallback((id: number) => {
     Alert.alert('삭제', '이 항목을 삭제하시겠습니까?', [
@@ -228,30 +214,6 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
       }},
     ]);
   }, []);
-
-  const handleDeleteLog = useCallback((id: number) => {
-    Alert.alert('저장된 질문 삭제', '이 질문을 삭제하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => {
-        await deleteSearchLog(id);
-        setLogs(prev => prev.filter(l => l.id !== id));
-      }},
-    ]);
-  }, []);
-
-  const handleLint = useCallback(async () => {
-    if (!childId || isLinting) return;
-    setIsLinting(true);
-    setLintResult(null);
-    try {
-      const result = await runLint(childId);
-      setLintResult(result);
-    } catch {
-      setLintResult({ issues: [], suggestions: ['건강 체크 중 오류가 발생했어요.'] });
-    } finally {
-      setIsLinting(false);
-    }
-  }, [childId, isLinting]);
 
   const handleGenerateReport = useCallback(async (type: VoyageReportType) => {
     if (!childId || isGenerating) return;
@@ -309,7 +271,6 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
 
   if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
 
-  const isEmpty = voyagePages.length === 0 && logs.length === 0 && wikiPages.length === 0;
 
   return (
     <>
@@ -352,105 +313,13 @@ function VoyageLogFeed({ childId, colors, styles, showAbsorbBanner, isAbsorbing,
           <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '새 항해일지 생성'}</Text>
         </TouchableOpacity>
 
-        {/* 자동 위키 업데이트 배너 */}
-        {showAbsorbBanner && (
-          <TouchableOpacity style={styles.absorbBanner} onPress={onAbsorb} disabled={isAbsorbing} activeOpacity={0.8}>
-            {isAbsorbing ? <ActivityIndicator size="small" color={colors.accent} /> : <Ionicons name="sparkles-outline" size={16} color={colors.accent} />}
-            <Text style={styles.absorbBannerText}>
-              {isAbsorbing ? '위키를 업데이트하고 있어요...' : '새 기록이 쌓였어요. AI 검색 위키를 업데이트할 수 있어요.'}
-            </Text>
-            {!isAbsorbing && <Ionicons name="chevron-forward" size={14} color={colors.accent} />}
-          </TouchableOpacity>
-        )}
-
-        {/* 기록 장려 배지 */}
-        {!showAbsorbBanner && absorbProgress && !absorbProgress.ready && absorbProgress.current > 0 && (
-          <View style={styles.lintBanner}>
-            <Ionicons name="document-text-outline" size={16} color={colors.textTertiary} />
-            <Text style={styles.lintBannerText}>
-              기록이 <Text style={{ fontWeight: '600', color: colors.textSecondary }}>{absorbProgress.needed - absorbProgress.current}개</Text> 더 쌓이면 AI 위키를 업데이트할 수 있어요
-            </Text>
-          </View>
-        )}
-
-        {/* Lint 버튼 */}
-        {wikiPages.length > 0 && (
-          <TouchableOpacity style={styles.lintBanner} onPress={handleLint} disabled={isLinting} activeOpacity={0.8}>
-            {isLinting ? <ActivityIndicator size="small" color={colors.textTertiary} /> : <Ionicons name="checkmark-circle-outline" size={16} color={colors.textTertiary} />}
-            <Text style={styles.lintBannerText}>{isLinting ? '위키 건강 체크 중...' : '위키 건강 체크'}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Lint 결과 */}
-        {lintResult && (
-          <View style={styles.lintResultCard}>
-            {lintResult.issues.length > 0 ? (
-              <>
-                <Text style={styles.lintResultTitle}>발견된 이슈 {lintResult.issues.length}건</Text>
-                {lintResult.issues.map((issue, i) => (
-                  <Text key={i} style={styles.lintIssueText}>• {issue.slug}: {issue.reason}</Text>
-                ))}
-              </>
-            ) : (
-              <Text style={styles.lintResultTitle}>이슈 없음 ✓</Text>
-            )}
-            {lintResult.suggestions.length > 0 && (
-              <>
-                <Text style={[styles.lintResultTitle, { marginTop: SPACING.xs }]}>제안</Text>
-                {lintResult.suggestions.map((s, i) => (
-                  <Text key={i} style={styles.lintSuggestionText}>• {s}</Text>
-                ))}
-              </>
-            )}
-          </View>
-        )}
-
-        {isEmpty ? (
+        {voyagePages.length === 0 ? (
           <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
             <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
             <Text style={styles.emptyDescription}>아직 항해일지가 없어요.{'\n'}위에서 새 항해일지를 만들어보세요.</Text>
           </View>
         ) : (
-          <>
-            {/* 수동 생성 항해일지 (voyage/*) - 날짜별로 쌓임 */}
-            {voyagePages.length > 0 && (
-              <>
-                <Text style={styles.sectionHeader}>항해일지</Text>
-                {voyagePages.map(page => renderInsightCard(page))}
-              </>
-            )}
-
-            {/* 자동 위키 인사이트 (overview/*, entity/*, timeline/*) */}
-            {wikiPages.length > 0 && (
-              <>
-                <Text style={styles.sectionHeader}>AI 인사이트</Text>
-                {wikiPages.map(page => renderInsightCard(page))}
-              </>
-            )}
-
-            {/* 저장된 질문 */}
-            {logs.length > 0 && (
-              <>
-                <Text style={styles.sectionHeader}>저장된 질문</Text>
-                {logs.map(log => {
-                  const key = `l-${log.id}`;
-                  const expanded = expandedIds.has(key);
-                  return (
-                    <TouchableOpacity key={log.id} style={styles.qaCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
-                      <Text style={styles.qaQuery}>{log.query}</Text>
-                      <Text style={styles.qaAnswer} numberOfLines={expanded ? undefined : 4}>{log.answer}</Text>
-                      <View style={styles.qaFooter}>
-                        <Text style={styles.qaDate}>{formatRelativeDate(log.createdAt)} · {expanded ? '접기' : '전체 보기'}</Text>
-                        <TouchableOpacity style={styles.qaDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
-                          <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </>
-            )}
-          </>
+          voyagePages.map(page => renderInsightCard(page))
         )}
       </ScrollView>
     </>
@@ -467,40 +336,25 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showAbsorbBanner, setShowAbsorbBanner] = useState(false);
   const [isAbsorbing, setIsAbsorbing] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     setMessages([]);
-    setShowAbsorbBanner(false);
   }, [activeChild?.id]);
 
-  useEffect(() => {
-    if (activeTab === 'log' && activeChild?.id) {
-      shouldAbsorb(activeChild.id).then(setShowAbsorbBanner).catch(() => {});
-    }
-  }, [activeTab, activeChild?.id]);
-
+  // absorb는 백그라운드에서 자동 실행 (등대 위키 품질 유지)
   useFocusEffect(useCallback(() => {
-    if (activeTab === 'log' && activeChild?.id) {
-      shouldAbsorb(activeChild.id).then(setShowAbsorbBanner).catch(() => {});
+    if (activeChild?.id) {
+      shouldAbsorb(activeChild.id).then(ready => {
+        if (ready) {
+          setIsAbsorbing(true);
+          runAbsorb(activeChild.id!).catch(() => {}).finally(() => setIsAbsorbing(false));
+        }
+      }).catch(() => {});
     }
-  }, [activeTab, activeChild?.id]));
-
-  const handleAbsorb = useCallback(async () => {
-    if (!activeChild?.id || isAbsorbing) return;
-    setIsAbsorbing(true);
-    try {
-      await runAbsorb(activeChild.id);
-      setShowAbsorbBanner(false);
-    } catch {
-      Alert.alert('오류', '위키 업데이트에 실패했어요. 네트워크를 확인해주세요.');
-    } finally {
-      setIsAbsorbing(false);
-    }
-  }, [activeChild?.id, isAbsorbing]);
+  }, [activeChild?.id]));
 
   const handleSearch = useCallback(async () => {
     const trimmed = query.trim();
@@ -552,9 +406,7 @@ export default function SearchScreen() {
           childId={activeChild?.id}
           colors={colors}
           styles={styles}
-          showAbsorbBanner={showAbsorbBanner}
           isAbsorbing={isAbsorbing}
-          onAbsorb={handleAbsorb}
         />
       ) : (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex} keyboardVerticalOffset={Platform.OS === 'ios' ? tabBarHeight : 0}>
