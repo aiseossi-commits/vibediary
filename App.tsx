@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -7,35 +7,18 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ChildProvider } from './src/context/ChildContext';
 import { initializeDatabase } from './src/db';
-import { FONT_SIZE, FONT_WEIGHT, SPACING } from './src/constants/theme';
 
 function AppContent() {
-  const { colors, isDark } = useTheme();
-  const [isReady, setIsReady] = useState(false);
+  const { isDark } = useTheme();
+  const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
-    async function initialize() {
-      try {
-        await initializeDatabase();
-        setIsReady(true);
-      } catch (e) {
-        console.error('DB 초기화 실패:', e);
-        setIsReady(true);
-      }
-    }
-    initialize();
+    initializeDatabase()
+      .then(() => setDbReady(true))
+      .catch(() => setDbReady(true));
   }, []);
 
-  if (!isReady) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          바다를 준비하고 있어요...
-        </Text>
-      </View>
-    );
-  }
+  if (!dbReady) return <View style={{ flex: 1, backgroundColor: '#070D1A' }} />;
 
   return (
     <>
@@ -63,16 +46,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: SPACING.md,
-    fontSize: FONT_SIZE.md,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-});

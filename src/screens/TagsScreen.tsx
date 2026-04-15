@@ -147,6 +147,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const [showCreateInput, setShowCreateInput] = useState(false);
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [longPressedTagId, setLongPressedTagId] = useState<number | null>(null);
   const flatListRef = useRef<FlatList<RecordWithTags>>(null);
   const headerHeightRef = useRef(0);
   const scrollToInput = useCallback(() => {
@@ -190,6 +191,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   }, [activeChild?.id]);
 
   const handleToggleTag = useCallback((tagId: number) => {
+    setLongPressedTagId(null);
     setSelectedTagIds((prev) => {
       const next = prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId];
       loadFilteredRecords(next);
@@ -226,6 +228,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   }, [loadTags, loadFilteredRecords]);
 
   const handleStartEdit = useCallback((tag: TagWithCount) => {
+    setLongPressedTagId(null);
     setEditingTagId(tag.id);
     setEditValue(tag.name.startsWith('#') ? tag.name.slice(1) : tag.name);
   }, []);
@@ -298,10 +301,13 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
             );
           }
 
+          const isLongPressed = longPressedTagId === tag.id;
           return (
             <TouchableOpacity
               key={tag.id}
               onPress={() => handleToggleTag(tag.id)}
+              onLongPress={() => setLongPressedTagId(tag.id)}
+              delayLongPress={400}
               activeOpacity={0.7}
               style={[styles.tagItem, SHADOW.sm, isSelected && { borderColor: tagColor, borderWidth: 1.5 }]}
             >
@@ -312,20 +318,24 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
               <View style={styles.tagItemRight}>
                 <Text style={styles.tagCount}>{tag.count}</Text>
                 <Text style={styles.tagCountLabel}>건</Text>
-                <TouchableOpacity
-                  onPress={() => handleStartEdit(tag)}
-                  style={styles.tagDeleteBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.tagDeleteBtnText}>✎</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteTag(tag)}
-                  style={styles.tagDeleteBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.tagDeleteBtnText}>×</Text>
-                </TouchableOpacity>
+                {isLongPressed && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => handleStartEdit(tag)}
+                      style={styles.tagDeleteBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.tagDeleteBtnText}>✎</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteTag(tag)}
+                      style={styles.tagDeleteBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.tagDeleteBtnText}>×</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -361,7 +371,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
       {isLoadingRecords && <View style={styles.recordsLoading}><ActivityIndicator size="small" color={colors.primary} /></View>}
     </>
-  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, editingTagId, editValue, handleToggleTag, handleDeleteTag, handleStartEdit, handleConfirmEdit, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
+  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, editingTagId, editValue, longPressedTagId, handleToggleTag, handleDeleteTag, handleStartEdit, handleConfirmEdit, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
 
   if (isLoading) {
     return (

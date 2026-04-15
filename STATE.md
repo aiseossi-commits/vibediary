@@ -10,7 +10,8 @@
 
 **현재 브랜치**: main
 
-**미커밋**: 없음
+**미커밋**: App.tsx, app.json, CalendarScreen.tsx, RecordDetailScreen.tsx, TagsScreen.tsx, iOS splash 이미지, scripts/generate-splash.js, package.json (sharp 추가)
+**미커밋 미분류**: openspec/changes/long-press-actions/, openspec/changes/unified-splash-screen/, src/components/SplashOverlay.tsx (미사용, 삭제 가능)
 
 **DB 현재 버전**: v16 (app_settings)
 
@@ -18,6 +19,8 @@
 
 ## 최근 완료된 작업
 
+- [x] 스플래시 화면 통일: native 이미지에 "기록에 치이지 말고, 그냥 말하세요" 텍스트 임베드 (generate-splash.js, sharp), JS SplashOverlay 방식 폐기, App.tsx DB 로딩 중 어두운 배경 View로 흰 화면 플래시 제거
+- [x] long-press 액션 (openspec long-press-actions 완료): TagsScreen 롱프레스 인라인 ✎×, CalendarScreen 롱프레스 Bottom Sheet 삭제, RecordDetailScreen ⋯ 버튼 + 태그/원문 섹션 롱프레스 편집
 - [x] 등대 답변 공유 버튼 (OS 공유 시트, fallback 클립보드 복사)
 - [x] 등대 추천 질문 템플릿 UI (빈 화면에 4개 버튼, 탭하면 바로 검색)
 - [x] 항해일지 탭 UI 정제: voyage만 표시, AI 인사이트·저장된 질문·위키 건강 체크·absorb 배너 숨김 (absorb는 백그라운드 자동 실행)
@@ -41,9 +44,11 @@
 
 ## 다음 작업 (코드 레벨)
 
-- [ ] 홈화면 위젯 토글 실기기 테스트 (각 섹션 OFF 확인, 재시작 유지 확인)
-- [ ] 등대 추천 질문 템플릿 UI + 답변 공유 버튼
-- [ ] 이벤트 추적 실기기 테스트 후 버전 bump → 배포
+- [ ] 미커밋 변경사항 커밋 (스플래시 + long-press 통합)
+- [ ] SplashOverlay.tsx 삭제 (미사용)
+- [ ] Android APK 실기기 테스트 — 스플래시 + long-press 확인
+- [ ] iOS 시뮬레이터 Metro 캐시 클리어 후 재확인 (`npx expo start --clear`)
+- [ ] 버전 bump → TestFlight / Play Store 배포
 
 ---
 

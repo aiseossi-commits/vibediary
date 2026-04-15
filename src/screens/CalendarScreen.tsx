@@ -152,6 +152,19 @@ function createStyles(colors: AppColors) {
     timeLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     timeButton: { paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
     timeButtonText: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
+    sheetOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+    sheetContainer: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: BORDER_RADIUS.lg, borderTopRightRadius: BORDER_RADIUS.lg,
+      paddingTop: SPACING.sm, paddingBottom: SPACING.xxl, paddingHorizontal: SPACING.lg,
+    },
+    eventSheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: SPACING.md },
+    sheetEventName: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.lg },
+    sheetDeleteBtn: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, backgroundColor: colors.error + '18', paddingHorizontal: SPACING.md, marginBottom: SPACING.sm },
+    sheetDeleteText: { fontSize: FONT_SIZE.md, color: colors.error, fontWeight: FONT_WEIGHT.medium },
+    sheetCancelBtn: { paddingVertical: SPACING.md, alignItems: 'center' },
+    sheetCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
   });
 }
 
@@ -185,6 +198,7 @@ export default function CalendarScreen() {
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
   const [calendarKey, setCalendarKey] = useState(0);
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
+  const [selectedEventForSheet, setSelectedEventForSheet] = useState<{ id: number; name: string } | null>(null);
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
   const contentSlideAnim = useRef(new Animated.Value(0)).current;
@@ -572,7 +586,13 @@ setDayRecords(records);
                   };
                   const severityInfo = severity ? SEVERITY_LABELS[severity] : null;
                   return (
-                    <View key={ev.id} style={styles.dayEventRow}>
+                    <TouchableOpacity
+                      key={ev.id}
+                      style={styles.dayEventRow}
+                      onLongPress={() => setSelectedEventForSheet({ id: ev.id, name: ev.name })}
+                      delayLongPress={400}
+                      activeOpacity={0.7}
+                    >
                       <View style={[styles.dayEventDot, { backgroundColor: dotColor }]} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.dayEventName}>{ev.name}</Text>
@@ -584,14 +604,7 @@ setDayRecords(records);
                         </Text>
                       )}
                       {ended && !severityInfo && <Text style={styles.dayEventBadge}>종료</Text>}
-                      <TouchableOpacity
-                        onPress={() => handleDeleteEvent(ev.id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        style={{ marginLeft: 4 }}
-                      >
-                        <Ionicons name="trash-outline" size={15} color={colors.textTertiary} />
-                      </TouchableOpacity>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -732,6 +745,44 @@ setDayRecords(records);
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* 이벤트 롱프레스 삭제 Bottom Sheet */}
+      <Modal
+        visible={selectedEventForSheet !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedEventForSheet(null)}
+      >
+        <TouchableOpacity
+          style={styles.sheetOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedEventForSheet(null)}
+        />
+        <View style={styles.sheetContainer}>
+          <View style={styles.eventSheetHandle} />
+          <Text style={styles.sheetEventName} numberOfLines={2}>
+            {selectedEventForSheet?.name}
+          </Text>
+          <TouchableOpacity
+            style={styles.sheetDeleteBtn}
+            onPress={async () => {
+              if (selectedEventForSheet) {
+                await handleDeleteEvent(selectedEventForSheet.id);
+                setSelectedEventForSheet(null);
+              }
+            }}
+          >
+            <Ionicons name="trash-outline" size={18} color={colors.error} />
+            <Text style={styles.sheetDeleteText}>삭제</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.sheetCancelBtn}
+            onPress={() => setSelectedEventForSheet(null)}
+          >
+            <Text style={styles.sheetCancelText}>취소</Text>
+          </TouchableOpacity>
         </View>
       </Modal>
     </SafeAreaView>

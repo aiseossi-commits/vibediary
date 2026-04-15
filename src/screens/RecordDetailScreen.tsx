@@ -108,6 +108,7 @@ function createStyles(colors: AppColors) {
     headerButton: { padding: SPACING.sm },
     headerButtonText: { fontSize: FONT_SIZE.md, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
     deleteButtonText: { fontSize: FONT_SIZE.md, color: colors.error, fontWeight: FONT_WEIGHT.medium },
+    moreButtonText: { fontSize: 22, color: colors.textSecondary, lineHeight: 26 },
     scrollView: { flex: 1 },
     scrollContent: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
     dateSection: { marginBottom: SPACING.md },
@@ -150,10 +151,6 @@ function createStyles(colors: AppColors) {
     tagPickerItemSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
     tagPickerText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     tagPickerTextSelected: { color: colors.primary, fontWeight: FONT_WEIGHT.medium },
-    // 시간 수정
-    timeRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.xs - 2 },
-    timeEditBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
-    timeEditBtnText: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
     // 시간 picker modal
   });
 }
@@ -317,8 +314,9 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           onPress={handleDelete}
           style={[styles.headerButton, isDeleting && { opacity: 0.4 }]}
           disabled={isDeleting}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.deleteButtonText}>{isDeleting ? '삭제 중...' : '삭제'}</Text>
+          <Text style={styles.moreButtonText}>⋯</Text>
         </TouchableOpacity>
       </View>
 
@@ -332,12 +330,9 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       >
         <View style={styles.dateSection}>
           <Text style={styles.dateText}>{formatFullDate(record.createdAt)}</Text>
-          <View style={styles.timeRow}>
+          <TouchableOpacity onPress={() => setShowTimePicker(true)} activeOpacity={0.6}>
             <Text style={styles.timeText}>{formatTime(record.createdAt)}</Text>
-            <TouchableOpacity style={styles.timeEditBtn} onPress={() => setShowTimePicker(true)}>
-              <Text style={styles.timeEditBtnText}>시간 수정</Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {record.aiPending && (
@@ -347,10 +342,15 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           </View>
         )}
 
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onLongPress={!isEditingTags ? handleStartEditTags : undefined}
+          delayLongPress={400}
+        >
         <View style={styles.tagEditContainer}>
           <View style={styles.tagEditHeader}>
             <Text style={styles.tagEditLabel}>태그</Text>
-            {isEditingTags ? (
+            {isEditingTags && (
               <View style={styles.tagEditButtonRow}>
                 <TouchableOpacity onPress={() => setIsEditingTags(false)} style={styles.tagEditBtn} disabled={isSavingTags}>
                   <Text style={styles.tagEditBtnText}>취소</Text>
@@ -359,10 +359,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
                   {isSavingTags ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={[styles.tagEditBtnText, { color: colors.textOnPrimary }]}>저장</Text>}
                 </TouchableOpacity>
               </View>
-            ) : (
-              <TouchableOpacity onPress={handleStartEditTags} style={styles.tagEditBtn}>
-                <Text style={styles.tagEditBtnText}>편집</Text>
-              </TouchableOpacity>
             )}
           </View>
           {isEditingTags ? (
@@ -390,6 +386,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
             </View>
           )}
         </View>
+        </TouchableOpacity>
 
         <View style={[styles.section, SHADOW.sm]}>
           <Text style={styles.sectionTitle}>요약</Text>
@@ -410,14 +407,18 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           </View>
         )}
 
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onLongPress={!isEditingRawText ? handleEditRawText : undefined}
+          delayLongPress={400}
+        >
         <View style={[styles.section, SHADOW.sm]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>원본 텍스트</Text>
-            {isReprocessing ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
+            {isReprocessing && <ActivityIndicator size="small" color={colors.primary} />}
+            {isEditingRawText && !isReprocessing && (
               <TouchableOpacity onPress={handleEditRawText} style={styles.editButton}>
-                <Text style={styles.editButtonText}>{isEditingRawText ? '저장 후 AI 재분석' : '수정'}</Text>
+                <Text style={styles.editButtonText}>저장 후 AI 재분석</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -435,6 +436,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
             <Text style={styles.rawText}>{record.rawText || '원본 텍스트가 없습니다.'}</Text>
           )}
         </View>
+        </TouchableOpacity>
       </ScrollView>
       </KeyboardAvoidingView>
 
