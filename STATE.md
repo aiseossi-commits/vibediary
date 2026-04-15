@@ -44,8 +44,6 @@
 
 ## 다음 작업 (코드 레벨)
 
-- [ ] 미커밋 변경사항 커밋 (스플래시 + long-press 통합)
-- [ ] SplashOverlay.tsx 삭제 (미사용)
 - [ ] Android APK 실기기 테스트 — 스플래시 + long-press 확인
 - [ ] iOS 시뮬레이터 Metro 캐시 클리어 후 재확인 (`npx expo start --clear`)
 - [ ] 버전 bump → TestFlight / Play Store 배포
