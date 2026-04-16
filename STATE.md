@@ -44,8 +44,8 @@
 
 ## 다음 작업 (코드 레벨)
 
-- [ ] Android APK 실기기 테스트 — 스플래시 + long-press 확인
-- [ ] iOS 시뮬레이터 Metro 캐시 클리어 후 재확인 (`npx expo start --clear`)
+- [ ] 태그 피커 UI — 신규 태그 추가로 목록이 길어짐, 카테고리별 그룹핑 검토
+- [ ] 기존 유저 태그 소급 적용 여부 결정 (현재 미적용)
 - [ ] 버전 bump → TestFlight / Play Store 배포
 
 ---
