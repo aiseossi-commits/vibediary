@@ -3,28 +3,49 @@ import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ChildProvider } from './src/context/ChildContext';
 import { initializeDatabase } from './src/db';
+import SplashOverlay from './src/components/SplashOverlay';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const MIN_SPLASH_MS = 1200;
 
 function AppContent() {
   const { isDark } = useTheme();
   const [dbReady, setDbReady] = useState(false);
+  const [minTimePassed, setMinTimePassed] = useState(false);
+  const [overlayHidden, setOverlayHidden] = useState(false);
 
   useEffect(() => {
     initializeDatabase()
       .then(() => setDbReady(true))
       .catch(() => setDbReady(true));
+    const t = setTimeout(() => setMinTimePassed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(t);
   }, []);
 
-  if (!dbReady) return <View style={{ flex: 1, backgroundColor: '#070D1A' }} />;
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  const showOverlay = !(dbReady && minTimePassed);
 
   return (
-    <>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <AppNavigator />
-    </>
+    <View style={{ flex: 1, backgroundColor: '#070D1A' }}>
+      {dbReady && (
+        <>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <AppNavigator />
+        </>
+      )}
+      {!overlayHidden && (
+        <SplashOverlay visible={showOverlay} onFadeOutEnd={() => setOverlayHidden(true)} />
+      )}
+    </View>
   );
 }
 

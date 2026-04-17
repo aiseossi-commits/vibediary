@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: 홈 진주 버튼 녹음 중 파동 유지 + 빨간 점 UI 정제` (2026-04-18)
+**마지막 커밋**: `fix: Android 스플래시 깜빡임 — 흰 플래시 제거 + RN 오버레이로 텍스트 1.2초 유지` (2026-04-18)
 
 **현재 브랜치**: main
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] Android 스플래시 깜빡임 수정: AppTheme windowBackground=#070D1A로 흰 플래시 제거, Android 12+ Splash Screen API 적용(배경+가운데 아이콘), RN SplashOverlay 도입(expo-splash-screen.preventAutoHideAsync + 최소 1.2초 + DB 로딩 완료 후 페이드아웃), splashscreen_icon.png 5종 추가
 - [x] 홈 진주 버튼 UX 정제: 녹음 중에도 pulse 유지(빨간색 전환), recording 상태 버튼은 배경 대신 테두리 강조 + 22px 빨간 원형 점
 - [x] 등대 답변 형식 AI 자율 판단 + maxOutputTokens 1500 (경과/빈도/최근 질문별 자동 구조화)
 - [x] 등대/항해일지 포지션 재정립: 등대탭=자동인사이트+항해일지생성+채팅, 항해일지탭=저장된 등대답변 (search_logs), AssistantBubble 저장 버튼 추가

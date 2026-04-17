@@ -38,7 +38,7 @@ function makeSvg(width, height) {
 }
 
 async function generate() {
-  // iOS
+  // iOS — 풀스크린 텍스트 splash (LaunchScreen)
   const iosDir = path.join(__dirname, '../ios/VibeDiary/Images.xcassets/SplashScreenLegacy.imageset');
   const W = 1242, H = 2688;
   const buf3x = Buffer.from(makeSvg(W, H));
@@ -47,19 +47,41 @@ async function generate() {
   await sharp(buf3x).resize(414, 896).png().toFile(path.join(iosDir, 'image.png'));
   console.log('iOS 스플래시 생성 완료');
 
-  // Android (각 density별 전체화면 이미지)
+  // Android — Android 11 이하용 풀스크린 텍스트 splash (Theme.App.SplashScreen windowBackground fallback)
   const androidBase = path.join(__dirname, '../android/app/src/main/res');
   const densities = [
-    { dir: 'drawable-mdpi',    w: 360,  h: 640  },
-    { dir: 'drawable-hdpi',    w: 540,  h: 960  },
-    { dir: 'drawable-xhdpi',   w: 720,  h: 1280 },
-    { dir: 'drawable-xxhdpi',  w: 1080, h: 1920 },
-    { dir: 'drawable-xxxhdpi', w: 1440, h: 2560 },
+    { dir: 'drawable-mdpi',    w: 360,  h: 640,  iconPx: 240 },
+    { dir: 'drawable-hdpi',    w: 540,  h: 960,  iconPx: 360 },
+    { dir: 'drawable-xhdpi',   w: 720,  h: 1280, iconPx: 480 },
+    { dir: 'drawable-xxhdpi',  w: 1080, h: 1920, iconPx: 720 },
+    { dir: 'drawable-xxxhdpi', w: 1440, h: 2560, iconPx: 960 },
   ];
   for (const { dir, w, h } of densities) {
     const buf = Buffer.from(makeSvg(w, h));
     await sharp(buf).png().toFile(path.join(androidBase, dir, 'splashscreen_logo.png'));
-    console.log(`Android ${dir} (${w}x${h}) 생성 완료`);
+    console.log(`Android ${dir} splashscreen_logo (${w}x${h}) 생성 완료`);
+  }
+
+  // Android 12+ Splash Screen API용 — 가운데 작은 아이콘 (windowSplashScreenAnimatedIcon)
+  // 240dp 캔버스, 안쪽 192dp가 visible area (OS가 동그라미로 마스킹)
+  const sourceIcon = path.join(__dirname, '../assets/splash-icon.png');
+  for (const { dir, iconPx } of densities) {
+    // 240dp 정사각 캔버스에 splash-icon을 192dp 영역으로 리사이즈해서 가운데 배치
+    const innerPx = Math.round(iconPx * (192 / 240));
+    const padding = Math.round((iconPx - innerPx) / 2);
+    const resized = await sharp(sourceIcon).resize(innerPx, innerPx).png().toBuffer();
+    await sharp({
+      create: {
+        width: iconPx,
+        height: iconPx,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([{ input: resized, top: padding, left: padding }])
+      .png()
+      .toFile(path.join(androidBase, dir, 'splashscreen_icon.png'));
+    console.log(`Android ${dir} splashscreen_icon (${iconPx}x${iconPx}) 생성 완료`);
   }
 
   console.log('\n전체 스플래시 이미지 생성 완료');
