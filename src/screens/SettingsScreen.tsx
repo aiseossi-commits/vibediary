@@ -376,12 +376,14 @@ export default function SettingsScreen() {
               const customTags = await getAllTags(activeChild.id).then(
                 tags => tags.map(t => t.name).filter(n => !DEFAULT_TAGS.includes(n))
               );
+              const allowedTags = new Set([...DEFAULT_TAGS, ...customTags]);
               let successCount = 0;
               for (let i = 0; i < withText.length; i++) {
                 setRetagProgress({ current: i + 1, total: withText.length });
                 const record = withText[i];
                 try {
-                  const tags = await getTagsOnly(record.rawText!, customTags);
+                  const tags = (await getTagsOnly(record.rawText!, customTags))
+                    .filter(t => allowedTags.has(t));
                   if (tags.length > 0) {
                     await setTagsForRecord(record.id, tags, activeChild.id);
                     successCount++;
