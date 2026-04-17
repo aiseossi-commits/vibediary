@@ -146,6 +146,19 @@ function createStyles(colors: AppColors) {
     },
     sectionHeaderText: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary },
     sectionHeaderLine: { flex: 1, height: 1, backgroundColor: colors.divider },
+    // 타임라인
+    timelineContainer: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xxl },
+    timelineYearHeader: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginTop: SPACING.lg, marginBottom: SPACING.sm },
+    timelineMonthGroup: { marginBottom: SPACING.sm },
+    timelineMonthRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, marginBottom: SPACING.xs },
+    timelineMonthLabel: { width: 32, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.primary, paddingTop: 2 },
+    timelineEntries: { flex: 1, borderLeftWidth: 1.5, borderLeftColor: colors.divider, paddingLeft: SPACING.sm, gap: SPACING.xs },
+    timelineEntry: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.sm, backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.sm, ...SHADOW.sm },
+    timelineEntryDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginBottom: 2 },
+    timelineEntrySummary: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, lineHeight: 20 },
+    timelineEntryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+    timelineEntryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 1, borderRadius: BORDER_RADIUS.full },
+    timelineBadge: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
   });
 }
 
@@ -285,6 +298,97 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
   const customTags = useMemo(() => tags.filter(t => !ALL_CATEGORY_TAG_NAMES.has(t.name)), [tags]);
 
+  const isTimelineMode = useMemo(() => {
+    if (selectedTagIds.length !== 1) return false;
+    const tag = tags.find(t => t.id === selectedTagIds[0]);
+    return tag?.name === '#의료';
+  }, [selectedTagIds, tags]);
+
+  type TimelineMonth = { month: number; records: RecordWithTags[] };
+  type TimelineYear = { year: number; months: TimelineMonth[] };
+
+  const timelineGroups = useMemo((): TimelineYear[] => {
+    if (!isTimelineMode || filteredRecords.length === 0) return [];
+
+    const byKey = new Map<string, { year: number; month: number; records: RecordWithTags[] }>();
+    for (const r of filteredRecords) {
+      const d = new Date(r.createdAt);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const key = `${year}-${month}`;
+      if (!byKey.has(key)) byKey.set(key, { year, month, records: [] });
+      byKey.get(key)!.records.push(r);
+    }
+
+    const entries = Array.from(byKey.values()).sort((a, b) =>
+      a.year !== b.year ? b.year - a.year : b.month - a.month
+    );
+
+    const byYear = new Map<number, TimelineMonth[]>();
+    for (const e of entries) {
+      if (!byYear.has(e.year)) byYear.set(e.year, []);
+      byYear.get(e.year)!.push({ month: e.month, records: e.records });
+    }
+
+    return Array.from(byYear.entries())
+      .sort((a, b) => b[0] - a[0])
+      .map(([year, months]) => ({ year, months }));
+  }, [isTimelineMode, filteredRecords]);
+
+  const renderTimeline = useCallback(() => {
+    if (timelineGroups.length === 0) {
+      return (
+        <View style={styles.emptyRecords}>
+          <Text style={styles.emptyRecordsText}>의료 기록이 없습니다</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.timelineContainer}>
+        {timelineGroups.map(({ year, months }) => (
+          <View key={year}>
+            <Text style={styles.timelineYearHeader}>{year}</Text>
+            {months.map(({ month, records: mRecords }) => (
+              <View key={month} style={styles.timelineMonthGroup}>
+                <View style={styles.timelineMonthRow}>
+                  <Text style={styles.timelineMonthLabel}>{month}월</Text>
+                  <View style={styles.timelineEntries}>
+                    {mRecords.map((r) => {
+                      const d = new Date(r.createdAt);
+                      const day = String(d.getDate()).padStart(2, '0');
+                      const otherTags = r.tags.filter(t => t.name !== '#의료');
+                      return (
+                        <TouchableOpacity
+                          key={r.id}
+                          style={styles.timelineEntry}
+                          onPress={() => handleRecordPress(r)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.timelineEntryDate}>{month}월 {day}일</Text>
+                          <Text style={styles.timelineEntrySummary} numberOfLines={3}>{r.summary}</Text>
+                          {otherTags.length > 0 && (
+                            <View style={styles.timelineEntryTags}>
+                              {otherTags.slice(0, 4).map(t => (
+                                <Text key={t.id} style={styles.timelineEntryTag}>{t.name}</Text>
+                              ))}
+                              {otherTags.length > 4 && (
+                                <Text style={styles.timelineBadge}>+{otherTags.length - 4}</Text>
+                              )}
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  }, [timelineGroups, styles, handleRecordPress]);
+
   const renderTagItem = useCallback((tag: TagWithCount) => {
     const isSelected = selectedTagIds.includes(tag.id);
     const tagColor = getTagColor(tag.name, colors);
@@ -396,8 +500,10 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
       )}
 
       {isLoadingRecords && <View style={styles.recordsLoading}><ActivityIndicator size="small" color={colors.primary} /></View>}
+
+      {isTimelineMode && !isLoadingRecords && renderTimeline()}
     </>
-  ), [tagByName, customTags, renderTagItem, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
+  ), [tagByName, customTags, renderTagItem, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, isTimelineMode, renderTimeline, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
 
   if (isLoading) {
     return (
@@ -418,12 +524,12 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
           ref={flatListRef}
-          data={selectedTagIds.length > 0 ? filteredRecords : []}
+          data={selectedTagIds.length > 0 && !isTimelineMode ? filteredRecords : []}
           renderItem={renderRecordItem}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderListHeader}
           ListEmptyComponent={
-            selectedTagIds.length > 0 && !isLoadingRecords ? (
+            selectedTagIds.length > 0 && !isLoadingRecords && !isTimelineMode ? (
               <View style={styles.emptyRecords}><Text style={styles.emptyRecordsText}>선택한 태그에 해당하는 기록이 없습니다</Text></View>
             ) : null
           }
