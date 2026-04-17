@@ -300,6 +300,58 @@ export async function getTagsOnly(text: string, extraTags: string[] = []): Promi
   }
 }
 
+// AI 입력 모드: 날짜별 기록 분리
+export type ParsedEntry = { date: string; text: string };
+
+export async function parseMultiEntries(transcript: string, today: string): Promise<ParsedEntry[]> {
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) throw new Error('NO_WORKER');
+
+  const systemPrompt = `오늘: ${today}
+음성 기록에서 날짜별 기록을 JSON 배열로 추출하세요.
+
+규칙:
+1. 날짜가 명시된 경우 해당 날짜 사용. 연도 생략 시 오늘 기준 가장 최근 해당 날짜.
+2. 날짜 없으면 오늘(${today}) 사용.
+3. 날짜 경계로 내용을 자연스럽게 분리.
+4. 각 항목의 text는 날짜 표현 제거 후 핵심 내용만 유지.
+
+반드시 이 형식만 반환 (다른 설명 없이):
+[{"date":"YYYY-MM-DD","text":"..."}]`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  let response: Response;
+  try {
+    response = await fetch(
+      `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: `<user_input>\n${transcript}\n</user_input>` }] }],
+          generationConfig: { maxOutputTokens: 600, temperature: 0.1, responseMimeType: 'application/json' },
+        }),
+        signal: controller.signal,
+      }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) throw new Error(`API 오류 (${response.status})`);
+  const data = await response.json();
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  const match = cleaned.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('PARSE_ERROR');
+  const entries: ParsedEntry[] = JSON.parse(match[0]);
+  if (!Array.isArray(entries) || entries.length === 0) throw new Error('EMPTY');
+  return entries;
+}
+
 // 텍스트 처리 메인 함수
 export async function processWithAI(text: string, extraTags: string[] = []): Promise<AIProcessingResult> {
   const isOnline = await getNetworkState();

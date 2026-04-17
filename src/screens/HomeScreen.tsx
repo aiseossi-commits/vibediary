@@ -39,6 +39,7 @@ import { processOfflineQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
 import { formatEventDurationShort } from '../constants/events';
 import { useRecording } from '../hooks/useRecording';
+import { parseMultiEntries } from '../services/aiProcessor';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
 import * as FileSystem from 'expo-file-system';
@@ -93,6 +94,8 @@ function createStyles(colors: AppColors) {
     inlineCancelBtn: { paddingVertical: 8, paddingHorizontal: 16, marginTop: 2 },
     inlineCancelBtnText: { fontSize: 14, color: colors.textTertiary },
     inlineProcessingText: { fontSize: 15, fontWeight: '500' as const, color: colors.textSecondary, marginTop: 12, letterSpacing: 0.3 },
+    inlineAiModeLabel: { fontSize: 12, color: colors.primary, marginTop: 6, opacity: 0.8, letterSpacing: 0.3 },
+    inlineResultText: { fontSize: 14, fontWeight: '600' as const, color: colors.primary, marginTop: 10, textAlign: 'center' as const },
     typingInput: { flex: 1, fontSize: 15, color: colors.textPrimary, paddingVertical: SPACING.sm },
     sendButton: {
       width: TOUCH_TARGET.min, height: TOUCH_TARGET.min, borderRadius: TOUCH_TARGET.min / 2,
@@ -264,19 +267,42 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const handleRecordPress = useCallback((record: RecordWithTags) => { navigation.navigate('RecordDetail', { recordId: record.id }); }, [navigation]);
   const handlePearlPress = useCallback(() => { navigation.navigate('Recording'); }, [navigation]);
 
-  // --- 인라인 녹음 (롱프레스) ---
+  // --- AI 입력 모드 (롱프레스 인라인 녹음) ---
   const rec = useRecording();
   const [inlineProcessing, setInlineProcessing] = useState(false);
+  const [inlineResult, setInlineResult] = useState<string | null>(null);
 
   const processInlineRecording = useCallback(async (uri: string) => {
     setInlineProcessing(true);
+    setInlineResult(null);
     try {
       const text = await runSTTOnly(uri, activeChild?.name);
       if (!text.trim()) {
         Alert.alert('음성 입력 없음', '음성이 인식되지 않았습니다. 다시 시도해 주세요.');
         return;
       }
-      await processFromText(uri, text, undefined, activeChild?.id);
+
+      // 날짜별 분리 파싱 (실패 시 오늘 날짜로 단일 항목 fallback)
+      const today = new Date().toISOString().slice(0, 10);
+      let entries: { date: string; text: string }[];
+      try {
+        entries = await parseMultiEntries(text, today);
+      } catch {
+        entries = [{ date: today, text }];
+      }
+
+      // 각 항목 AI 처리 + DB 저장
+      for (const entry of entries) {
+        const createdAt = new Date(entry.date + 'T12:00:00').getTime();
+        await processFromText(uri, entry.text, createdAt, activeChild?.id);
+      }
+
+      // 복수 저장 시 피드백
+      if (entries.length > 1) {
+        setInlineResult(`${entries.length}개 기록이 캘린더에 저장됐어요`);
+        setTimeout(() => setInlineResult(null), 3500);
+      }
+
       loadRecords();
       processOfflineQueue().then(() => loadRecords()).catch(() => {});
     } catch (error) {
@@ -395,6 +421,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Text style={styles.inlineTimerText}>
             {Math.floor(rec.duration / 60)}:{String(rec.duration % 60).padStart(2, '0')}
           </Text>
+          <Text style={styles.inlineAiModeLabel}>✦ AI 입력 모드 — 날짜를 말하면 자동 분류</Text>
           <TouchableOpacity onPress={handleInlineCancel} style={styles.inlineCancelBtn}>
             <Text style={styles.inlineCancelBtnText}>취소</Text>
           </TouchableOpacity>
@@ -402,6 +429,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       )}
       {inlineProcessing && (
         <Text style={styles.inlineProcessingText}>기록중...</Text>
+      )}
+      {inlineResult && (
+        <Text style={styles.inlineResultText}>{inlineResult}</Text>
       )}
     </View>
   );
