@@ -352,12 +352,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     try { await rec.stop(); } catch {}
   }, [rec]);
 
-  // 30초 자동 종료
-  useEffect(() => {
-    if (rec.isRecording && rec.duration >= 30) {
-      handleInlineStop();
-    }
-  }, [rec.duration, rec.isRecording, handleInlineStop]);
+  // AI 입력 모드는 시간 제한 없음 — 유저가 직접 중지
 
   const handleTextSubmit = useCallback(async () => {
     const text = textInput.trim();
