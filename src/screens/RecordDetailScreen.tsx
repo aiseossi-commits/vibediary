@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -30,6 +31,25 @@ import { onQueueProcessed } from '../services/offlineQueue';
 import { useChild } from '../context/ChildContext';
 import TagChip from '../components/TagChip';
 import TimePickerModal from '../components/TimePickerModal';
+
+const TAG_CATEGORIES: { label: string; tags: string[] }[] = [
+  { label: '치료', tags: ['#치료', '#언어치료', '#작업치료', '#감각통합치료', '#ABA치료', '#놀이치료', '#물리치료', '#뇌파치료', '#한의학'] },
+  { label: '투약', tags: ['#투약', '#처방약', '#보충제', '#동종요법', '#패치'] },
+  { label: '신체/증상', tags: ['#의료', '#배변', '#수면', '#감각', '#각성', '#건강'] },
+  { label: '행동/정서', tags: ['#행동', '#기분', '#상동행동', '#자해', '#공격행동'] },
+  { label: '기타', tags: ['#발달', '#검사', '#상담', '#교육기관', '#식단', '#일상'] },
+];
+const ALL_CATEGORY_TAG_NAMES = new Set(TAG_CATEGORIES.flatMap(c => c.tags));
+
+const PARENT_CHILD_MAP: Record<string, string[]> = {
+  '#치료': ['#언어치료', '#작업치료', '#감각통합치료', '#ABA치료', '#놀이치료', '#물리치료', '#뇌파치료', '#한의학'],
+  '#투약': ['#처방약', '#보충제', '#동종요법', '#패치'],
+  '#행동': ['#기분', '#상동행동', '#자해', '#공격행동'],
+};
+const CHILD_PARENT_MAP: Record<string, string> = {};
+for (const [parent, children] of Object.entries(PARENT_CHILD_MAP)) {
+  for (const child of children) CHILD_PARENT_MAP[child] = parent;
+}
 
 interface RecordDetailScreenProps {
   route: any;
@@ -143,11 +163,21 @@ function createStyles(colors: AppColors) {
     tagEditContainer: { marginBottom: SPACING.md },
     tagEditHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
     tagEditLabel: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
-    tagEditButtonRow: { flexDirection: 'row', gap: SPACING.xs },
-    tagEditBtn: { paddingHorizontal: SPACING.sm + 2, paddingVertical: SPACING.xs, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
-    tagEditBtnText: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium, color: colors.primary },
-    tagPickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md },
-    tagPickerItem: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingHorizontal: SPACING.sm + 2, paddingVertical: SPACING.xs + 1, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.background },
+    // 태그 Bottom Sheet
+    sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    sheetContainer: { backgroundColor: colors.surface, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, paddingBottom: SPACING.xxl },
+    sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.divider, alignSelf: 'center', marginTop: SPACING.sm, marginBottom: SPACING.xs },
+    sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
+    sheetTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary },
+    sheetSaveBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
+    sheetSaveBtnText: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textOnPrimary },
+    categoryTabRow: { flexDirection: 'row', paddingHorizontal: SPACING.md, paddingBottom: SPACING.sm, gap: SPACING.xs },
+    categoryTab: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs + 1, borderRadius: BORDER_RADIUS.full, backgroundColor: colors.surfaceSecondary },
+    categoryTabActive: { backgroundColor: colors.primary },
+    categoryTabText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
+    categoryTabTextActive: { color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    tagPickerArea: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, minHeight: 120 },
+    tagPickerItem: { paddingHorizontal: SPACING.sm + 2, paddingVertical: SPACING.xs + 1, borderRadius: BORDER_RADIUS.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.background },
     tagPickerItemSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
     tagPickerText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     tagPickerTextSelected: { color: colors.primary, fontWeight: FONT_WEIGHT.medium },
@@ -171,6 +201,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [editingTagIds, setEditingTagIds] = useState<number[]>([]);
   const [isSavingTags, setIsSavingTags] = useState(false);
+  const [activeCategoryTab, setActiveCategoryTab] = useState(0);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -259,11 +290,33 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       const all = await getAllTags(activeChild?.id);
       setAvailableTags(all);
       setEditingTagIds(record.tags.map((t) => t.id));
+      setActiveCategoryTab(0);
       setIsEditingTags(true);
     } catch (error) {
       console.error('Failed to load tags:', error);
     }
   }, [record, activeChild?.id]);
+
+  // 태그 토글: 자식 선택 시 부모 자동 추가, 부모 해제 시 자식 전체 해제
+  const handleToggleTag = useCallback((tag: Tag) => {
+    setEditingTagIds(prev => {
+      const selected = prev.includes(tag.id);
+      if (selected) {
+        // 해제: 부모 태그면 자식도 함께 해제
+        const children = PARENT_CHILD_MAP[tag.name] ?? [];
+        const childIds = availableTags.filter(t => children.includes(t.name)).map(t => t.id);
+        return prev.filter(id => id !== tag.id && !childIds.includes(id));
+      } else {
+        // 선택: 자식 태그면 부모도 함께 선택
+        const parentName = CHILD_PARENT_MAP[tag.name];
+        const parentTag = parentName ? availableTags.find(t => t.name === parentName) : null;
+        const toAdd = parentTag && !prev.includes(parentTag.id)
+          ? [tag.id, parentTag.id]
+          : [tag.id];
+        return [...prev, ...toAdd];
+      }
+    });
+  }, [availableTags]);
 
   const handleSaveTags = useCallback(async () => {
     if (!record) return;
@@ -342,50 +395,78 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           </View>
         )}
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onLongPress={!isEditingTags ? handleStartEditTags : undefined}
-          delayLongPress={400}
-        >
-        <View style={styles.tagEditContainer}>
-          <View style={styles.tagEditHeader}>
-            <Text style={styles.tagEditLabel}>태그</Text>
-            {isEditingTags && (
-              <View style={styles.tagEditButtonRow}>
-                <TouchableOpacity onPress={() => setIsEditingTags(false)} style={styles.tagEditBtn} disabled={isSavingTags}>
-                  <Text style={styles.tagEditBtnText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSaveTags} style={[styles.tagEditBtn, { backgroundColor: colors.primary }]} disabled={isSavingTags}>
-                  {isSavingTags ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={[styles.tagEditBtnText, { color: colors.textOnPrimary }]}>저장</Text>}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-          {isEditingTags ? (
-            <View style={styles.tagPickerRow}>
-              {availableTags.map((tag) => {
-                const selected = editingTagIds.includes(tag.id);
-                return (
-                  <TouchableOpacity
-                    key={tag.id}
-                    style={[styles.tagPickerItem, selected && styles.tagPickerItemSelected]}
-                    onPress={() => setEditingTagIds((prev) => selected ? prev.filter((id) => id !== tag.id) : [...prev, tag.id])}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.tagPickerText, selected && styles.tagPickerTextSelected]}>{tag.name}</Text>
+        {/* 태그 편집 Bottom Sheet */}
+        <Modal visible={isEditingTags} transparent animationType="slide" onRequestClose={() => setIsEditingTags(false)}>
+          <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setIsEditingTags(false)}>
+            <TouchableOpacity activeOpacity={1} onPress={e => e.stopPropagation()}>
+              <View style={styles.sheetContainer}>
+                <View style={styles.sheetHandle} />
+                <View style={styles.sheetHeader}>
+                  <Text style={styles.sheetTitle}>태그 선택</Text>
+                  <TouchableOpacity onPress={handleSaveTags} style={styles.sheetSaveBtn} disabled={isSavingTags}>
+                    {isSavingTags
+                      ? <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                      : <Text style={styles.sheetSaveBtnText}>저장</Text>
+                    }
                   </TouchableOpacity>
-                );
-              })}
+                </View>
+                {/* 카테고리 탭 */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryTabRow}>
+                  {[...TAG_CATEGORIES.map(c => c.label), '내 태그'].map((label, idx) => (
+                    <TouchableOpacity
+                      key={label}
+                      style={[styles.categoryTab, activeCategoryTab === idx && styles.categoryTabActive]}
+                      onPress={() => setActiveCategoryTab(idx)}
+                    >
+                      <Text style={[styles.categoryTabText, activeCategoryTab === idx && styles.categoryTabTextActive]}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {/* 태그 칩 */}
+                <View style={styles.tagPickerArea}>
+                  {(() => {
+                    const isCustomTab = activeCategoryTab === TAG_CATEGORIES.length;
+                    const categoryTagNames = isCustomTab
+                      ? null
+                      : TAG_CATEGORIES[activeCategoryTab]?.tags;
+                    const displayTags = isCustomTab
+                      ? availableTags.filter(t => !ALL_CATEGORY_TAG_NAMES.has(t.name))
+                      : availableTags.filter(t => categoryTagNames?.includes(t.name));
+                    return displayTags.map(tag => {
+                      const selected = editingTagIds.includes(tag.id);
+                      return (
+                        <TouchableOpacity
+                          key={tag.id}
+                          style={[styles.tagPickerItem, selected && styles.tagPickerItemSelected]}
+                          onPress={() => handleToggleTag(tag)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.tagPickerText, selected && styles.tagPickerTextSelected]}>{tag.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    });
+                  })()}
+                </View>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        <TouchableOpacity activeOpacity={0.8} onLongPress={handleStartEditTags} delayLongPress={400}>
+          <View style={styles.tagEditContainer}>
+            <View style={styles.tagEditHeader}>
+              <Text style={styles.tagEditLabel}>태그</Text>
+              <TouchableOpacity onPress={handleStartEditTags} style={{ paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs }}>
+                <Text style={{ fontSize: FONT_SIZE.xs, color: colors.primary }}>편집</Text>
+              </TouchableOpacity>
             </View>
-          ) : (
             <View style={styles.tagsSection}>
               {record.tags.length > 0
                 ? record.tags.map((tag) => <TagChip key={tag.id} name={tag.name} size="md" />)
                 : <Text style={{ fontSize: FONT_SIZE.sm, color: colors.textTertiary }}>태그 없음</Text>
               }
             </View>
-          )}
-        </View>
+          </View>
         </TouchableOpacity>
 
         <View style={[styles.section, SHADOW.sm]}>
