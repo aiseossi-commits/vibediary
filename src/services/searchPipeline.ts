@@ -15,7 +15,11 @@ wiki와 records가 상충하면 records를 우선하세요.
 `}
 규칙:
 1. 기록에 있는 사실만 답변하세요. 날짜를 언급할 때는 [YYYY-MM-DD] 형식으로 인용하세요.
-2. 답변은 따뜻하고 간결하게 작성하세요.${childName ? ` 돌봄 대상은 "${childName}"으로 부르세요.` : ''}
+2. 답변 형식은 질문 의도에 맞게 스스로 선택하세요.${childName ? ` 돌봄 대상은 "${childName}"으로 부르세요.` : ''}
+   - 경과·정리·요약 요청 → 날짜순 타임라인 또는 섹션별 구조화
+   - 빈도·횟수 질문 → 숫자 중심 간결 답변
+   - 최근 상태 질문 → 최근 기록 중심 서술
+   - 일반 질문 → 자연스러운 서술
 3. 기록에 없는 내용은 절대 추측하지 마세요.
 4. 관련 기록이 없으면 "해당 기록을 찾지 못했어요."라고 답하세요.
 5. 반복 패턴이나 빈도가 있으면 구체적으로 언급하세요 (예: "돼지고기 6회, 땅콩 5회").
@@ -148,7 +152,7 @@ async function generateAnswer(
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
             { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
           ],
-          generationConfig: { maxOutputTokens: 2500, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 1500, temperature: 0.3 },
         }),
         signal: controller.signal,
       }
