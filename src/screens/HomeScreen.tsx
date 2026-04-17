@@ -82,7 +82,7 @@ function createStyles(colors: AppColors) {
     },
     pearlCenter: { alignItems: 'center', marginTop: 60, marginBottom: 24 },
     pearlWrapper: { width: PEARL_SIZE, height: PEARL_SIZE, alignItems: 'center', justifyContent: 'center' },
-    pulseRing: { position: 'absolute', width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2, backgroundColor: colors.primary },
+    pulseRing: { position: 'absolute', width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2 },
     pearlButton: {
       width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2,
       backgroundColor: colors.micBg, alignItems: 'center', justifyContent: 'center',
@@ -90,7 +90,8 @@ function createStyles(colors: AppColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 1, elevation: 2,
     },
     pearlLabel: { fontSize: 15, fontWeight: '500' as const, color: colors.micLabel, marginTop: 16, opacity: 0.85, letterSpacing: 0.2 },
-    pearlRecordingButton: { backgroundColor: colors.recordingRedLight, borderColor: colors.recordingRed },
+    pearlRecordingButton: { borderColor: colors.recordingRed, borderWidth: 2.5 },
+    recordingDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.recordingRed },
     inlineTimerText: { fontSize: 15, fontWeight: '600' as const, color: colors.recordingRed, marginTop: 12, letterSpacing: 1.5 },
     inlineCancelBtn: { paddingVertical: 8, paddingHorizontal: 16, marginTop: 2 },
     inlineCancelBtnText: { fontSize: 14, color: colors.textTertiary },
@@ -435,8 +436,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const PearlButton = (
     <View style={{ alignItems: 'center' }}>
       <View style={styles.pearlWrapper}>
-        {!rec.isRecording && !inlineProcessing && pulseAnims.map(({ scale, opacity }, i) => (
-          <Animated.View key={i} style={[styles.pulseRing, { transform: [{ scale }], opacity }]} />
+        {!inlineProcessing && pulseAnims.map(({ scale, opacity }, i) => (
+          <Animated.View
+            key={i}
+            style={[styles.pulseRing, { backgroundColor: rec.isRecording ? colors.recordingRed : colors.primary, transform: [{ scale }], opacity }]}
+          />
         ))}
         {inlineProcessing ? (
           <View style={styles.pearlButton}>
@@ -449,7 +453,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             activeOpacity={1}
             style={[styles.pearlButton, styles.pearlRecordingButton]}
           >
-            <View style={{ width: 28, height: 28, borderRadius: 5, backgroundColor: colors.recordingRed }} />
+            <View style={styles.recordingDot} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
