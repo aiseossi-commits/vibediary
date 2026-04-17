@@ -13,7 +13,10 @@ import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQu
 import {
   isDatabaseReady, createChild, updateChild, deleteChild,
   getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
+  getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
+import { processWithAI } from '../services/aiProcessor';
+import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -147,6 +150,10 @@ export default function SettingsScreen() {
   // 백업/복원 상태
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  // 태그 재분석 상태
+  const [isRetagging, setIsRetagging] = useState(false);
+  const [retagProgress, setRetagProgress] = useState<{ current: number; total: number } | null>(null);
 
   const handleExport = useCallback(async () => {
     setIsBackingUp(true);
@@ -328,6 +335,64 @@ export default function SettingsScreen() {
     }
     setIsProcessing(false);
   };
+
+  const handleRetagAll = useCallback(() => {
+    if (!activeChild) {
+      Alert.alert('바다 선택 필요', '먼저 바다를 선택해주세요.');
+      return;
+    }
+    Alert.alert(
+      '기존 기록 태그 재분석',
+      `"${activeChild.name}"의 모든 기록을 AI로 다시 태깅합니다.\n기록 수만큼 AI 호출이 발생하며, 시간이 걸릴 수 있습니다.\n계속하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '재분석 시작',
+          onPress: async () => {
+            setIsRetagging(true);
+            setRetagProgress(null);
+            try {
+              const records = await getAllRecords(10000, 0, activeChild.id);
+              const withText = records.filter(r => r.rawText && r.rawText.trim().length > 0);
+              if (withText.length === 0) {
+                Alert.alert('완료', '재분석할 기록이 없습니다.');
+                return;
+              }
+              const customTags = await getAllTags(activeChild.id).then(
+                tags => tags.map(t => t.name).filter(n => !DEFAULT_TAGS.includes(n))
+              );
+              let successCount = 0;
+              for (let i = 0; i < withText.length; i++) {
+                setRetagProgress({ current: i + 1, total: withText.length });
+                const record = withText[i];
+                try {
+                  const result = await processWithAI(record.rawText!, customTags);
+                  if (result.tags.length > 0) {
+                    await setTagsForRecord(record.id, result.tags, activeChild.id);
+                    successCount++;
+                  }
+                } catch {
+                  // 개별 실패는 건너뜀
+                }
+                // API 과부하 방지 딜레이
+                await new Promise(res => setTimeout(res, 200));
+              }
+              Alert.alert('완료', `${successCount}/${withText.length}건의 기록 태그가 업데이트되었습니다.`);
+            } catch (e: any) {
+              if (e?.message === 'OFFLINE') {
+                Alert.alert('오프라인', '인터넷에 연결되지 않았어요.');
+              } else {
+                Alert.alert('오류', '태그 재분석 중 문제가 발생했습니다.');
+              }
+            } finally {
+              setIsRetagging(false);
+              setRetagProgress(null);
+            }
+          },
+        },
+      ]
+    );
+  }, [activeChild]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -570,6 +635,33 @@ export default function SettingsScreen() {
                 />
               </View>
             ))}
+          </View>
+        </View>
+
+        {/* 태그 재분석 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>AI 태그 관리</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>기존 기록 태그 재분석</Text>
+            <Text style={styles.cardDescription}>
+              앱 업데이트로 태그 분류가 세분화되었습니다.{'\n'}
+              이전에 저장된 기록도 새 태그 기준으로 다시 분석합니다.
+            </Text>
+            <TouchableOpacity
+              style={[styles.processButton, isRetagging && { opacity: 0.6 }]}
+              onPress={handleRetagAll}
+              disabled={isRetagging}
+            >
+              {isRetagging && retagProgress ? (
+                <Text style={styles.processButtonText}>
+                  분석 중... ({retagProgress.current}/{retagProgress.total})
+                </Text>
+              ) : isRetagging ? (
+                <ActivityIndicator size="small" color={colors.textOnPrimary} />
+              ) : (
+                <Text style={styles.processButtonText}>태그 재분석 시작</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
