@@ -443,10 +443,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : rec.isRecording ? (
-          // 녹음 중: 손 떼면 자동 중지 (onPressOut), 버튼은 시각 피드백만
-          <View style={[styles.pearlButton, styles.pearlRecordingButton]}>
+          // 녹음 중: 손 떼면 자동 중지 (onPressOut)
+          <TouchableOpacity
+            onPressOut={handleInlineStop}
+            activeOpacity={1}
+            style={[styles.pearlButton, styles.pearlRecordingButton]}
+          >
             <View style={{ width: 28, height: 28, borderRadius: 5, backgroundColor: colors.recordingRed }} />
-          </View>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             onPressIn={handlePressIn}
