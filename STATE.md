@@ -19,6 +19,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 등대/항해일지 포지션 재정립: 등대탭=자동인사이트+항해일지생성+채팅, 항해일지탭=저장된 등대답변 (search_logs), AssistantBubble 저장 버튼 추가
 - [x] TagsScreen 카테고리 섹션 그룹핑: 치료/투약/신체·증상/행동·정서/기타/내 태그 6개 섹션, 기존 필터링·롱프레스 편집 유지
 - [x] 기존 기록 태그 재분석 버튼: 설정 > AI 태그 관리, getTagsOnly(경량 프롬프트) 사용, 하루 1회 제한 (last_retag_at → app_settings), 진행률 표시 (N/M)
 - [x] 스플래시 화면 통일: native 이미지에 "기록에 치이지 말고, 그냥 말하세요" 텍스트 임베드 (generate-splash.js, sharp), JS SplashOverlay 방식 폐기, App.tsx DB 로딩 중 어두운 배경 View로 흰 화면 플래시 제거

@@ -25,7 +25,8 @@ import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { shouldAbsorb, runAbsorb, generateVoyageReport, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
-import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
+import { getWikiPages } from '../db/wikiDao';
+import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import {
@@ -36,7 +37,7 @@ import {
   SHADOW,
   type AppColors,
 } from '../constants/theme';
-import type { ChatMessage, WikiPage } from '../types/record';
+import type { ChatMessage, WikiPage, SearchLog } from '../types/record';
 
 type ActiveTab = 'chat' | 'log';
 
@@ -77,17 +78,11 @@ function createStyles(colors: AppColors) {
     segmentBtnActive: { backgroundColor: colors.surface, ...SHADOW.sm },
     segmentBtnText: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, color: colors.textTertiary },
     segmentBtnTextActive: { color: colors.textPrimary, fontWeight: FONT_WEIGHT.semibold },
-    absorbBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, backgroundColor: colors.accentLight, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm },
-    absorbBannerText: { flex: 1, fontSize: FONT_SIZE.sm, color: colors.accent, fontWeight: FONT_WEIGHT.medium },
-    lintBanner: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, backgroundColor: colors.surfaceSecondary, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm },
-    lintBannerText: { flex: 1, fontSize: FONT_SIZE.sm, color: colors.textSecondary },
-    lintResultCard: { backgroundColor: colors.surface, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm, ...SHADOW.sm },
-    lintResultTitle: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
-    lintIssueText: { fontSize: FONT_SIZE.xs, color: colors.textSecondary, lineHeight: 18, marginBottom: 2 },
-    lintSuggestionText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, lineHeight: 18, marginBottom: 2 },
-    logScroll: { flex: 1 },
-    logContent: { padding: SPACING.md, paddingBottom: SPACING.xxl },
-    sectionHeader: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACING.sm, marginTop: SPACING.md },
+    // 인사이트 섹션
+    insightSection: { paddingHorizontal: SPACING.md, marginBottom: SPACING.sm },
+    insightSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
+    insightSectionTitle: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary },
+    insightSectionToggle: { fontSize: FONT_SIZE.xs, color: colors.primary },
     insightCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
     insightCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
     insightTypeLabel: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
@@ -98,17 +93,10 @@ function createStyles(colors: AppColors) {
     visualChipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.sm },
     visualChip: { backgroundColor: colors.primaryLight, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 3 },
     visualChipText: { fontSize: FONT_SIZE.xs, color: colors.primary },
-    qaCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
-    qaQuery: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
-    qaAnswer: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20 },
-    qaFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SPACING.xs },
-    qaDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
-    qaDeleteBtn: { padding: SPACING.xs },
-    emptyState: { alignItems: 'center', paddingTop: SPACING.xxl * 2, gap: SPACING.lg },
-    emptyDescription: { fontSize: FONT_SIZE.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 26 },
-    suggestedContainer: { width: '100%', paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: SPACING.sm },
-    suggestedBtn: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...SHADOW.sm },
-    suggestedBtnText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, flex: 1 },
+    generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: colors.surfaceSecondary, marginHorizontal: SPACING.md, marginBottom: SPACING.md, padding: SPACING.sm + 2, borderRadius: BORDER_RADIUS.sm },
+    generateBtnText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
+    divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
+    // 채팅
     messageList: { flex: 1 },
     messageListContent: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: SPACING.xl },
     userBubbleRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: SPACING.sm },
@@ -117,9 +105,10 @@ function createStyles(colors: AppColors) {
     assistantBubbleRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm },
     assistantBubble: { maxWidth: '88%', backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderBottomLeftRadius: 4, padding: SPACING.md, ...SHADOW.sm },
     assistantBubbleText: { fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: 24 },
-    shareRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: SPACING.xs, gap: SPACING.sm },
-    shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: SPACING.xs },
-    shareBtnText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
+    actionRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: SPACING.xs, gap: SPACING.sm },
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: SPACING.xs },
+    actionBtnText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
+    actionBtnSaved: { color: colors.primary },
     typingRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
     typingBubble: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, borderBottomLeftRadius: 4, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, ...SHADOW.sm },
     typingText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
@@ -128,8 +117,24 @@ function createStyles(colors: AppColors) {
     searchButton: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     searchButtonDisabled: { backgroundColor: colors.border },
     searchButtonText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
-    generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: colors.primary, marginHorizontal: SPACING.md, marginBottom: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.sm },
-    generateBtnText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.semibold },
+    emptyState: { alignItems: 'center', paddingTop: SPACING.xxl * 2, gap: SPACING.lg },
+    emptyDescription: { fontSize: FONT_SIZE.md, color: colors.textSecondary, textAlign: 'center', lineHeight: 26 },
+    suggestedContainer: { width: '100%', paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: SPACING.sm },
+    suggestedBtn: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...SHADOW.sm },
+    suggestedBtnText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, flex: 1 },
+    // 항해일지 (저장된 답변)
+    logScroll: { flex: 1 },
+    logContent: { padding: SPACING.md, paddingBottom: SPACING.xxl },
+    logCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
+    logCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
+    logQuery: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, flex: 1, marginRight: SPACING.sm },
+    logAnswer: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20 },
+    logFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SPACING.xs },
+    logDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
+    logDeleteBtn: { padding: SPACING.xs },
+    logShareBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: SPACING.xs },
+    logShareBtnText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
+    // 모달
     typeModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     typeModalSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: SPACING.md, paddingBottom: SPACING.xxl },
     typeModalTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', marginBottom: SPACING.sm, paddingHorizontal: SPACING.lg },
@@ -153,6 +158,11 @@ function buildMarkdownStyles(colors: AppColors) {
   };
 }
 
+function formatRelativeDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.userBubbleRow}>
@@ -163,7 +173,15 @@ function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnT
   );
 }
 
-function AssistantBubble({ message, styles, colors }: { message: ChatMessage; styles: ReturnType<typeof createStyles>; colors: AppColors }) {
+function AssistantBubble({ message, query, onSave, styles, colors }: {
+  message: ChatMessage;
+  query?: string;
+  onSave?: (query: string, answer: string) => Promise<void>;
+  styles: ReturnType<typeof createStyles>;
+  colors: AppColors;
+}) {
+  const [saved, setSaved] = useState(false);
+
   const handleShare = useCallback(async () => {
     try {
       const result = await Share.share({ message: message.text });
@@ -174,14 +192,26 @@ function AssistantBubble({ message, styles, colors }: { message: ChatMessage; st
     }
   }, [message.text]);
 
+  const handleSave = useCallback(async () => {
+    if (!onSave || saved) return;
+    await onSave(query ?? '', message.text);
+    setSaved(true);
+  }, [onSave, query, message.text, saved]);
+
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
         <Text style={styles.assistantBubbleText}>{message.text}</Text>
-        <View style={styles.shareRow}>
-          <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.7}>
+        <View style={styles.actionRow}>
+          {onSave && (
+            <TouchableOpacity style={styles.actionBtn} onPress={handleSave} activeOpacity={0.7} disabled={saved}>
+              <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={14} color={saved ? colors.primary : colors.textTertiary} />
+              <Text style={[styles.actionBtnText, saved && styles.actionBtnSaved]}>{saved ? '저장됨' : '저장'}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.actionBtn} onPress={handleShare} activeOpacity={0.7}>
             <Ionicons name="share-outline" size={14} color={colors.textTertiary} />
-            <Text style={styles.shareBtnText}>공유</Text>
+            <Text style={styles.actionBtnText}>공유</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -189,22 +219,31 @@ function AssistantBubble({ message, styles, colors }: { message: ChatMessage; st
   );
 }
 
-function formatRelativeDate(ts: number): string {
-  const d = new Date(ts);
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function VoyageLogFeed({ childId, colors, styles, isAbsorbing }: {
+// 자동 인사이트 + 항해일지 생성 (등대 탭 상단)
+function InsightSection({ childId, colors, styles, isAbsorbing }: {
   childId: string | undefined;
   colors: AppColors;
   styles: ReturnType<typeof createStyles>;
   isAbsorbing: boolean;
 }) {
-  const [allWikiPages, setAllWikiPages] = useState<WikiPage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [wikiPages, setWikiPages] = useState<WikiPage[]>([]);
+  const [expanded, setExpanded] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const markdownStyles = useMemo(() => buildMarkdownStyles(colors), [colors]);
+
+  const loadPages = useCallback(async () => {
+    if (!childId) return;
+    try {
+      const pages = await getWikiPages(childId);
+      // voyage 제외한 auto-generated 페이지만
+      setWikiPages(pages.filter(p => p.slug !== 'wiki-index' && !p.slug.startsWith('voyage/')));
+    } catch {}
+  }, [childId]);
+
+  useEffect(() => { loadPages(); }, [loadPages]);
+  useEffect(() => { if (!isAbsorbing) loadPages(); }, [isAbsorbing, loadPages]);
 
   const toggleExpand = useCallback((key: string) => {
     setExpandedIds(prev => {
@@ -214,44 +253,12 @@ function VoyageLogFeed({ childId, colors, styles, isAbsorbing }: {
     });
   }, []);
 
-  const loadData = useCallback(async () => {
-    if (!childId) { setIsLoading(false); return; }
-    try {
-      const pages = await getWikiPages(childId);
-      setAllWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
-    } catch (e) {
-      console.error('[VoyageLogFeed] 로드 실패:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [childId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
-
-  useEffect(() => {
-    if (!isAbsorbing) loadData();
-  }, [isAbsorbing, loadData]);
-
-  // voyage/로 시작하는 수동 생성 항해일지만 표시
-  const voyagePages = allWikiPages.filter(p => p.slug.startsWith('voyage/'));
-
-  const handleDeleteWikiPage = useCallback((id: number) => {
-    Alert.alert('삭제', '이 항목을 삭제하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => {
-        await deleteWikiPage(id);
-        setAllWikiPages(prev => prev.filter(p => p.id !== id));
-      }},
-    ]);
-  }, []);
-
   const handleGenerateReport = useCallback(async (type: VoyageReportType) => {
     if (!childId || isGenerating) return;
     setShowTypeModal(false);
     setIsGenerating(true);
     try {
       await generateVoyageReport(childId, type);
-      await loadData();
     } catch (e: any) {
       if (e?.message === 'OFFLINE') Alert.alert('오프라인', '네트워크에 연결되어 있지 않아요.');
       else if (e?.message === 'NO_RECORDS') Alert.alert('기록 없음', '분석할 기록이 없어요.');
@@ -259,48 +266,9 @@ function VoyageLogFeed({ childId, colors, styles, isAbsorbing }: {
     } finally {
       setIsGenerating(false);
     }
-  }, [childId, isGenerating, loadData]);
+  }, [childId, isGenerating]);
 
-  const markdownStyles = useMemo(() => buildMarkdownStyles(colors), [colors]);
-
-  const renderInsightCard = useCallback((page: WikiPage) => {
-    const key = `p-${page.id}`;
-    const expanded = expandedIds.has(key);
-    return (
-      <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
-        <View style={styles.insightCardHeader}>
-          <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
-          <TouchableOpacity style={styles.insightDeleteBtn} onPress={() => handleDeleteWikiPage(page.id)}>
-            <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.insightTitle}>{page.title}</Text>
-        {page.visualData && (() => {
-          try {
-            const { patterns } = JSON.parse(page.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
-            if (!patterns || patterns.length === 0) return null;
-            return (
-              <View style={styles.visualChipsContainer}>
-                {patterns.map((p, i) => (
-                  <View key={i} style={styles.visualChip}>
-                    <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
-                  </View>
-                ))}
-              </View>
-            );
-          } catch { return null; }
-        })()}
-        {expanded
-          ? <Markdown style={markdownStyles}>{page.body}</Markdown>
-          : <Text style={styles.insightBody} numberOfLines={4}>{page.body}</Text>
-        }
-        <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {expanded ? '접기' : '전체 보기'}</Text>
-      </TouchableOpacity>
-    );
-  }, [expandedIds, toggleExpand, handleDeleteWikiPage, styles, colors, markdownStyles]);
-
-  if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
-
+  const visiblePages = expanded ? wikiPages : wikiPages.slice(0, 2);
 
   return (
     <>
@@ -328,31 +296,153 @@ function VoyageLogFeed({ childId, colors, styles, isAbsorbing }: {
         </TouchableOpacity>
       </Modal>
 
-      <ScrollView style={styles.logScroll} contentContainerStyle={styles.logContent} showsVerticalScrollIndicator={false}>
-        {/* 항해일지 생성 버튼 (항상 표시) */}
-        <TouchableOpacity
-          style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
-          onPress={() => setShowTypeModal(true)}
-          disabled={isGenerating}
-          activeOpacity={0.85}
-        >
-          {isGenerating
-            ? <ActivityIndicator size="small" color={colors.textOnPrimary} />
-            : <Ionicons name="add-circle-outline" size={16} color={colors.textOnPrimary} />
-          }
-          <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '새 항해일지 생성'}</Text>
-        </TouchableOpacity>
-
-        {voyagePages.length === 0 ? (
-          <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
-            <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
-            <Text style={styles.emptyDescription}>아직 항해일지가 없어요.{'\n'}위에서 새 항해일지를 만들어보세요.</Text>
+      {wikiPages.length > 0 && (
+        <View style={styles.insightSection}>
+          <View style={styles.insightSectionHeader}>
+            <Text style={styles.insightSectionTitle}>AI 인사이트</Text>
+            {wikiPages.length > 2 && (
+              <TouchableOpacity onPress={() => setExpanded(p => !p)}>
+                <Text style={styles.insightSectionToggle}>{expanded ? '접기' : `전체 보기 (${wikiPages.length})`}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        ) : (
-          voyagePages.map(page => renderInsightCard(page))
-        )}
-      </ScrollView>
+          {visiblePages.map(page => {
+            const key = `p-${page.id}`;
+            const isExpanded = expandedIds.has(key);
+            return (
+              <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
+                <View style={styles.insightCardHeader}>
+                  <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
+                </View>
+                <Text style={styles.insightTitle}>{page.title}</Text>
+                {page.visualData && (() => {
+                  try {
+                    const { patterns } = JSON.parse(page.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
+                    if (!patterns?.length) return null;
+                    return (
+                      <View style={styles.visualChipsContainer}>
+                        {patterns.map((p, i) => (
+                          <View key={i} style={styles.visualChip}>
+                            <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
+                          </View>
+                        ))}
+                      </View>
+                    );
+                  } catch { return null; }
+                })()}
+                {isExpanded
+                  ? <Markdown style={markdownStyles}>{page.body}</Markdown>
+                  : <Text style={styles.insightBody} numberOfLines={3}>{page.body}</Text>
+                }
+                <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
+        onPress={() => setShowTypeModal(true)}
+        disabled={isGenerating}
+        activeOpacity={0.85}
+      >
+        {isGenerating
+          ? <ActivityIndicator size="small" color={colors.textSecondary} />
+          : <Ionicons name="add-circle-outline" size={16} color={colors.textSecondary} />
+        }
+        <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '항해일지 생성'}</Text>
+      </TouchableOpacity>
+
+      <View style={styles.divider} />
     </>
+  );
+}
+
+// 항해일지 탭 — 저장된 등대 답변
+function VoyageLogFeed({ childId, colors, styles }: {
+  childId: string | undefined;
+  colors: AppColors;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const [logs, setLogs] = useState<SearchLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const loadLogs = useCallback(async () => {
+    if (!childId) { setIsLoading(false); return; }
+    try {
+      const data = await getSearchLogs(childId);
+      setLogs(data);
+    } catch {}
+    finally { setIsLoading(false); }
+  }, [childId]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  const toggleExpand = useCallback((id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleDelete = useCallback((id: number) => {
+    Alert.alert('삭제', '저장된 항해일지를 삭제할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => {
+        await deleteSearchLog(id);
+        setLogs(prev => prev.filter(l => l.id !== id));
+      }},
+    ]);
+  }, []);
+
+  const handleShare = useCallback(async (log: SearchLog) => {
+    const text = `Q. ${log.query}\n\n${log.answer}`;
+    try {
+      await Share.share({ message: text });
+    } catch {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('복사됨', '클립보드에 복사했어요.');
+    }
+  }, []);
+
+  if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
+
+  if (logs.length === 0) {
+    return (
+      <View style={[styles.emptyState, { flex: 1 }]}>
+        <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
+        <Text style={styles.emptyDescription}>저장된 항해일지가 없어요.{'\n'}등대 답변에서 저장 버튼을 눌러보세요.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.logScroll} contentContainerStyle={styles.logContent} showsVerticalScrollIndicator={false}>
+      {logs.map(log => {
+        const isExpanded = expandedIds.has(log.id);
+        return (
+          <TouchableOpacity key={log.id} style={styles.logCard} onPress={() => toggleExpand(log.id)} activeOpacity={0.85}>
+            <View style={styles.logCardHeader}>
+              <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
+              <TouchableOpacity style={styles.logDeleteBtn} onPress={() => handleDelete(log.id)}>
+                <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.logAnswer} numberOfLines={isExpanded ? undefined : 4}>{log.answer}</Text>
+            <View style={styles.logFooter}>
+              <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
+              <TouchableOpacity style={styles.logShareBtn} onPress={() => handleShare(log)}>
+                <Ionicons name="share-outline" size={14} color={colors.textTertiary} />
+                <Text style={styles.logShareBtnText}>공유</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -367,6 +457,8 @@ export default function SearchScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAbsorbing, setIsAbsorbing] = useState(false);
+  // 현재 대화에서 마지막 질문 추적 (저장 시 query 전달용)
+  const lastQueryRef = useRef<string>('');
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -374,7 +466,6 @@ export default function SearchScreen() {
     setMessages([]);
   }, [activeChild?.id]);
 
-  // absorb는 백그라운드에서 자동 실행 (등대 위키 품질 유지)
   useFocusEffect(useCallback(() => {
     if (activeChild?.id) {
       shouldAbsorb(activeChild.id).then(ready => {
@@ -389,6 +480,7 @@ export default function SearchScreen() {
   const handleSearch = useCallback(async (overrideText?: string) => {
     const trimmed = (overrideText ?? query).trim();
     if (!trimmed) return;
+    lastQueryRef.current = trimmed;
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', text: trimmed, createdAt: Date.now() };
     const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
     setQuery('');
@@ -404,14 +496,35 @@ export default function SearchScreen() {
     }
   }, [query, messages, activeChild?.id, activeChild?.name]);
 
+  const handleSaveAnswer = useCallback(async (q: string, answer: string) => {
+    await createSearchLog(activeChild?.id ?? null, q, answer);
+  }, [activeChild?.id]);
+
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages.length, isSearching]);
 
-  const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
-    if (item.role === 'user') return <UserBubble message={item} styles={styles} />;
-    return <AssistantBubble message={item} styles={styles} colors={colors} />;
-  }, [styles, colors]);
+  // 메시지 렌더링 — 각 assistant 메시지에 직전 user 질문 연결
+  const messagesWithQuery = useMemo(() => {
+    return messages.map((msg, idx) => {
+      if (msg.role !== 'assistant') return { msg, query: '' };
+      const prev = messages[idx - 1];
+      return { msg, query: prev?.role === 'user' ? prev.text : '' };
+    });
+  }, [messages]);
+
+  const renderMessage = useCallback(({ item }: { item: { msg: ChatMessage; query: string } }) => {
+    if (item.msg.role === 'user') return <UserBubble message={item.msg} styles={styles} />;
+    return (
+      <AssistantBubble
+        message={item.msg}
+        query={item.query}
+        onSave={handleSaveAnswer}
+        styles={styles}
+        colors={colors}
+      />
+    );
+  }, [styles, colors, handleSaveAnswer]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -431,34 +544,32 @@ export default function SearchScreen() {
       </View>
 
       {activeTab === 'log' ? (
-        <VoyageLogFeed
-          childId={activeChild?.id}
-          colors={colors}
-          styles={styles}
-          isAbsorbing={isAbsorbing}
-        />
+        <VoyageLogFeed childId={activeChild?.id} colors={colors} styles={styles} />
       ) : (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex} keyboardVerticalOffset={Platform.OS === 'ios' ? tabBarHeight : 0}>
           {messages.length === 0 && !isSearching ? (
-            <View style={[styles.messageList, styles.emptyState]}>
-              <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
-              <Text style={styles.emptyDescription}>기록된 내용을 바탕으로{'\n'}무엇이든 물어보세요.</Text>
-              <View style={styles.suggestedContainer}>
-                {SUGGESTED_QUESTIONS.map((q) => (
-                  <TouchableOpacity key={q} style={styles.suggestedBtn} onPress={() => handleSearch(q)} activeOpacity={0.75}>
-                    <Text style={styles.suggestedBtnText}>{q}</Text>
-                    <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
-                  </TouchableOpacity>
-                ))}
+            <ScrollView style={styles.messageList} contentContainerStyle={{ paddingBottom: SPACING.xl }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <InsightSection childId={activeChild?.id} colors={colors} styles={styles} isAbsorbing={isAbsorbing} />
+              <View style={[styles.emptyState, { paddingTop: SPACING.lg }]}>
+                <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
+                <Text style={styles.emptyDescription}>기록된 내용을 바탕으로{'\n'}무엇이든 물어보세요.</Text>
+                <View style={styles.suggestedContainer}>
+                  {SUGGESTED_QUESTIONS.map((q) => (
+                    <TouchableOpacity key={q} style={styles.suggestedBtn} onPress={() => handleSearch(q)} activeOpacity={0.75}>
+                      <Text style={styles.suggestedBtnText}>{q}</Text>
+                      <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            </ScrollView>
           ) : (
             <FlatList
               ref={flatListRef}
               style={styles.messageList}
               contentContainerStyle={styles.messageListContent}
-              data={messages}
-              keyExtractor={item => item.id}
+              data={messagesWithQuery}
+              keyExtractor={item => item.msg.id}
               renderItem={renderMessage}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
