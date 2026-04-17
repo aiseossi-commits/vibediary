@@ -301,23 +301,43 @@ export async function getTagsOnly(text: string, extraTags: string[] = []): Promi
 }
 
 // AI 입력 모드: 날짜별 기록 분리
-export type ParsedEntry = { date: string; text: string };
+export type ParsedEntry = {
+  date: string;
+  text: string;
+  childName?: string;
+  eventHint?: string;
+};
 
-export async function parseMultiEntries(transcript: string, today: string): Promise<ParsedEntry[]> {
+export async function parseMultiEntries(
+  transcript: string,
+  today: string,
+  todayWeekday: string,
+  childrenNames?: string[]
+): Promise<ParsedEntry[]> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
   const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
   if (!workerUrl || !workerSecret) throw new Error('NO_WORKER');
 
-  const systemPrompt = `오늘: ${today}
-음성 기록에서 날짜별 기록을 JSON 배열로 추출하세요.
+  const childNameSection = childrenNames && childrenNames.length > 0
+    ? `\n아이 이름 인식:\n가능한 이름: ${childrenNames.join(', ')}\n발화에 이름이 포함되면 해당 항목에 "childName" 추가. 없으면 생략.\n`
+    : '';
 
-규칙:
-1. 날짜가 명시된 경우 해당 날짜 사용. 연도 생략 시 오늘 기준 가장 최근 해당 날짜.
+  const systemPrompt = `오늘: ${today} (${todayWeekday})
+음성 기록에서 항목별 JSON 배열로 추출하세요.
+
+날짜 규칙:
+1. 날짜 명시 시 해당 날짜. 연도 생략 시 오늘 기준 가장 최근 해당 날짜.
 2. 날짜 없으면 오늘(${today}) 사용.
-3. 날짜 경계로 내용을 자연스럽게 분리.
-4. 각 항목의 text는 날짜 표현 제거 후 핵심 내용만 유지.
+3. 요일 표현("월요일에", "이번주 월수금"): 오늘 기준 가장 최근 해당 요일로 계산. 복수 요일은 각각 별도 항목.
+4. 범위 표현("이번주 내내", "월~금"): 해당 기간 각 날짜를 별도 항목으로 생성.
+5. 미래 날짜 생성 금지 — 오늘(${today}) 이후 날짜는 지난 주 동일 날짜 사용.
+6. text에는 날짜 표현 제거 후 핵심 내용만 유지.
+${childNameSection}
+이벤트 감지:
+발열/고열, 발작/경련, 수면 문제(못 잠/불면), 공격행동 시작이 감지되면 "eventHint" 추가 (예: "발열", "발작", "수면문제", "공격행동").
+치료 방문·투약·병원 방문은 eventHint 없음.
 
-반드시 이 형식만 반환 (다른 설명 없이):
+반드시 이 형식만 반환 (다른 설명 없이, childName·eventHint는 해당 시만 포함):
 [{"date":"YYYY-MM-DD","text":"..."}]`;
 
   const controller = new AbortController();

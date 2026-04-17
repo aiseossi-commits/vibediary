@@ -40,6 +40,7 @@ import { warmDeno } from '../services/aiProcessor';
 import { formatEventDurationShort } from '../constants/events';
 import { useRecording } from '../hooks/useRecording';
 import { parseMultiEntries } from '../services/aiProcessor';
+import { createEvent } from '../db/eventDao';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
 import * as FileSystem from 'expo-file-system';
@@ -96,6 +97,7 @@ function createStyles(colors: AppColors) {
     inlineProcessingText: { fontSize: 15, fontWeight: '500' as const, color: colors.textSecondary, marginTop: 12, letterSpacing: 0.3 },
     inlineAiModeLabel: { fontSize: 12, color: colors.primary, marginTop: 6, opacity: 0.8, letterSpacing: 0.3 },
     inlineResultText: { fontSize: 14, fontWeight: '600' as const, color: colors.primary, marginTop: 10, textAlign: 'center' as const },
+    pearlHintText: { fontSize: 12, color: colors.textTertiary, marginTop: 10, opacity: 0.7, letterSpacing: 0.2 },
     typingInput: { flex: 1, fontSize: 15, color: colors.textPrimary, paddingVertical: SPACING.sm },
     sendButton: {
       width: TOUCH_TARGET.min, height: TOUCH_TARGET.min, borderRadius: TOUCH_TARGET.min / 2,
@@ -272,6 +274,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [inlineProcessing, setInlineProcessing] = useState(false);
   const [inlineResult, setInlineResult] = useState<string | null>(null);
 
+  // childName → childId 매핑 (정확 매칭 → includes 부분 매칭 → activeChild fallback)
+  const resolveChildId = useCallback((childName: string | undefined): string | undefined => {
+    if (!childName) return activeChild?.id;
+    const exact = childList.find(c => c.name === childName);
+    if (exact) return exact.id;
+    const partial = childList.find(c => c.name.includes(childName) || childName.includes(c.name));
+    return partial?.id ?? activeChild?.id;
+  }, [childList, activeChild?.id]);
+
   const processInlineRecording = useCallback(async (uri: string) => {
     setInlineProcessing(true);
     setInlineResult(null);
@@ -284,26 +295,50 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
       // 날짜별 분리 파싱 (실패 시 오늘 날짜로 단일 항목 fallback)
       const today = new Date().toISOString().slice(0, 10);
-      let entries: { date: string; text: string }[];
+      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+      const todayWeekday = weekdays[new Date().getDay()] + '요일';
+      const childrenNames = childList.map(c => c.name);
+
+      let entries: { date: string; text: string; childName?: string; eventHint?: string }[];
       try {
-        entries = await parseMultiEntries(text, today);
+        entries = await parseMultiEntries(text, today, todayWeekday, childrenNames);
       } catch {
         entries = [{ date: today, text }];
       }
 
       // 각 항목 AI 처리 + DB 저장
+      const savedByChild: Record<string, number> = {};
       for (const entry of entries) {
         const createdAt = new Date(entry.date + 'T12:00:00').getTime();
-        await processFromText(uri, entry.text, createdAt, activeChild?.id);
+        const targetChildId = resolveChildId(entry.childName);
+        await processFromText(uri, entry.text, createdAt, targetChildId);
+
+        // 이벤트 자동 등록 (중복 방지)
+        if (entry.eventHint && targetChildId) {
+          const activeEvts = await getActiveEvents(targetChildId).catch(() => []);
+          const alreadyActive = activeEvts.some(e => e.name === entry.eventHint);
+          if (!alreadyActive) {
+            await createEvent(targetChildId, entry.eventHint, createdAt).catch(() => {});
+          }
+        }
+
+        // 결과 집계
+        const childName = childList.find(c => c.id === targetChildId)?.name ?? activeChild?.name ?? '';
+        savedByChild[childName] = (savedByChild[childName] ?? 0) + 1;
       }
 
-      // 복수 저장 시 피드백
+      // 결과 메시지
+      const childNames = Object.keys(savedByChild);
       if (entries.length > 1) {
-        setInlineResult(`${entries.length}개 기록이 캘린더에 저장됐어요`);
+        const msg = childNames.length > 1
+          ? childNames.map(n => `${n} ${savedByChild[n]}개`).join(', ') + ' 기록 저장됨'
+          : `${entries.length}개 기록이 캘린더에 저장됐어요`;
+        setInlineResult(msg);
         setTimeout(() => setInlineResult(null), 3500);
       }
 
       loadRecords();
+      loadActiveEvents();
       processOfflineQueue().then(() => loadRecords()).catch(() => {});
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
@@ -315,7 +350,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     } finally {
       setInlineProcessing(false);
     }
-  }, [activeChild?.id, activeChild?.name, loadRecords]);
+  }, [activeChild?.id, activeChild?.name, childList, resolveChildId, loadRecords, loadActiveEvents]);
 
   const handleInlineStop = useCallback(async () => {
     if (!rec.isRecording) return;
@@ -427,6 +462,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       )}
       {inlineResult && (
         <Text style={styles.inlineResultText}>{inlineResult}</Text>
+      )}
+      {!rec.isRecording && !inlineProcessing && (
+        <Text style={styles.pearlHintText}>길게 눌러서 AI 입력</Text>
       )}
     </View>
   );
