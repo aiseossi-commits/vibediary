@@ -19,7 +19,7 @@
 
 ## 최근 완료된 작업
 
-- [x] 기존 기록 태그 재분석 버튼: 설정 > AI 태그 관리, 모든 기록에 대해 processWithAI 재실행 → setTagsForRecord 업데이트, 진행률 표시 (N/M)
+- [x] 기존 기록 태그 재분석 버튼: 설정 > AI 태그 관리, getTagsOnly(경량 프롬프트, maxOutputTokens 150) 사용 → setTagsForRecord 업데이트, 진행률 표시 (N/M)
 - [x] 스플래시 화면 통일: native 이미지에 "기록에 치이지 말고, 그냥 말하세요" 텍스트 임베드 (generate-splash.js, sharp), JS SplashOverlay 방식 폐기, App.tsx DB 로딩 중 어두운 배경 View로 흰 화면 플래시 제거
 - [x] long-press 액션 (openspec long-press-actions 완료): TagsScreen 롱프레스 인라인 ✎×, CalendarScreen 롱프레스 Bottom Sheet 삭제, RecordDetailScreen ⋯ 버튼 + 태그/원문 섹션 롱프레스 편집
 - [x] 등대 답변 공유 버튼 (OS 공유 시트, fallback 클립보드 복사)

@@ -229,6 +229,77 @@ function parseAIResponse(content: string): AIProcessingResult {
   }
 }
 
+// 태그만 추출 (재태깅 전용 — 경량 프롬프트)
+function buildTagsOnlyPrompt(extraTags: string[]): string {
+  const customTagSection = extraTags.length > 0
+    ? `\n커스텀 태그 (사용자 정의):\n${extraTags.map(t => `- ${t}`).join('\n')}\n`
+    : '';
+
+  return `발달장애인 돌봄 기록에서 해당하는 태그만 골라 JSON 배열로 반환하세요.
+태그가 없으면 빈 배열 반환. 다른 텍스트 없이 JSON만 응답.
+
+※ 상위+하위 태그 항상 함께: 예) 물리치료 → ["#치료","#물리치료"]
+
+[치료] #치료 / #언어치료 #작업치료 #감각통합치료 #ABA치료 #놀이치료 #물리치료 #뇌파치료 #한의학
+[투약] #투약 / #처방약 #보충제 #동종요법 #패치
+[신체] #의료 #배변 #수면 #감각 #각성 #건강
+[행동] #행동 / #기분 #상동행동 #자해 #공격행동
+[기타] #발달 #검사 #상담 #교육기관 #식단 #일상
+${customTagSection}
+응답 형식: {"tags": ["#태그1", "#태그2"]}`;
+}
+
+export async function getTagsOnly(text: string, extraTags: string[] = []): Promise<string[]> {
+  const isOnline = await getNetworkState();
+  if (!isOnline) throw new Error('OFFLINE');
+
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) throw new Error('Worker URL 또는 Secret이 설정되지 않았습니다');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${workerUrl}/ai?model=gemini-2.5-flash-lite`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: buildTagsOnlyPrompt(extraTags) }] },
+          contents: [{ role: 'user', parts: [{ text: `<user_input>\n${text}\n</user_input>` }] }],
+          safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+          ],
+          generationConfig: { maxOutputTokens: 150, temperature: 0.1, responseMimeType: 'application/json' },
+        }),
+        signal: controller.signal,
+      }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) throw new Error(`Gemini API 오류 (${response.status})`);
+
+  const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) return [];
+
+  try {
+    const cleaned = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    const parsed = JSON.parse(cleaned);
+    return Array.isArray(parsed.tags) ? parsed.tags : [];
+  } catch {
+    return [];
+  }
+}
+
 // 텍스트 처리 메인 함수
 export async function processWithAI(text: string, extraTags: string[] = []): Promise<AIProcessingResult> {
   const isOnline = await getNetworkState();

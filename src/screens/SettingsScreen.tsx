@@ -15,7 +15,7 @@ import {
   getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
   getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
-import { processWithAI } from '../services/aiProcessor';
+import { getTagsOnly } from '../services/aiProcessor';
 import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
@@ -366,9 +366,9 @@ export default function SettingsScreen() {
                 setRetagProgress({ current: i + 1, total: withText.length });
                 const record = withText[i];
                 try {
-                  const result = await processWithAI(record.rawText!, customTags);
-                  if (result.tags.length > 0) {
-                    await setTagsForRecord(record.id, result.tags, activeChild.id);
+                  const tags = await getTagsOnly(record.rawText!, customTags);
+                  if (tags.length > 0) {
+                    await setTagsForRecord(record.id, tags, activeChild.id);
                     successCount++;
                   }
                 } catch {
