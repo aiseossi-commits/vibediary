@@ -148,7 +148,7 @@ async function generateAnswer(
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
             { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
           ],
-          generationConfig: { maxOutputTokens: 800, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 2500, temperature: 0.3 },
         }),
         signal: controller.signal,
       }
