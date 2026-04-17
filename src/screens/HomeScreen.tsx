@@ -267,7 +267,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     processOfflineQueue().then(() => loadRecords()).catch(() => {});
   }, [loadRecords]);
   const handleRecordPress = useCallback((record: RecordWithTags) => { navigation.navigate('RecordDetail', { recordId: record.id }); }, [navigation]);
-  const handlePearlPress = useCallback(() => { navigation.navigate('Recording'); }, [navigation]);
 
   // --- AI 입력 모드 (롱프레스 인라인 녹음) ---
   const rec = useRecording();
@@ -379,15 +378,36 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   }, [rec, processInlineRecording]);
 
-  const handleLongPressRecord = useCallback(async () => {
-    await rec.start();
+  // Push-to-talk: 누르고 있으면 녹음, 떼면 중지
+  const HOLD_THRESHOLD = 350; // ms — 이보다 짧으면 탭으로 처리
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressStartTimeRef = useRef<number>(0);
+
+  const handlePressIn = useCallback(() => {
+    pressStartTimeRef.current = Date.now();
+    pressTimerRef.current = setTimeout(async () => {
+      await rec.start();
+    }, HOLD_THRESHOLD);
   }, [rec]);
+
+  const handlePressOut = useCallback(async () => {
+    const held = Date.now() - pressStartTimeRef.current;
+    if (held < HOLD_THRESHOLD) {
+      // 짧은 탭 → 타이머 취소, RecordingScreen으로 이동
+      if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+      navigation.navigate('Recording');
+    } else {
+      // 길게 눌렀다 뗌 → 녹음 중지·처리
+      if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+      await handleInlineStop();
+    }
+  }, [handleInlineStop, navigation]);
 
   const handleInlineCancel = useCallback(async () => {
     try { await rec.stop(); } catch {}
   }, [rec]);
 
-  // AI 입력 모드는 시간 제한 없음 — 유저가 직접 중지
+  // AI 입력 모드는 시간 제한 없음 — 유저가 직접 뗄 때 중지
 
   const handleTextSubmit = useCallback(async () => {
     const text = textInput.trim();
@@ -423,21 +443,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : rec.isRecording ? (
-          <TouchableOpacity
-            onPress={handleInlineStop}
-            activeOpacity={0.8}
-            style={[styles.pearlButton, styles.pearlRecordingButton]}
-            accessibilityLabel="녹음 중지"
-            accessibilityRole="button"
-          >
+          // 녹음 중: 손 떼면 자동 중지 (onPressOut), 버튼은 시각 피드백만
+          <View style={[styles.pearlButton, styles.pearlRecordingButton]}>
             <View style={{ width: 28, height: 28, borderRadius: 5, backgroundColor: colors.recordingRed }} />
-          </TouchableOpacity>
+          </View>
         ) : (
           <TouchableOpacity
-            onPress={handlePearlPress}
-            onLongPress={handleLongPressRecord}
-            delayLongPress={400}
-            activeOpacity={0.85}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            activeOpacity={0.75}
             style={styles.pearlButton}
             accessibilityLabel="음성 녹음 시작"
             accessibilityRole="button"
@@ -464,7 +478,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         <Text style={styles.inlineResultText}>{inlineResult}</Text>
       )}
       {!rec.isRecording && !inlineProcessing && (
-        <Text style={styles.pearlHintText}>길게 눌러서 AI 입력</Text>
+        <Text style={styles.pearlHintText}>누르고 있으면 AI 입력 · 탭하면 녹음 화면</Text>
       )}
     </View>
   );

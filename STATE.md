@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: build.gradle applicationId multi → 원복` (2026-04-17)
+**마지막 커밋**: `feat: 진주 버튼 push-to-talk` (2026-04-17)
 
 **현재 브랜치**: main
 
