@@ -66,6 +66,15 @@ function TagCreateInput({ onSubmit, onCancel, onFocus, colors, styles }: {
 
 type TagWithCount = Tag & { count: number; isDefault: boolean };
 
+const TAG_CATEGORIES: { label: string; tags: string[] }[] = [
+  { label: '치료', tags: ['#치료', '#언어치료', '#작업치료', '#감각통합치료', '#ABA치료', '#놀이치료', '#물리치료', '#뇌파치료', '#한의학'] },
+  { label: '투약', tags: ['#투약', '#처방약', '#보충제', '#동종요법', '#패치'] },
+  { label: '신체/증상', tags: ['#의료', '#배변', '#수면', '#감각', '#각성', '#건강'] },
+  { label: '행동/정서', tags: ['#행동', '#기분', '#상동행동', '#자해', '#공격행동'] },
+  { label: '기타', tags: ['#발달', '#검사', '#상담', '#교육기관', '#식단', '#일상'] },
+];
+const ALL_CATEGORY_TAG_NAMES = new Set(TAG_CATEGORIES.flatMap(c => c.tags));
+
 const CUSTOM_TAG_COLORS = [
   '#F97316', '#EAB308', '#22C55E', '#14B8A6',
   '#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4',
@@ -131,6 +140,12 @@ function createStyles(colors: AppColors) {
     recordsLoading: { paddingVertical: SPACING.lg, alignItems: 'center' },
     emptyRecords: { paddingVertical: SPACING.xxl, alignItems: 'center' },
     emptyRecordsText: { fontSize: FONT_SIZE.md, color: colors.textTertiary },
+    sectionHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: SPACING.xs,
+    },
+    sectionHeaderText: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary },
+    sectionHeaderLine: { flex: 1, height: 1, backgroundColor: colors.divider },
   });
 }
 
@@ -262,99 +277,110 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     <RecordCard record={item} onPress={() => handleRecordPress(item)} />
   ), [handleRecordPress]);
 
+  const tagByName = useMemo(() => {
+    const map = new Map<string, TagWithCount>();
+    for (const t of tags) map.set(t.name, t);
+    return map;
+  }, [tags]);
+
+  const customTags = useMemo(() => tags.filter(t => !ALL_CATEGORY_TAG_NAMES.has(t.name)), [tags]);
+
+  const renderTagItem = useCallback((tag: TagWithCount) => {
+    const isSelected = selectedTagIds.includes(tag.id);
+    const tagColor = getTagColor(tag.name, colors);
+    const isEditing = editingTagId === tag.id;
+
+    if (isEditing) {
+      return (
+        <View key={tag.id} style={[styles.tagItem, SHADOW.sm, { borderColor: tagColor, borderWidth: 1.5 }]}>
+          <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+          <TextInput
+            style={[styles.tagName, { flex: 1, marginLeft: SPACING.sm, padding: 0, color: colors.textPrimary }]}
+            value={editValue}
+            onChangeText={setEditValue}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={() => handleConfirmEdit(tag)}
+            onBlur={() => handleConfirmEdit(tag)}
+          />
+          <TouchableOpacity onPress={() => handleConfirmEdit(tag)} style={[styles.tagDeleteBtn, { marginLeft: SPACING.xs }]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={[styles.tagDeleteBtnText, { color: tagColor }]}>✓</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setEditingTagId(null)} style={styles.tagDeleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={styles.tagDeleteBtnText}>×</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    const isLongPressed = longPressedTagId === tag.id;
+    return (
+      <TouchableOpacity
+        key={tag.id}
+        onPress={() => handleToggleTag(tag.id)}
+        onLongPress={() => setLongPressedTagId(tag.id)}
+        delayLongPress={400}
+        activeOpacity={0.7}
+        style={[styles.tagItem, SHADOW.sm, isSelected && { borderColor: tagColor, borderWidth: 1.5 }]}
+      >
+        <View style={styles.tagItemLeft}>
+          <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+          <Text style={[styles.tagName, isSelected && { color: tagColor, fontWeight: FONT_WEIGHT.semibold }]}>{tag.name}</Text>
+        </View>
+        <View style={styles.tagItemRight}>
+          <Text style={styles.tagCount}>{tag.count}</Text>
+          <Text style={styles.tagCountLabel}>건</Text>
+          {isLongPressed && (
+            <>
+              <TouchableOpacity onPress={() => handleStartEdit(tag)} style={styles.tagDeleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.tagDeleteBtnText}>✎</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleDeleteTag(tag)} style={styles.tagDeleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.tagDeleteBtnText}>×</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }, [selectedTagIds, editingTagId, editValue, longPressedTagId, colors, styles, handleToggleTag, handleStartEdit, handleDeleteTag, handleConfirmEdit]);
+
   const renderListHeader = useCallback(() => (
     <>
-      <View style={styles.tagGrid} onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
-        {tags.map((tag) => {
-          const isSelected = selectedTagIds.includes(tag.id);
-          const tagColor = getTagColor(tag.name, colors);
-          const isEditing = editingTagId === tag.id;
-
-          if (isEditing) {
-            return (
-              <View key={tag.id} style={[styles.tagItem, SHADOW.sm, { borderColor: tagColor, borderWidth: 1.5 }]}>
-                <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
-                <TextInput
-                  style={[styles.tagName, { flex: 1, marginLeft: SPACING.sm, padding: 0, color: colors.textPrimary }]}
-                  value={editValue}
-                  onChangeText={setEditValue}
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={() => handleConfirmEdit(tag)}
-                  onBlur={() => handleConfirmEdit(tag)}
-                />
-                <TouchableOpacity
-                  onPress={() => handleConfirmEdit(tag)}
-                  style={[styles.tagDeleteBtn, { marginLeft: SPACING.xs }]}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={[styles.tagDeleteBtnText, { color: tagColor }]}>✓</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setEditingTagId(null)}
-                  style={styles.tagDeleteBtn}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.tagDeleteBtnText}>×</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          }
-
-          const isLongPressed = longPressedTagId === tag.id;
+      <View onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
+        {/* 카테고리 섹션 */}
+        {TAG_CATEGORIES.map((category) => {
+          const categoryTags = category.tags.map(name => tagByName.get(name)).filter(Boolean) as TagWithCount[];
+          if (categoryTags.length === 0) return null;
           return (
-            <TouchableOpacity
-              key={tag.id}
-              onPress={() => handleToggleTag(tag.id)}
-              onLongPress={() => setLongPressedTagId(tag.id)}
-              delayLongPress={400}
-              activeOpacity={0.7}
-              style={[styles.tagItem, SHADOW.sm, isSelected && { borderColor: tagColor, borderWidth: 1.5 }]}
-            >
-              <View style={styles.tagItemLeft}>
-                <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
-                <Text style={[styles.tagName, isSelected && { color: tagColor, fontWeight: FONT_WEIGHT.semibold }]}>{tag.name}</Text>
+            <View key={category.label}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionHeaderText}>{category.label}</Text>
+                <View style={styles.sectionHeaderLine} />
               </View>
-              <View style={styles.tagItemRight}>
-                <Text style={styles.tagCount}>{tag.count}</Text>
-                <Text style={styles.tagCountLabel}>건</Text>
-                {isLongPressed && (
-                  <>
-                    <TouchableOpacity
-                      onPress={() => handleStartEdit(tag)}
-                      style={styles.tagDeleteBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.tagDeleteBtnText}>✎</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteTag(tag)}
-                      style={styles.tagDeleteBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.tagDeleteBtnText}>×</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
+              <View style={styles.tagGrid}>
+                {categoryTags.map(tag => renderTagItem(tag))}
               </View>
-            </TouchableOpacity>
+            </View>
           );
         })}
 
-        {showCreateInput ? (
-          <TagCreateInput
-            onSubmit={handleCreateTag}
-            onCancel={() => setShowCreateInput(false)}
-            onFocus={scrollToInput}
-            colors={colors}
-            styles={styles}
-          />
-        ) : (
-          <TouchableOpacity onPress={() => setShowCreateInput(true)} style={[styles.tagItem, styles.addTagButton]} activeOpacity={0.7}>
-            <Text style={styles.addTagIcon}>+</Text>
-            <Text style={styles.addTagText}>태그 추가</Text>
-          </TouchableOpacity>
-        )}
+        {/* 내 태그 섹션 */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionHeaderText}>내 태그</Text>
+          <View style={styles.sectionHeaderLine} />
+        </View>
+        <View style={styles.tagGrid}>
+          {customTags.map(tag => renderTagItem(tag))}
+          {showCreateInput ? (
+            <TagCreateInput onSubmit={handleCreateTag} onCancel={() => setShowCreateInput(false)} onFocus={scrollToInput} colors={colors} styles={styles} />
+          ) : (
+            <TouchableOpacity onPress={() => setShowCreateInput(true)} style={[styles.tagItem, styles.addTagButton]} activeOpacity={0.7}>
+              <Text style={styles.addTagIcon}>+</Text>
+              <Text style={styles.addTagText}>태그 추가</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {selectedTagIds.length > 0 && (
@@ -371,7 +397,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
       {isLoadingRecords && <View style={styles.recordsLoading}><ActivityIndicator size="small" color={colors.primary} /></View>}
     </>
-  ), [tags, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, editingTagId, editValue, longPressedTagId, handleToggleTag, handleDeleteTag, handleStartEdit, handleConfirmEdit, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
+  ), [tagByName, customTags, renderTagItem, selectedTagIds, filteredRecords.length, showCreateInput, isLoadingRecords, handleCreateTag, handleClearSelection, scrollToInput, styles, colors]);
 
   if (isLoading) {
     return (
