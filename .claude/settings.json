@@ -10,7 +10,13 @@
       "Bash(mv llm-wiki-synthesis:*)",
       "Bash(mv lighthouse-renewal:*)",
       "Bash(kill 65306)",
-      "Bash(kill 65278)"
+      "Bash(kill 65278)",
+      "Bash(./build_android.sh)",
+      "Bash(bash build_android.sh)",
+      "Bash(bash /Users/jhouse/Documents/newbada/vibediary/build_android.sh)",
+      "Bash(~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_36.1 -no-snapshot-load)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb wait-for-device:*)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb shell:*)"
     ]
   },
   "hooks": {
