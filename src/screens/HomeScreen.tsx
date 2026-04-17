@@ -34,12 +34,14 @@ const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 import type { RecordWithTags } from '../types/record';
 import { getAllRecords, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
-import { processTextRecord } from '../services/recordPipeline';
+import { processTextRecord, runSTTOnly, processFromText } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
 import { formatEventDurationShort } from '../constants/events';
+import { useRecording } from '../hooks/useRecording';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
+import * as FileSystem from 'expo-file-system';
 
 interface HomeScreenProps {
   navigation: any;
@@ -86,6 +88,11 @@ function createStyles(colors: AppColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 1, elevation: 2,
     },
     pearlLabel: { fontSize: 15, fontWeight: '500' as const, color: colors.micLabel, marginTop: 16, opacity: 0.85, letterSpacing: 0.2 },
+    pearlRecordingButton: { backgroundColor: colors.recordingRedLight, borderColor: colors.recordingRed },
+    inlineTimerText: { fontSize: 15, fontWeight: '600' as const, color: colors.recordingRed, marginTop: 12, letterSpacing: 1.5 },
+    inlineCancelBtn: { paddingVertical: 8, paddingHorizontal: 16, marginTop: 2 },
+    inlineCancelBtnText: { fontSize: 14, color: colors.textTertiary },
+    inlineProcessingText: { fontSize: 15, fontWeight: '500' as const, color: colors.textSecondary, marginTop: 12, letterSpacing: 0.3 },
     typingInput: { flex: 1, fontSize: 15, color: colors.textPrimary, paddingVertical: SPACING.sm },
     sendButton: {
       width: TOUCH_TARGET.min, height: TOUCH_TARGET.min, borderRadius: TOUCH_TARGET.min / 2,
@@ -257,6 +264,75 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const handleRecordPress = useCallback((record: RecordWithTags) => { navigation.navigate('RecordDetail', { recordId: record.id }); }, [navigation]);
   const handlePearlPress = useCallback(() => { navigation.navigate('Recording'); }, [navigation]);
 
+  // --- 인라인 녹음 (롱프레스) ---
+  const rec = useRecording();
+  const [inlineProcessing, setInlineProcessing] = useState(false);
+
+  const processInlineRecording = useCallback(async (uri: string) => {
+    setInlineProcessing(true);
+    try {
+      const text = await runSTTOnly(uri, activeChild?.name);
+      if (!text.trim()) {
+        Alert.alert('음성 입력 없음', '음성이 인식되지 않았습니다. 다시 시도해 주세요.');
+        return;
+      }
+      await processFromText(uri, text, undefined, activeChild?.id);
+      loadRecords();
+      processOfflineQueue().then(() => loadRecords()).catch(() => {});
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+      if (msg === 'NO_SPEECH') {
+        Alert.alert('음성 없음', '음성이 인식되지 않았습니다.');
+      } else {
+        Alert.alert('오류', '기록 저장에 실패했습니다.');
+      }
+    } finally {
+      setInlineProcessing(false);
+    }
+  }, [activeChild?.id, activeChild?.name, loadRecords]);
+
+  const handleInlineStop = useCallback(async () => {
+    if (!rec.isRecording) return;
+    const MIN_DURATION = 3;
+    const SILENCE_THRESHOLD = 0.08;
+    const LOW_AUDIO_THRESHOLD = 0.15;
+    try {
+      if (rec.duration <= MIN_DURATION) { await rec.stop(); return; }
+      const avgLevel = rec.getAverageAudioLevel();
+      const result = await rec.stop();
+      if (avgLevel <= SILENCE_THRESHOLD) {
+        Alert.alert('녹음된 내용이 없습니다', '음성이 감지되지 않았습니다.');
+        FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => {});
+        return;
+      }
+      if (avgLevel <= LOW_AUDIO_THRESHOLD) {
+        Alert.alert('녹음 음량이 낮습니다', '음성이 잘 들리지 않을 수 있습니다. 저장할까요?', [
+          { text: '취소', style: 'cancel', onPress: () => { FileSystem.deleteAsync(result.uri, { idempotent: true }).catch(() => {}); } },
+          { text: '저장', onPress: () => processInlineRecording(result.uri) },
+        ]);
+      } else {
+        await processInlineRecording(result.uri);
+      }
+    } catch {
+      Alert.alert('오류', '녹음 저장에 실패했습니다.');
+    }
+  }, [rec, processInlineRecording]);
+
+  const handleLongPressRecord = useCallback(async () => {
+    await rec.start();
+  }, [rec]);
+
+  const handleInlineCancel = useCallback(async () => {
+    try { await rec.stop(); } catch {}
+  }, [rec]);
+
+  // 30초 자동 종료
+  useEffect(() => {
+    if (rec.isRecording && rec.duration >= 30) {
+      handleInlineStop();
+    }
+  }, [rec.duration, rec.isRecording, handleInlineStop]);
+
   const handleTextSubmit = useCallback(async () => {
     const text = textInput.trim();
     if (!text || isSaving) return;
@@ -281,13 +357,52 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const micIconColor = colors.micIcon;
 
   const PearlButton = (
-    <View style={styles.pearlWrapper}>
-      {pulseAnims.map(({ scale, opacity }, i) => (
-        <Animated.View key={i} style={[styles.pulseRing, { transform: [{ scale }], opacity }]} />
-      ))}
-      <TouchableOpacity onPress={handlePearlPress} activeOpacity={0.85} style={styles.pearlButton} accessibilityLabel="음성 녹음 시작" accessibilityRole="button">
-        <Ionicons name="mic-outline" size={52} color={micIconColor} />
-      </TouchableOpacity>
+    <View style={{ alignItems: 'center' }}>
+      <View style={styles.pearlWrapper}>
+        {!rec.isRecording && !inlineProcessing && pulseAnims.map(({ scale, opacity }, i) => (
+          <Animated.View key={i} style={[styles.pulseRing, { transform: [{ scale }], opacity }]} />
+        ))}
+        {inlineProcessing ? (
+          <View style={styles.pearlButton}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : rec.isRecording ? (
+          <TouchableOpacity
+            onPress={handleInlineStop}
+            activeOpacity={0.8}
+            style={[styles.pearlButton, styles.pearlRecordingButton]}
+            accessibilityLabel="녹음 중지"
+            accessibilityRole="button"
+          >
+            <View style={{ width: 28, height: 28, borderRadius: 5, backgroundColor: colors.recordingRed }} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={handlePearlPress}
+            onLongPress={handleLongPressRecord}
+            delayLongPress={400}
+            activeOpacity={0.85}
+            style={styles.pearlButton}
+            accessibilityLabel="음성 녹음 시작"
+            accessibilityRole="button"
+          >
+            <Ionicons name="mic-outline" size={52} color={micIconColor} />
+          </TouchableOpacity>
+        )}
+      </View>
+      {rec.isRecording && (
+        <>
+          <Text style={styles.inlineTimerText}>
+            {Math.floor(rec.duration / 60)}:{String(rec.duration % 60).padStart(2, '0')}
+          </Text>
+          <TouchableOpacity onPress={handleInlineCancel} style={styles.inlineCancelBtn}>
+            <Text style={styles.inlineCancelBtnText}>취소</Text>
+          </TouchableOpacity>
+        </>
+      )}
+      {inlineProcessing && (
+        <Text style={styles.inlineProcessingText}>기록중...</Text>
+      )}
     </View>
   );
 
