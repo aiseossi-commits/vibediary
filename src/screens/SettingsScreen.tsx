@@ -27,6 +27,7 @@ import { getSetting, setSetting } from '../db/appSettingsDao';
 
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
+const LAST_RETAG_KEY = 'last_retag_at';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -154,6 +155,16 @@ export default function SettingsScreen() {
   // 태그 재분석 상태
   const [isRetagging, setIsRetagging] = useState(false);
   const [retagProgress, setRetagProgress] = useState<{ current: number; total: number } | null>(null);
+  const [retagDoneToday, setRetagDoneToday] = useState(false);
+
+  useEffect(() => {
+    getSetting(LAST_RETAG_KEY).then(val => {
+      if (val) {
+        const today = new Date().toISOString().slice(0, 10);
+        setRetagDoneToday(val === today);
+      }
+    });
+  }, []);
 
   const handleExport = useCallback(async () => {
     setIsBackingUp(true);
@@ -341,6 +352,10 @@ export default function SettingsScreen() {
       Alert.alert('바다 선택 필요', '먼저 바다를 선택해주세요.');
       return;
     }
+    if (retagDoneToday) {
+      Alert.alert('오늘 이미 실행했습니다', '태그 재분석은 하루 1회만 가능합니다.');
+      return;
+    }
     Alert.alert(
       '기존 기록 태그 재분석',
       `"${activeChild.name}"의 모든 기록을 AI로 다시 태깅합니다.\n기록 수만큼 AI 호출이 발생하며, 시간이 걸릴 수 있습니다.\n계속하시겠습니까?`,
@@ -377,6 +392,9 @@ export default function SettingsScreen() {
                 // API 과부하 방지 딜레이
                 await new Promise(res => setTimeout(res, 200));
               }
+              const today = new Date().toISOString().slice(0, 10);
+              await setSetting(LAST_RETAG_KEY, today);
+              setRetagDoneToday(true);
               Alert.alert('완료', `${successCount}/${withText.length}건의 기록 태그가 업데이트되었습니다.`);
             } catch (e: any) {
               if (e?.message === 'OFFLINE') {
@@ -392,7 +410,7 @@ export default function SettingsScreen() {
         },
       ]
     );
-  }, [activeChild]);
+  }, [activeChild, retagDoneToday]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -648,9 +666,9 @@ export default function SettingsScreen() {
               이전에 저장된 기록도 새 태그 기준으로 다시 분석합니다.
             </Text>
             <TouchableOpacity
-              style={[styles.processButton, isRetagging && { opacity: 0.6 }]}
+              style={[styles.processButton, (isRetagging || retagDoneToday) && { opacity: 0.4 }]}
               onPress={handleRetagAll}
-              disabled={isRetagging}
+              disabled={isRetagging || retagDoneToday}
             >
               {isRetagging && retagProgress ? (
                 <Text style={styles.processButtonText}>
@@ -658,6 +676,8 @@ export default function SettingsScreen() {
                 </Text>
               ) : isRetagging ? (
                 <ActivityIndicator size="small" color={colors.textOnPrimary} />
+              ) : retagDoneToday ? (
+                <Text style={styles.processButtonText}>오늘 이미 실행했습니다</Text>
               ) : (
                 <Text style={styles.processButtonText}>태그 재분석 시작</Text>
               )}
