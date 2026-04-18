@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: app.json에 expo-splash-screen plugin 등록 — EAS prebuild에서도 splash 설정 유지` (2026-04-18)
+**마지막 커밋**: `refactor: 로컬 android/를 EAS prebuild 산출물과 일치시킴 + generate-splash.js 삭제` (2026-04-18)
 
 **현재 브랜치**: main
 
@@ -18,7 +18,8 @@
 
 ## 최근 완료된 작업
 
-- [x] app.json expo-splash-screen plugin 정식 등록: backgroundColor/image/imageWidth/resizeMode 지정 → EAS prebuild 시에도 Android 12+ Splash API 속성(windowSplashScreenBackground/AnimatedIcon/postSplashScreenTheme) 자동 설정됨. android.backgroundColor가 AppTheme.windowBackground로도 자동 반영(활동 배경색=splashscreen 배경색)되어 커스텀 plugin 불필요. 로컬 android/는 signing config 보존 위해 그대로 유지
+- [x] 로컬 android/를 EAS prebuild 산출물과 일치시킴: `expo prebuild --clean`으로 재생성 후 release signing config(upload-keystore.jks, build.gradle의 signingConfigs.release)만 수동 복원. 이제 `eas build --local`과 `eas build` 원격 결과가 동일한 splash 동작을 보임. generate-splash.js 삭제(텍스트 PNG는 RN SplashOverlay로 대체됨), AndroidManifest intent-filter도 prebuild가 scheme 속성 자동 추가(content/file)
+- [x] app.json expo-splash-screen plugin 정식 등록: backgroundColor/image/imageWidth/resizeMode 지정 → EAS prebuild 시에도 Android 12+ Splash API 속성(windowSplashScreenBackground/AnimatedIcon/postSplashScreenTheme) 자동 설정됨. android.backgroundColor가 AppTheme.windowBackground로도 자동 반영(활동 배경색=splashscreen 배경색)되어 커스텀 plugin 불필요
 - [x] Android 스플래시 깜빡임 수정: AppTheme windowBackground=#070D1A로 흰 플래시 제거, Android 12+ Splash Screen API 적용(배경+가운데 아이콘), RN SplashOverlay 도입(expo-splash-screen.preventAutoHideAsync + 최소 1.2초 + DB 로딩 완료 후 페이드아웃), splashscreen_icon.png 5종 추가
 - [x] 홈 진주 버튼 UX 정제: 녹음 중에도 pulse 유지(빨간색 전환), recording 상태 버튼은 배경 대신 테두리 강조 + 22px 빨간 원형 점
 - [x] 등대 답변 형식 AI 자율 판단 + maxOutputTokens 1500 (경과/빈도/최근 질문별 자동 구조화)

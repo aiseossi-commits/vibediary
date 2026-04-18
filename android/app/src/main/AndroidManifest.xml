@@ -30,7 +30,8 @@
       </intent-filter>
       <intent-filter data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:mimeType="application/json"/>
+        <data android:scheme="content" android:mimeType="application/json"/>
+        <data android:scheme="file" android:mimeType="application/json"/>
         <data android:scheme="exp+vibediary"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
