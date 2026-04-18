@@ -643,7 +643,8 @@ export default function SettingsScreen() {
               { key: HOME_WIDGETS.VOICE_INPUT,    label: '음성 입력' },
               { key: HOME_WIDGETS.TEXT_INPUT,     label: '텍스트 입력' },
               { key: HOME_WIDGETS.EVENT_TRACKER,  label: '증상 추적' },
-              { key: HOME_WIDGETS.RECENT_RECORDS, label: '최근 기록' },
+              { key: HOME_WIDGETS.RECENT_RECORDS, label: '오늘 기록' },
+              { key: HOME_WIDGETS.AI_INPUT_MODE,  label: 'AI 입력 모드 (길게 눌러 말하기)' },
             ].map(({ key, label }, index, arr) => (
               <View key={key} style={index === arr.length - 1 ? styles.widgetRowLast : styles.widgetRow}>
                 <Text style={styles.widgetLabel}>{label}</Text>

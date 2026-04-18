@@ -160,6 +160,32 @@ function buildMarkdownStyles(colors: AppColors) {
   };
 }
 
+function buildChatMarkdownStyles(colors: AppColors) {
+  return {
+    body: { color: colors.textPrimary, fontSize: FONT_SIZE.md, lineHeight: 24 },
+    heading1: { color: colors.textPrimary, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, marginTop: SPACING.sm, marginBottom: SPACING.xs },
+    heading2: { color: colors.textPrimary, fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.sm, marginBottom: SPACING.xs },
+    heading3: { color: colors.textPrimary, fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, marginTop: SPACING.xs, marginBottom: 2 },
+    bullet_list_icon: { color: colors.textSecondary, marginTop: 6 },
+    strong: { color: colors.textPrimary, fontWeight: FONT_WEIGHT.bold },
+    paragraph: { marginTop: 0, marginBottom: SPACING.xs },
+  };
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '• ')
+    .replace(/^\s*>\s+/gm, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
 function formatRelativeDate(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
@@ -183,6 +209,7 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
   colors: AppColors;
 }) {
   const [saved, setSaved] = useState(false);
+  const chatMarkdownStyles = useMemo(() => buildChatMarkdownStyles(colors), [colors]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -203,7 +230,7 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
-        <Text style={styles.assistantBubbleText}>{message.text}</Text>
+        <Markdown style={chatMarkdownStyles}>{message.text}</Markdown>
         <View style={styles.actionRow}>
           {onSave && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleSave} activeOpacity={0.7} disabled={saved}>
@@ -379,7 +406,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
                   })()}
                   {isExpanded
                     ? <Markdown style={markdownStyles}>{displayBody}</Markdown>
-                    : <Text style={styles.insightBody} numberOfLines={3}>{displayBody}</Text>
+                    : <Text style={styles.insightBody} numberOfLines={3}>{stripMarkdown(displayBody)}</Text>
                   }
                   <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
                 </TouchableOpacity>
@@ -416,7 +443,10 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
                         <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
                       </TouchableOpacity>
                     </View>
-                    <Text style={styles.logAnswer} numberOfLines={isExpanded ? undefined : 4}>{log.answer}</Text>
+                    {isExpanded
+                      ? <Markdown style={markdownStyles}>{log.answer}</Markdown>
+                      : <Text style={styles.logAnswer} numberOfLines={4}>{stripMarkdown(log.answer)}</Text>
+                    }
                     <View style={styles.logFooter}>
                       <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
                       <TouchableOpacity style={styles.logShareBtn} onPress={() => handleShareLog(log)}>

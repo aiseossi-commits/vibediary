@@ -33,7 +33,7 @@ import { getSetting } from '../db/appSettingsDao';
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 import type { RecordWithTags } from '../types/record';
-import { getAllRecords, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
+import { getRecordsByDate, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
 import { processTextRecord, runSTTOnly, processFromText } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
@@ -49,9 +49,13 @@ interface HomeScreenProps {
   navigation: any;
 }
 
-const PAGE_SIZE = 10;
 const PEARL_SIZE = 160;
 const PULSE_COUNT = 3;
+
+function getTodayDateString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 
 function createStyles(colors: AppColors) {
@@ -231,8 +235,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     try {
       if (!isDatabaseReady()) { setRecords([]); return; }
       const filterChildId = activeChildIdRef.current;
+      const today = getTodayDateString();
       const timeout = new Promise<RecordWithTags[]>((_, reject) => setTimeout(() => reject(new Error('DB query timeout')), 5000));
-      const data = await Promise.race([getAllRecords(PAGE_SIZE, 0, filterChildId), timeout]);
+      const data = await Promise.race([getRecordsByDate(today, filterChildId), timeout]);
       setRecords(data);
       setShowEmptyState(data.length === 0);
     } catch (e) {
@@ -379,19 +384,25 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   }, [rec, processInlineRecording]);
 
-  // Push-to-talk: 누르고 있으면 녹음, 떼면 중지
+  // Push-to-talk: 누르고 있으면 녹음, 떼면 중지 (AI 입력 모드 ON일 때만)
   const HOLD_THRESHOLD = 350; // ms — 이보다 짧으면 탭으로 처리
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressStartTimeRef = useRef<number>(0);
+  const aiInputModeEnabled = widgetSettings[HOME_WIDGETS.AI_INPUT_MODE];
 
   const handlePressIn = useCallback(() => {
+    if (!aiInputModeEnabled) return;
     pressStartTimeRef.current = Date.now();
     pressTimerRef.current = setTimeout(async () => {
       await rec.start();
     }, HOLD_THRESHOLD);
-  }, [rec]);
+  }, [rec, aiInputModeEnabled]);
 
   const handlePressOut = useCallback(async () => {
+    if (!aiInputModeEnabled) {
+      navigation.navigate('Recording');
+      return;
+    }
     const held = Date.now() - pressStartTimeRef.current;
     if (held < HOLD_THRESHOLD) {
       // 짧은 탭 → 타이머 취소, RecordingScreen으로 이동
@@ -402,7 +413,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
       await handleInlineStop();
     }
-  }, [handleInlineStop, navigation]);
+  }, [handleInlineStop, navigation, aiInputModeEnabled]);
 
   const handleInlineCancel = useCallback(async () => {
     try { await rec.stop(); } catch {}
@@ -486,7 +497,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         <Text style={styles.inlineResultText}>{inlineResult}</Text>
       )}
       {!rec.isRecording && !inlineProcessing && (
-        <Text style={styles.pearlHintText}>누르고 있으면 AI 입력 · 탭하면 녹음 화면</Text>
+        <Text style={styles.pearlHintText}>
+          {aiInputModeEnabled ? '누르고 있으면 AI 입력 · 탭하면 녹음 화면' : '탭하여 녹음 화면 열기'}
+        </Text>
       )}
     </View>
   );
