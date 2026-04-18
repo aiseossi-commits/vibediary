@@ -24,7 +24,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
-import { shouldAbsorb, runAbsorb, generateVoyageReport, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
+import { shouldAbsorb, runAbsorb, generateVoyageReport, extractVisualDataBlock, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
 import { getWikiPages } from '../db/wikiDao';
 import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
 import { useTheme } from '../context/ThemeContext';
@@ -122,9 +122,11 @@ function createStyles(colors: AppColors) {
     suggestedContainer: { width: '100%', paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: SPACING.sm },
     suggestedBtn: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...SHADOW.sm },
     suggestedBtnText: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, flex: 1 },
-    // 항해일지 (저장된 답변)
+    // 모아보기 (인사이트 + 저장된 답변)
     logScroll: { flex: 1 },
     logContent: { padding: SPACING.md, paddingBottom: SPACING.xxl },
+    logSection: { paddingHorizontal: SPACING.md, marginTop: SPACING.sm },
+    logSectionTitle: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary, marginBottom: SPACING.sm },
     logCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
     logCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
     logQuery: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, flex: 1, marginRight: SPACING.sm },
@@ -219,36 +221,50 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
   );
 }
 
-// 자동 인사이트 + 항해일지 생성 (등대 탭 상단)
-function InsightSection({ childId, colors, styles, isAbsorbing }: {
+// 모아보기 탭 — AI 인사이트 + 항해일지 생성 + 저장된 답변 통합
+function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
   childId: string | undefined;
   colors: AppColors;
   styles: ReturnType<typeof createStyles>;
   isAbsorbing: boolean;
 }) {
   const [wikiPages, setWikiPages] = useState<WikiPage[]>([]);
-  const [expanded, setExpanded] = useState(false);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [logs, setLogs] = useState<SearchLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedPageIds, setExpandedPageIds] = useState<Set<string>>(new Set());
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<number>>(new Set());
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const markdownStyles = useMemo(() => buildMarkdownStyles(colors), [colors]);
 
-  const loadPages = useCallback(async () => {
-    if (!childId) return;
+  const loadAll = useCallback(async () => {
+    if (!childId) { setIsLoading(false); return; }
     try {
-      const pages = await getWikiPages(childId);
-      // voyage 제외한 auto-generated 페이지만
-      setWikiPages(pages.filter(p => p.slug !== 'wiki-index' && !p.slug.startsWith('voyage/')));
+      const [pages, logsData] = await Promise.all([
+        getWikiPages(childId),
+        getSearchLogs(childId),
+      ]);
+      setWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
+      setLogs(logsData);
     } catch {}
+    finally { setIsLoading(false); }
   }, [childId]);
 
-  useEffect(() => { loadPages(); }, [loadPages]);
-  useEffect(() => { if (!isAbsorbing) loadPages(); }, [isAbsorbing, loadPages]);
+  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { if (!isAbsorbing) loadAll(); }, [isAbsorbing, loadAll]);
 
-  const toggleExpand = useCallback((key: string) => {
-    setExpandedIds(prev => {
+  const togglePage = useCallback((key: string) => {
+    setExpandedPageIds(prev => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleLog = useCallback((id: number) => {
+    setExpandedLogIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   }, []);
@@ -259,6 +275,7 @@ function InsightSection({ childId, colors, styles, isAbsorbing }: {
     setIsGenerating(true);
     try {
       await generateVoyageReport(childId, type);
+      await loadAll();
     } catch (e: any) {
       if (e?.message === 'OFFLINE') Alert.alert('오프라인', '네트워크에 연결되어 있지 않아요.');
       else if (e?.message === 'NO_RECORDS') Alert.alert('기록 없음', '분석할 기록이 없어요.');
@@ -266,9 +283,33 @@ function InsightSection({ childId, colors, styles, isAbsorbing }: {
     } finally {
       setIsGenerating(false);
     }
-  }, [childId, isGenerating]);
+  }, [childId, isGenerating, loadAll]);
 
-  const visiblePages = expanded ? wikiPages : wikiPages.slice(0, 2);
+  const handleDeleteLog = useCallback((id: number) => {
+    Alert.alert('삭제', '저장된 답변을 삭제할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => {
+        await deleteSearchLog(id);
+        setLogs(prev => prev.filter(l => l.id !== id));
+      }},
+    ]);
+  }, []);
+
+  const handleShareLog = useCallback(async (log: SearchLog) => {
+    const text = `Q. ${log.query}\n\n${log.answer}`;
+    try {
+      await Share.share({ message: text });
+    } catch {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('복사됨', '클립보드에 복사했어요.');
+    }
+  }, []);
+
+  if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
+
+  const hasInsights = wikiPages.length > 0;
+  const hasLogs = logs.length > 0;
+  const isEmpty = !hasInsights && !hasLogs;
 
   return (
     <>
@@ -296,153 +337,108 @@ function InsightSection({ childId, colors, styles, isAbsorbing }: {
         </TouchableOpacity>
       </Modal>
 
-      {wikiPages.length > 0 && (
-        <View style={styles.insightSection}>
-          <View style={styles.insightSectionHeader}>
-            <Text style={styles.insightSectionTitle}>AI 인사이트</Text>
-            {wikiPages.length > 2 && (
-              <TouchableOpacity onPress={() => setExpanded(p => !p)}>
-                <Text style={styles.insightSectionToggle}>{expanded ? '접기' : `전체 보기 (${wikiPages.length})`}</Text>
-              </TouchableOpacity>
-            )}
+      <ScrollView style={styles.logScroll} contentContainerStyle={{ paddingBottom: SPACING.xxl, paddingTop: SPACING.sm }} showsVerticalScrollIndicator={false}>
+        {hasInsights && (
+          <View style={styles.insightSection}>
+            <View style={styles.insightSectionHeader}>
+              <Text style={styles.insightSectionTitle}>AI 인사이트</Text>
+            </View>
+            {wikiPages.map(page => {
+              const key = `p-${page.id}`;
+              const isExpanded = expandedPageIds.has(key);
+              // 레거시 데이터 정화: body에 VISUAL_DATA 원문이 남아있으면 파싱해 분리
+              const needsCleanup = page.body.trimStart().startsWith('VISUAL_DATA:');
+              const cleaned = needsCleanup ? extractVisualDataBlock(page.body) : null;
+              const displayBody = cleaned?.body ?? page.body;
+              const displayVisualData = cleaned?.visualData ?? page.visualData;
+              return (
+                <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => togglePage(key)} activeOpacity={0.85}>
+                  <View style={styles.insightCardHeader}>
+                    <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
+                  </View>
+                  <Text style={styles.insightTitle}>{page.title}</Text>
+                  {displayVisualData && (() => {
+                    try {
+                      const parsed = JSON.parse(displayVisualData);
+                      const rawPatterns = Array.isArray(parsed?.patterns) ? parsed.patterns : null;
+                      if (!rawPatterns || rawPatterns.length === 0) return null;
+                      const valid = rawPatterns.filter((p: any) =>
+                        typeof p?.emoji === 'string' && typeof p?.label === 'string' && typeof p?.count === 'number'
+                      ) as { emoji: string; label: string; count: number }[];
+                      if (valid.length === 0) return null;
+                      return (
+                        <View style={styles.visualChipsContainer}>
+                          {valid.map((p, i) => (
+                            <View key={i} style={styles.visualChip}>
+                              <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
+                            </View>
+                          ))}
+                        </View>
+                      );
+                    } catch { return null; }
+                  })()}
+                  {isExpanded
+                    ? <Markdown style={markdownStyles}>{displayBody}</Markdown>
+                    : <Text style={styles.insightBody} numberOfLines={3}>{displayBody}</Text>
+                  }
+                  <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          {visiblePages.map(page => {
-            const key = `p-${page.id}`;
-            const isExpanded = expandedIds.has(key);
-            return (
-              <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => toggleExpand(key)} activeOpacity={0.85}>
-                <View style={styles.insightCardHeader}>
-                  <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
-                </View>
-                <Text style={styles.insightTitle}>{page.title}</Text>
-                {page.visualData && (() => {
-                  try {
-                    const { patterns } = JSON.parse(page.visualData) as { patterns: { emoji: string; label: string; count: number }[] };
-                    if (!patterns?.length) return null;
-                    return (
-                      <View style={styles.visualChipsContainer}>
-                        {patterns.map((p, i) => (
-                          <View key={i} style={styles.visualChip}>
-                            <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
-                          </View>
-                        ))}
-                      </View>
-                    );
-                  } catch { return null; }
-                })()}
-                {isExpanded
-                  ? <Markdown style={markdownStyles}>{page.body}</Markdown>
-                  : <Text style={styles.insightBody} numberOfLines={3}>{page.body}</Text>
-                }
-                <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
+        )}
 
-      <TouchableOpacity
-        style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
-        onPress={() => setShowTypeModal(true)}
-        disabled={isGenerating}
-        activeOpacity={0.85}
-      >
-        {isGenerating
-          ? <ActivityIndicator size="small" color={colors.textSecondary} />
-          : <Ionicons name="add-circle-outline" size={16} color={colors.textSecondary} />
-        }
-        <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '항해일지 생성'}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
+          onPress={() => setShowTypeModal(true)}
+          disabled={isGenerating}
+          activeOpacity={0.85}
+        >
+          {isGenerating
+            ? <ActivityIndicator size="small" color={colors.textSecondary} />
+            : <Ionicons name="add-circle-outline" size={16} color={colors.textSecondary} />
+          }
+          <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '항해일지 생성'}</Text>
+        </TouchableOpacity>
 
-      <View style={styles.divider} />
+        {hasLogs && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.logSection}>
+              <Text style={styles.logSectionTitle}>저장된 답변</Text>
+              {logs.map(log => {
+                const isExpanded = expandedLogIds.has(log.id);
+                return (
+                  <TouchableOpacity key={log.id} style={styles.logCard} onPress={() => toggleLog(log.id)} activeOpacity={0.85}>
+                    <View style={styles.logCardHeader}>
+                      <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
+                      <TouchableOpacity style={styles.logDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
+                        <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.logAnswer} numberOfLines={isExpanded ? undefined : 4}>{log.answer}</Text>
+                    <View style={styles.logFooter}>
+                      <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
+                      <TouchableOpacity style={styles.logShareBtn} onPress={() => handleShareLog(log)}>
+                        <Ionicons name="share-outline" size={14} color={colors.textTertiary} />
+                        <Text style={styles.logShareBtnText}>공유</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {isEmpty && !isGenerating && (
+          <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
+            <MaterialCommunityIcons name="notebook-outline" size={48} color={colors.textTertiary} />
+            <Text style={styles.emptyDescription}>아직 모아둔 것이 없어요.{'\n'}물어보기에서 질문하거나{'\n'}항해일지를 만들어보세요.</Text>
+          </View>
+        )}
+      </ScrollView>
     </>
-  );
-}
-
-// 항해일지 탭 — 저장된 등대 답변
-function VoyageLogFeed({ childId, colors, styles }: {
-  childId: string | undefined;
-  colors: AppColors;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  const [logs, setLogs] = useState<SearchLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-
-  const loadLogs = useCallback(async () => {
-    if (!childId) { setIsLoading(false); return; }
-    try {
-      const data = await getSearchLogs(childId);
-      setLogs(data);
-    } catch {}
-    finally { setIsLoading(false); }
-  }, [childId]);
-
-  useEffect(() => { loadLogs(); }, [loadLogs]);
-
-  const toggleExpand = useCallback((id: number) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }, []);
-
-  const handleDelete = useCallback((id: number) => {
-    Alert.alert('삭제', '저장된 항해일지를 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => {
-        await deleteSearchLog(id);
-        setLogs(prev => prev.filter(l => l.id !== id));
-      }},
-    ]);
-  }, []);
-
-  const handleShare = useCallback(async (log: SearchLog) => {
-    const text = `Q. ${log.query}\n\n${log.answer}`;
-    try {
-      await Share.share({ message: text });
-    } catch {
-      await Clipboard.setStringAsync(text);
-      Alert.alert('복사됨', '클립보드에 복사했어요.');
-    }
-  }, []);
-
-  if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
-
-  if (logs.length === 0) {
-    return (
-      <View style={[styles.emptyState, { flex: 1 }]}>
-        <MaterialCommunityIcons name="lighthouse-on" size={48} color={colors.textTertiary} />
-        <Text style={styles.emptyDescription}>저장된 항해일지가 없어요.{'\n'}등대 답변에서 저장 버튼을 눌러보세요.</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView style={styles.logScroll} contentContainerStyle={styles.logContent} showsVerticalScrollIndicator={false}>
-      {logs.map(log => {
-        const isExpanded = expandedIds.has(log.id);
-        return (
-          <TouchableOpacity key={log.id} style={styles.logCard} onPress={() => toggleExpand(log.id)} activeOpacity={0.85}>
-            <View style={styles.logCardHeader}>
-              <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
-              <TouchableOpacity style={styles.logDeleteBtn} onPress={() => handleDelete(log.id)}>
-                <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.logAnswer} numberOfLines={isExpanded ? undefined : 4}>{log.answer}</Text>
-            <View style={styles.logFooter}>
-              <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
-              <TouchableOpacity style={styles.logShareBtn} onPress={() => handleShare(log)}>
-                <Ionicons name="share-outline" size={14} color={colors.textTertiary} />
-                <Text style={styles.logShareBtnText}>공유</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
   );
 }
 
@@ -530,27 +526,29 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>AI 등대</Text>
-        {activeTab === 'chat' && <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>}
+        {activeTab === 'chat'
+          ? <Text style={styles.subtitle}>무엇이든 물어보세요.{'\n'}바다가 기억하고 있습니다.</Text>
+          : <Text style={styles.subtitle}>기록의 패턴과 저장한 답변을{'\n'}한 곳에 모았어요.</Text>
+        }
       </View>
 
       <View style={styles.segmentRow}>
         {(['chat', 'log'] as ActiveTab[]).map(tab => (
           <TouchableOpacity key={tab} style={[styles.segmentBtn, activeTab === tab && styles.segmentBtnActive]} onPress={() => setActiveTab(tab)}>
             <Text style={[styles.segmentBtnText, activeTab === tab && styles.segmentBtnTextActive]}>
-              {tab === 'chat' ? '등대' : '항해일지'}
+              {tab === 'chat' ? '물어보기' : '모아보기'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {activeTab === 'log' ? (
-        <VoyageLogFeed childId={activeChild?.id} colors={colors} styles={styles} />
+        <CollectionFeed childId={activeChild?.id} colors={colors} styles={styles} isAbsorbing={isAbsorbing} />
       ) : (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex} keyboardVerticalOffset={Platform.OS === 'ios' ? tabBarHeight : 0}>
           {messages.length === 0 && !isSearching ? (
             <ScrollView style={styles.messageList} contentContainerStyle={{ paddingBottom: SPACING.xl }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <InsightSection childId={activeChild?.id} colors={colors} styles={styles} isAbsorbing={isAbsorbing} />
-              <View style={[styles.emptyState, { paddingTop: SPACING.lg }]}>
+              <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
                 <MaterialCommunityIcons name="lighthouse-on" size={64} color={colors.primary} />
                 <Text style={styles.emptyDescription}>기록된 내용을 바탕으로{'\n'}무엇이든 물어보세요.</Text>
                 <View style={styles.suggestedContainer}>

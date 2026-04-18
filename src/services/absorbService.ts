@@ -208,7 +208,9 @@ ${recordLines}
 - pages 배열에 wiki-index는 포함하지 마세요 (index 필드로 별도 제공)
 - 기존 페이지는 slug를 동일하게 유지하고 새 기록을 통합하여 업데이트
 - overview/weekly와 timeline/milestones는 항상 포함
-- visual_data는 overview/weekly 페이지에만 설정: {"patterns":[{"emoji":"이모지","label":"패턴명","count":횟수},...]}
+- visual_data는 overview/weekly 페이지에만 설정: {"patterns":[{"emoji":"이모지","label":"패턴명","count":숫자}, ...]}
+  패턴 3~6개 추출 (수면/식사/행동/감정 등 반복되는 항목)
+  각 pattern 항목은 emoji(문자열) + label(문자열) + count(숫자) 세 필드만 가질 것
 - 기록이 없으면 해당 섹션은 "기록 없음"으로 작성`;
 }
 
@@ -220,9 +222,60 @@ interface AbsorbAIResponse {
     type: string;
     body: string;
     cross_refs?: string[];
-    visual_data?: string | null;
+    visual_data?: string | Record<string, unknown> | null;
   }[];
   index: string;
+}
+
+// AI가 visual_data를 객체 리터럴로 반환하든 문자열로 반환하든 DB에는 JSON 문자열로 저장
+function normalizeVisualData(raw: unknown): string | null {
+  if (raw == null) return null;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try { JSON.parse(trimmed); return trimmed; } catch { return null; }
+  }
+  if (typeof raw === 'object') {
+    try { return JSON.stringify(raw); } catch { return null; }
+  }
+  return null;
+}
+
+// VISUAL_DATA: prefix 이후의 balanced {} 블록 추출 (개행 포함 허용)
+// fallback absorb + 레거시 깨진 데이터 정화용으로 공용 사용
+export function extractVisualDataBlock(raw: string): { visualData: string | null; body: string } {
+  const idx = raw.indexOf('VISUAL_DATA:');
+  if (idx === -1) return { visualData: null, body: raw.trim() };
+
+  const braceStart = raw.indexOf('{', idx + 'VISUAL_DATA:'.length);
+  if (braceStart === -1) return { visualData: null, body: raw.trim() };
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let braceEnd = -1;
+  for (let i = braceStart; i < raw.length; i++) {
+    const ch = raw[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) { braceEnd = i; break; }
+    }
+  }
+  if (braceEnd === -1) return { visualData: null, body: raw.trim() };
+
+  const jsonStr = raw.slice(braceStart, braceEnd + 1);
+  try { JSON.parse(jsonStr); }
+  catch { return { visualData: null, body: raw.trim() }; }
+
+  const before = raw.slice(0, idx).trim();
+  const after = raw.slice(braceEnd + 1).replace(/^\s*(?:---)?\s*/, '').trim();
+  const body = [before, after].filter(Boolean).join('\n').trim();
+  return { visualData: jsonStr, body };
 }
 
 function parseAbsorbResponse(raw: string): AbsorbAIResponse | null {
@@ -249,25 +302,23 @@ async function runFallbackAbsorb(
     const lines = newRecords.map(formatRecordLine).join('\n');
     const prompt = `당신은 발달장애 아동 돌봄 기록을 분석하는 AI입니다.
 아래 최근 기록들을 바탕으로 주간 요약을 작성하세요.
-섹션: ## 이번 주 주요 기록, ## 패턴 및 빈도, ## 특이사항
-출력 첫 줄: VISUAL_DATA:{"patterns":[...]} 또는 VISUAL_DATA:{"patterns":[]}
-두 번째 줄: ---
-이후: 마크다운 본문
+
+출력 형식 (반드시 이 순서·구조 준수):
+1. 첫 줄: VISUAL_DATA:{"patterns":[{"emoji":"이모지","label":"패턴명","count":숫자}, ...]}
+   - 반드시 한 줄로 출력 (JSON 내부에 개행 금지)
+   - patterns는 3~6개의 반복 패턴(수면/식사/행동/감정 등)
+   - 각 항목은 emoji(문자열) + label(문자열) + count(숫자) 세 필드만
+   - 추출할 패턴이 없으면 VISUAL_DATA:{"patterns":[]}
+2. 둘째 줄: ---
+3. 셋째 줄부터 마크다운 본문:
+   ## 이번 주 주요 기록
+   ## 패턴 및 빈도
+   ## 특이사항
 
 기록:
 ${lines}`;
     const raw = await callAbsorbAI(prompt);
-    const lines2 = raw.split('\n');
-    let body = raw;
-    let visualData: string | null = null;
-    if (lines2[0]?.startsWith('VISUAL_DATA:') && lines2[1]?.trim() === '---') {
-      try {
-        const jsonStr = lines2[0].slice('VISUAL_DATA:'.length).trim();
-        JSON.parse(jsonStr);
-        visualData = jsonStr;
-        body = lines2.slice(2).join('\n').trim();
-      } catch { /* ignore */ }
-    }
+    const { visualData, body } = extractVisualDataBlock(raw);
     const result = await upsertWikiPage({
       childId, slug: 'overview/weekly', title: `주간 요약 (${formatDate(Date.now())})`,
       type: 'overview', body, visualData, sourceRecordIds: newRecords.map(r => r.id),
@@ -344,7 +395,7 @@ export async function runAbsorb(childId: string): Promise<AbsorbResult> {
             type: pageType,
             body: page.body,
             crossRefs: page.cross_refs ?? null,
-            visualData: page.visual_data ?? null,
+            visualData: normalizeVisualData(page.visual_data),
           });
           if (result === 'created') articlesCreated++; else articlesUpdated++;
         } catch (e) {

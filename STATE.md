@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor: 로컬 android/를 EAS prebuild 산출물과 일치시킴 + generate-splash.js 삭제` (2026-04-18)
+**마지막 커밋**: `refactor: 등대 탭 구조 재편 (물어보기/모아보기) + VISUAL_DATA 파싱 견고화` (2026-04-19)
 
 **현재 브랜치**: main
 
@@ -18,6 +18,9 @@
 
 ## 최근 완료된 작업
 
+- [x] 등대 탭 UX 재구성 + 은유 일관성 유지: 탭 라벨 "등대/항해일지" → "물어보기/모아보기"로 변경 (앱 타이틀·답변 버블·빈상태 아이콘은 바다 은유 유지). 물어보기=채팅+추천질문만, 모아보기=AI인사이트+항해일지생성+저장답변 3섹션 통합. 기존 InsightSection + VoyageLogFeed 두 컴포넌트를 CollectionFeed로 병합 — 이전에 고아였던 voyage/* wiki 페이지도 인사이트 섹션에 노출됨 (필터 제거)
+- [x] VISUAL_DATA 파싱·저장 버그 수정 (absorbService): (A) 메인 프롬프트의 visual_data 스키마 재명시 (emoji+label+count 세 필드만), 반환값이 객체든 문자열이든 normalizeVisualData로 JSON 문자열 정규화 후 DB 저장 (SQLite가 객체를 [object Object]로 저장하던 문제 해결). (B) fallback 프롬프트 재작성 — VISUAL_DATA 한 줄 JSON 강제, 스키마 명시, 3~6개 패턴 지시. (C) 파싱 로직을 extractVisualDataBlock로 대체 — balanced brace 추적으로 개행 포함 JSON도 추출, `---` 구분자 의존 제거. (D) CollectionFeed가 레거시 body에 VISUAL_DATA 원문이 남아있으면 렌더링 시점에 extractVisualDataBlock로 자동 정화 (DB 마이그레이션 없이 즉시 복구)
+- [x] 항해일지 생성 버그 수정: 이전에는 generateVoyageReport가 voyage/* wiki에 저장해도 어느 화면에도 표시 안 되던 고아 상태. 이제 모아보기 탭의 AI 인사이트 섹션에 즉시 노출됨 + 생성 완료 후 loadAll()로 자동 새로고침
 - [x] 로컬 android/를 EAS prebuild 산출물과 일치시킴: `expo prebuild --clean`으로 재생성 후 release signing config(upload-keystore.jks, build.gradle의 signingConfigs.release)만 수동 복원. 이제 `eas build --local`과 `eas build` 원격 결과가 동일한 splash 동작을 보임. generate-splash.js 삭제(텍스트 PNG는 RN SplashOverlay로 대체됨), AndroidManifest intent-filter도 prebuild가 scheme 속성 자동 추가(content/file)
 - [x] app.json expo-splash-screen plugin 정식 등록: backgroundColor/image/imageWidth/resizeMode 지정 → EAS prebuild 시에도 Android 12+ Splash API 속성(windowSplashScreenBackground/AnimatedIcon/postSplashScreenTheme) 자동 설정됨. android.backgroundColor가 AppTheme.windowBackground로도 자동 반영(활동 배경색=splashscreen 배경색)되어 커스텀 plugin 불필요
 - [x] Android 스플래시 깜빡임 수정: AppTheme windowBackground=#070D1A로 흰 플래시 제거, Android 12+ Splash Screen API 적용(배경+가운데 아이콘), RN SplashOverlay 도입(expo-splash-screen.preventAutoHideAsync + 최소 1.2초 + DB 로딩 완료 후 페이드아웃), splashscreen_icon.png 5종 추가
