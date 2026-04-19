@@ -1,6 +1,6 @@
 // 바다(vibediary) 디자인 토큰
 
-export type PaletteKey = 'sage' | 'emerald' | 'gold' | 'amber' | 'deepOcean' | 'clearSky' | 'slateNavy';
+export type PaletteKey = 'sage' | 'emerald' | 'pearl' | 'amber' | 'deepOcean' | 'clearSky' | 'slateNavy';
 
 export interface PaletteEntry {
   name: string;
@@ -73,36 +73,36 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
     darkDensity: ['transparent', '#1A2E24', '#1E4030', '#155E3A', '#059669'],
     lightDensity: ['transparent', '#D1FAE5', '#6EE7B7', '#34D399', '#10B981'],
   },
-  gold: {
-    name: '골드',
+  pearl: {
+    name: '진주',
     dark: {
-      primary: '#FBBF24', primaryLight: '#FDE68A', primaryDark: '#F59E0B',
-      secondary: '#FFFBEB', background: '#1F1E1B', surface: '#292824',
-      surfaceSecondary: '#44423C', textPrimary: '#FEFBDC', textSecondary: '#FDF7B8',
-      textTertiary: '#FBBF24', textOnPrimary: '#000000', accent: '#059669',
-      accentLight: '#34D399', tagMedical: '#EF4444', tagMedication: '#FBBF24',
+      primary: '#0EA5A0', primaryLight: '#2DD4CF', primaryDark: '#0D7A76',
+      secondary: '#E0F7F6', background: '#0F1117', surface: '#1A1D24',
+      surfaceSecondary: '#252932', textPrimary: '#F9FAFB', textSecondary: '#E5E7EB',
+      textTertiary: '#9CA3AF', textOnPrimary: '#FFFFFF', accent: '#0EA5A0',
+      accentLight: '#2DD4CF', tagMedical: '#EF4444', tagMedication: '#0EA5A0',
       tagBehavior: '#EAB308', tagDaily: '#22C55E', tagTherapy: '#A855F7',
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
-      border: '#57554E', divider: '#44423C', recordingRed: '#EF4444',
-      recordingRedLight: '#FEE2E2', micBg: '#44423C', micBorder: '#57554E',
-      micIcon: '#57554E', micLabel: '#FDF7B8', tabBg: '#1F1E1B',
-      tabBorder: '#292824', tabInactive: '#A8A69E',
+      border: '#2D3240', divider: '#252932', recordingRed: '#EF4444',
+      recordingRedLight: '#FEE2E2', micBg: '#252932', micBorder: '#2D3240',
+      micIcon: '#2D3240', micLabel: '#E5E7EB', tabBg: '#0F1117',
+      tabBorder: '#1A1D24', tabInactive: '#6B7280',
     },
     light: {
-      primary: '#FBBF24', primaryLight: '#FDE68A', primaryDark: '#F59E0B',
-      secondary: '#FEFBDC', background: '#FFFEE0', surface: '#FEFBED',
-      surfaceSecondary: '#FDF7B8', textPrimary: '#1F1E1B', textSecondary: '#44423C',
-      textTertiary: '#78756C', textOnPrimary: '#FFFFFF', accent: '#065F46',
-      accentLight: '#10B981', tagMedical: '#EF4444', tagMedication: '#FBBF24',
+      primary: '#0EA5A0', primaryLight: '#2DD4CF', primaryDark: '#0D7A76',
+      secondary: '#E0F7F6', background: '#F9FAFB', surface: '#FFFFFF',
+      surfaceSecondary: '#F3F4F6', textPrimary: '#111827', textSecondary: '#374151',
+      textTertiary: '#6B7280', textOnPrimary: '#FFFFFF', accent: '#0EA5A0',
+      accentLight: '#2DD4CF', tagMedical: '#EF4444', tagMedication: '#0EA5A0',
       tagBehavior: '#EAB308', tagDaily: '#22C55E', tagTherapy: '#A855F7',
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
-      border: '#F9F1D3', divider: '#FEFBDC', recordingRed: '#EF4444',
-      recordingRedLight: '#FEE2E2', micBg: '#FEFBDC', micBorder: '#FDF7B8',
-      micIcon: '#FDF7B8', micLabel: '#44423C', tabBg: '#FFFEE0',
-      tabBorder: '#FEFBED', tabInactive: '#78756C',
+      border: '#E5E7EB', divider: '#F3F4F6', recordingRed: '#EF4444',
+      recordingRedLight: '#FEE2E2', micBg: '#F3F4F6', micBorder: '#E5E7EB',
+      micIcon: '#E5E7EB', micLabel: '#374151', tabBg: '#F9FAFB',
+      tabBorder: '#FFFFFF', tabInactive: '#9CA3AF',
     },
-    darkDensity: ['transparent', '#2E2C26', '#3E3B32', '#5A5540', '#F59E0B'],
-    lightDensity: ['transparent', '#FDF7B8', '#FDE68A', '#FCD34D', '#FBBF24'],
+    darkDensity: ['transparent', '#1A2E2D', '#1A3F3D', '#0D7A76', '#0EA5A0'],
+    lightDensity: ['transparent', '#CCFBF1', '#99F6E4', '#2DD4CF', '#0EA5A0'],
   },
   amber: {
     name: '앰버',
