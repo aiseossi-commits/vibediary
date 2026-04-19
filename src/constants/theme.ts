@@ -98,7 +98,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       error: '#DC2626', success: '#16A34A', warning: '#CA8A04', info: '#2563EB',
       border: '#E5E7EB', divider: '#F3F4F6', recordingRed: '#EF4444',
       recordingRedLight: '#FEE2E2', micBg: '#FFFFFF', micBorder: 'transparent',
-      micIcon: '#99F6E4', micLabel: '#374151', tabBg: '#F9FAFB',
+      micIcon: '#A8C5C3', micLabel: '#374151', tabBg: '#F9FAFB',
       tabBorder: '#FFFFFF', tabInactive: '#9CA3AF',
     },
     darkDensity: ['transparent', '#1A2E2D', '#1A3F3D', '#0D7A76', '#0EA5A0'],
