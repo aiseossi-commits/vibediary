@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] pearl 녹음 버튼 정제: 테두리 제거(transparent), 마이크 아이콘 teal(#0EA5A0)로 CTA 명확화
 - [x] pearl 녹음 버튼 순백 + 그림자 깊이감: micBg #F3F4F6→#FFFFFF, shadow y4/opacity0.12/radius8
 - [x] 팔레트 gold → pearl(진주) 교체: 배경 완전 neutral(#F9FAFB/#0F1117), 카드 white/dark-surface, 포인트 teal(#0EA5A0) 단색 집중 — 퍼슬리 류 전문적 느낌 지향
 - [x] UI 빼기 리팩터 5패스 (아마추어 느낌 제거, Persly 류 차분한 밀도 지향): **Pass 1** RecordCard 4방향 border 제거 + padding 18→14 + radius 20→12, SearchScreen insightCard/logCard shadow 제거. **Pass 2** 전체 정적 카드 surface에서 SHADOW.sm 제거 (RecordDetailScreen 3곳, TagsScreen 3곳, SearchScreen 4곳, SettingsScreen 3곳) — 떠있는 요소(CalendarScreen 헤더, Bottom Sheet)·진주 버튼은 브랜드 포인트로 유지. **Pass 3** 카드 radius를 `BORDER_RADIUS.md`(=12)로 통일 (기존 14·20 산재). **Pass 4** SettingsScreen 화면모드 섹션 통합 — "바다/밤바다 토글" 카드 + "색상 테마 팔레트" 카드를 하나의 카드로 병합하고 sectionDivider로 구분(iOS 그룹드 리스트 느낌). `themeToggleRow`/`paletteCard` 폐기, `themeToggleInnerRow`/`sectionDivider`/`paletteSectionLabel` 추가. **Pass 5** Accent(primary) 과용 감사 — CTA/액티브 상태가 아닌 3곳만 textSecondary/textPrimary로 치환: SearchScreen `insightSectionToggle`(접기/펼치기 보조 액션), TagsScreen `timelineMonthLabel`(장식성 레이블), SettingsScreen `appName`(앱 정보 표지). 탭바/버튼/체크/북마크/녹음버튼은 그대로 유지 (기능 신호로 작동)
