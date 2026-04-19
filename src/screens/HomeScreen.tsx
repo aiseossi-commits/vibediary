@@ -91,7 +91,7 @@ function createStyles(colors: AppColors) {
       width: PEARL_SIZE, height: PEARL_SIZE, borderRadius: PEARL_SIZE / 2,
       backgroundColor: colors.micBg, alignItems: 'center', justifyContent: 'center',
       borderWidth: 1.5, borderColor: colors.micBorder,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 1, elevation: 2,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
     },
     pearlLabel: { fontSize: 15, fontWeight: '500' as const, color: colors.micLabel, marginTop: 16, opacity: 0.85, letterSpacing: 0.2 },
     pearlRecordingButton: { borderColor: colors.recordingRed, borderWidth: 2.5 },
