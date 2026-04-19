@@ -20,7 +20,7 @@ import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, PALETTES, type AppColors, type PaletteKey } from '../constants/theme';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import { getSetting, setSetting } from '../db/appSettingsDao';
@@ -79,7 +79,6 @@ function createStyles(colors: AppColors) {
     },
     themeToggleLabel: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
     sectionDivider: { height: 1, backgroundColor: colors.divider, marginVertical: SPACING.md },
-    paletteSectionLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.xs },
     toggleTrack: {
       width: 51, height: 31, borderRadius: 16,
       justifyContent: 'center', paddingHorizontal: 2,
@@ -102,12 +101,6 @@ function createStyles(colors: AppColors) {
     deleteModalBtnTextDestructive: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.error },
     deleteModalBtnTextCancel: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     // 팔레트 선택
-    paletteRow: { flexDirection: 'row', flexWrap: 'nowrap', marginTop: SPACING.xs },
-    paletteItem: { flex: 1, alignItems: 'center', gap: 4 },
-    paletteCircle: { width: 32, height: 32, borderRadius: 16 },
-    paletteCircleSelected: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.textPrimary },
-    paletteName: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textAlign: 'center', maxWidth: 44 },
-    paletteNameSelected: { fontSize: FONT_SIZE.xs, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium, textAlign: 'center', maxWidth: 44 },
     // 홈화면 위젯 토글
     widgetRow: {
       flexDirection: 'row', alignItems: 'center',
@@ -130,7 +123,7 @@ function createStyles(colors: AppColors) {
 }
 
 export default function SettingsScreen() {
-  const { colors, isDark, palette, setTheme, setPalette } = useTheme();
+  const { colors, isDark, setTheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
   const { settings: widgetSettings, toggle: toggleWidget } = useHomeWidgetSettings();
@@ -590,33 +583,6 @@ export default function SettingsScreen() {
                 ]} />
               </Animated.View>
             </TouchableOpacity>
-            <View style={styles.sectionDivider} />
-            <Text style={styles.paletteSectionLabel}>색상 테마</Text>
-            <View style={styles.paletteRow}>
-              {(Object.keys(PALETTES) as PaletteKey[]).map((key) => {
-                const entry = PALETTES[key];
-                const primaryColor = isDark ? entry.dark.primary : entry.light.primary;
-                const isSelected = palette === key;
-                return (
-                  <TouchableOpacity
-                    key={key}
-                    style={styles.paletteItem}
-                    onPress={() => setPalette(key)}
-                    activeOpacity={0.7}
-                    accessibilityLabel={`${entry.name} 테마 선택`}
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <View style={[
-                      isSelected ? styles.paletteCircleSelected : styles.paletteCircle,
-                      { backgroundColor: primaryColor },
-                    ]} />
-                    <Text style={isSelected ? styles.paletteNameSelected : styles.paletteName}>
-                      {entry.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
           </View>
         </View>
 
