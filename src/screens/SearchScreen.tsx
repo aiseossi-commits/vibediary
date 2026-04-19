@@ -305,7 +305,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
     } catch (e: any) {
       if (e?.message === 'OFFLINE') Alert.alert('오프라인', '네트워크에 연결되어 있지 않아요.');
       else if (e?.message === 'NO_RECORDS') Alert.alert('기록 없음', '분석할 기록이 없어요.');
-      else Alert.alert('오류', '항해일지 생성 중 오류가 발생했어요.');
+      else Alert.alert('오류', 'AI 인사이트 생성 중 오류가 발생했어요.');
     } finally {
       setIsGenerating(false);
     }
@@ -342,7 +342,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
       <Modal visible={showTypeModal} transparent animationType="slide" onRequestClose={() => setShowTypeModal(false)}>
         <TouchableOpacity style={styles.typeModalOverlay} activeOpacity={1} onPress={() => setShowTypeModal(false)}>
           <View style={styles.typeModalSheet}>
-            <Text style={styles.typeModalTitle}>어떤 항해일지를 만들까요?</Text>
+            <Text style={styles.typeModalTitle}>어떤 인사이트를 만들까요?</Text>
             {VOYAGE_REPORT_OPTIONS.map((opt, i) => (
               <React.Fragment key={opt.type}>
                 {i > 0 && <View style={styles.typeModalDivider} />}
@@ -364,6 +364,19 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
       </Modal>
 
       <ScrollView style={styles.logScroll} contentContainerStyle={{ paddingBottom: SPACING.xxl, paddingTop: SPACING.sm }} showsVerticalScrollIndicator={false}>
+        <TouchableOpacity
+          style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
+          onPress={() => setShowTypeModal(true)}
+          disabled={isGenerating}
+          activeOpacity={0.85}
+        >
+          {isGenerating
+            ? <ActivityIndicator size="small" color={colors.textSecondary} />
+            : <Ionicons name="add-circle-outline" size={16} color={colors.textSecondary} />
+          }
+          <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : 'AI 인사이트 생성'}</Text>
+        </TouchableOpacity>
+
         {hasInsights && (
           <View style={styles.insightSection}>
             <View style={styles.insightSectionHeader}>
@@ -414,19 +427,6 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
-          onPress={() => setShowTypeModal(true)}
-          disabled={isGenerating}
-          activeOpacity={0.85}
-        >
-          {isGenerating
-            ? <ActivityIndicator size="small" color={colors.textSecondary} />
-            : <Ionicons name="add-circle-outline" size={16} color={colors.textSecondary} />
-          }
-          <Text style={styles.generateBtnText}>{isGenerating ? '생성 중...' : '항해일지 생성'}</Text>
-        </TouchableOpacity>
-
         {hasLogs && (
           <>
             <View style={styles.divider} />
@@ -463,7 +463,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
         {isEmpty && !isGenerating && (
           <View style={[styles.emptyState, { paddingTop: SPACING.xxl }]}>
             <MaterialCommunityIcons name="notebook-outline" size={48} color={colors.textTertiary} />
-            <Text style={styles.emptyDescription}>아직 모아둔 것이 없어요.{'\n'}물어보기에서 질문하거나{'\n'}항해일지를 만들어보세요.</Text>
+            <Text style={styles.emptyDescription}>아직 모아둔 것이 없어요.{'\n'}물어보기에서 질문하거나{'\n'}AI 인사이트를 생성해보세요.</Text>
           </View>
         )}
       </ScrollView>

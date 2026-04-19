@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 모아보기 "AI 인사이트 생성" 버튼 최상단으로 이동 + 문구 정리 (항해일지→AI 인사이트)
 - [x] 캘린더 날짜 시트 풀스크린 + 카드 깊이감: SHEET_HEIGHT 60%→82%, 시트 배경 surface→background (카드가 배경 위로 뜨는 효과)
 - [x] pearl 캘린더 density 채도 낮춤: lightDensity #CCFBF1~#0EA5A0 → #D9EEEC~#6BA5A2 (muted teal)
 - [x] pearl 녹음 버튼 정제: 테두리 제거(transparent), 마이크 아이콘 teal 연하게(#A8C5C3)
