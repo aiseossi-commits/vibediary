@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: Android versionCode 12→13` (2026-04-19)
+**마지막 커밋**: `chore: versionCode 15 고정 + appVersionSource local 전환` (2026-04-19)
 
 **현재 브랜치**: main
 
