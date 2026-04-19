@@ -108,8 +108,8 @@ function createStyles(colors: AppColors) {
     tagItem: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
       backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
+      borderWidth: 1, borderColor: colors.border,
       paddingHorizontal: SPACING.md, paddingVertical: SPACING.md - 2,
-      borderWidth: 1.5, borderColor: 'transparent',
     },
     tagItemLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, flex: 1 },
     tagDot: { width: 10, height: 10, borderRadius: 5 },
