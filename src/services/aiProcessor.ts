@@ -303,6 +303,7 @@ export async function getTagsOnly(text: string, extraTags: string[] = []): Promi
 // AI 입력 모드: 날짜별 기록 분리
 export type ParsedEntry = {
   date: string;
+  time?: string;
   text: string;
   childName?: string;
   eventHint?: string;
@@ -331,13 +332,17 @@ export async function parseMultiEntries(
 3. 요일 표현("월요일에", "이번주 월수금"): 오늘 기준 가장 최근 해당 요일로 계산. 복수 요일은 각각 별도 항목.
 4. 범위 표현("이번주 내내", "월~금"): 해당 기간 각 날짜를 별도 항목으로 생성.
 5. 미래 날짜 생성 금지 — 오늘(${today}) 이후 날짜는 지난 주 동일 날짜 사용.
-6. text에는 날짜 표현 제거 후 핵심 내용만 유지.
+6. text에는 날짜·시간 표현 제거 후 핵심 내용만 유지.
+
+시간 규칙:
+- "아침 7시", "오전 7시" → "07:00", "오후 3시" → "15:00", "밤 10시" → "22:00", "새벽 2시" → "02:00"
+- 시간 표현이 없으면 time 필드 생략.
 ${childNameSection}
 이벤트 감지:
 발열/고열, 발작/경련, 수면 문제(못 잠/불면), 공격행동 시작이 감지되면 "eventHint" 추가 (예: "발열", "발작", "수면문제", "공격행동").
 치료 방문·투약·병원 방문은 eventHint 없음.
 
-반드시 이 형식만 반환 (다른 설명 없이, childName·eventHint는 해당 시만 포함):
+반드시 이 형식만 반환 (다른 설명 없이, time·childName·eventHint는 해당 시만 포함):
 [{"date":"YYYY-MM-DD","text":"..."}]`;
 
   const controller = new AbortController();

@@ -304,7 +304,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       const todayWeekday = weekdays[new Date().getDay()] + '요일';
       const childrenNames = childList.map(c => c.name);
 
-      let entries: { date: string; text: string; childName?: string; eventHint?: string }[];
+      let entries: { date: string; time?: string; text: string; childName?: string; eventHint?: string }[];
       try {
         entries = await parseMultiEntries(text, today, todayWeekday, childrenNames);
       } catch {
@@ -314,7 +314,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       // 각 항목 AI 처리 + DB 저장
       const savedByChild: Record<string, number> = {};
       for (const entry of entries) {
-        const createdAt = new Date(entry.date + 'T12:00:00').getTime();
+        const createdAt = new Date(entry.date + 'T' + (entry.time ?? '23:59') + ':00').getTime();
         const targetChildId = resolveChildId(entry.childName);
         await processFromText(uri, entry.text, createdAt, targetChildId);
 

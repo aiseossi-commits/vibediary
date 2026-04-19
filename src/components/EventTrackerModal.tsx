@@ -190,7 +190,7 @@ function createStyles(colors: AppColors) {
       borderTopLeftRadius: BORDER_RADIUS.xl,
       borderTopRightRadius: BORDER_RADIUS.xl,
       paddingBottom: 24,
-      maxHeight: SCREEN_H * 0.88,
+      height: SCREEN_H * 0.92,
     },
     handle: {
       width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,

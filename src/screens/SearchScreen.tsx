@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
 import { searchRecords } from '../services/searchPipeline';
 import { shouldAbsorb, runAbsorb, generateVoyageReport, extractVisualDataBlock, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
-import { getWikiPages } from '../db/wikiDao';
+import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
 import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -84,7 +84,7 @@ function createStyles(colors: AppColors) {
     insightSectionToggle: { fontSize: FONT_SIZE.xs, color: colors.textSecondary },
     insightCard: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm },
     insightCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
-    insightTypeLabel: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
+    insightTypeLabel: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, color: colors.textOnPrimary, backgroundColor: colors.primary, paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
     insightDeleteBtn: { padding: SPACING.xs },
     insightTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
     insightBody: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20 },
@@ -331,6 +331,38 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
     }
   }, []);
 
+  const handleLongPressLog = useCallback((log: SearchLog) => {
+    Alert.alert(log.query.length > 30 ? log.query.slice(0, 30) + '…' : log.query, undefined, [
+      { text: '공유', onPress: () => handleShareLog(log) },
+      { text: '삭제', style: 'destructive', onPress: () => handleDeleteLog(log.id) },
+      { text: '취소', style: 'cancel' },
+    ]);
+  }, [handleShareLog, handleDeleteLog]);
+
+  const handleLongPressPage = useCallback((page: WikiPage) => {
+    const shareText = `${page.title}\n\n${page.body}`;
+    Alert.alert(page.title.length > 30 ? page.title.slice(0, 30) + '…' : page.title, undefined, [
+      { text: '공유', onPress: async () => {
+        try {
+          await Share.share({ message: shareText });
+        } catch {
+          await Clipboard.setStringAsync(shareText);
+          Alert.alert('복사됨', '클립보드에 복사했어요.');
+        }
+      }},
+      { text: '삭제', style: 'destructive', onPress: () => {
+        Alert.alert('삭제', '인사이트를 삭제할까요?', [
+          { text: '취소', style: 'cancel' },
+          { text: '삭제', style: 'destructive', onPress: async () => {
+            await deleteWikiPage(page.id);
+            await loadAll();
+          }},
+        ]);
+      }},
+      { text: '취소', style: 'cancel' },
+    ]);
+  }, [loadAll]);
+
   if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={colors.primary} /></View>;
 
   const hasInsights = wikiPages.length > 0;
@@ -391,7 +423,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
               const displayBody = cleaned?.body ?? page.body;
               const displayVisualData = cleaned?.visualData ?? page.visualData;
               return (
-                <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => togglePage(key)} activeOpacity={0.85}>
+                <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => togglePage(key)} onLongPress={() => handleLongPressPage(page)} activeOpacity={0.85}>
                   <View style={styles.insightCardHeader}>
                     <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
                   </View>
@@ -435,24 +467,13 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
               {logs.map(log => {
                 const isExpanded = expandedLogIds.has(log.id);
                 return (
-                  <TouchableOpacity key={log.id} style={styles.logCard} onPress={() => toggleLog(log.id)} activeOpacity={0.85}>
-                    <View style={styles.logCardHeader}>
-                      <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
-                      <TouchableOpacity style={styles.logDeleteBtn} onPress={() => handleDeleteLog(log.id)}>
-                        <Ionicons name="trash-outline" size={14} color={colors.textTertiary} />
-                      </TouchableOpacity>
-                    </View>
+                  <TouchableOpacity key={log.id} style={styles.logCard} onPress={() => toggleLog(log.id)} onLongPress={() => handleLongPressLog(log)} activeOpacity={0.85}>
+                    <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
                     {isExpanded
                       ? <Markdown style={markdownStyles}>{log.answer}</Markdown>
                       : <Text style={styles.logAnswer} numberOfLines={4}>{stripMarkdown(log.answer)}</Text>
                     }
-                    <View style={styles.logFooter}>
-                      <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
-                      <TouchableOpacity style={styles.logShareBtn} onPress={() => handleShareLog(log)}>
-                        <Ionicons name="share-outline" size={14} color={colors.textTertiary} />
-                        <Text style={styles.logShareBtnText}>공유</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
                   </TouchableOpacity>
                 );
               })}
