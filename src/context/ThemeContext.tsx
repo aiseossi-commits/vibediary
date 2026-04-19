@@ -20,17 +20,17 @@ interface ThemeContextValue {
 const SETTINGS_FILE = (FileSystem.documentDirectory ?? '') + 'app_settings.json';
 
 const ThemeContext = createContext<ThemeContextValue>({
-  colors: PALETTES.deepOcean.light,
-  densityColors: PALETTES.deepOcean.lightDensity,
+  colors: PALETTES.pearl.light,
+  densityColors: PALETTES.pearl.lightDensity,
   isDark: false,
-  palette: 'deepOcean',
+  palette: 'pearl',
   setTheme: () => {},
   setPalette: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>('light');
-  const [palette, setPaletteState] = useState<PaletteKey>('deepOcean');
+  const [palette, setPaletteState] = useState<PaletteKey>('pearl');
 
   useEffect(() => {
     FileSystem.readAsStringAsync(SETTINGS_FILE)
