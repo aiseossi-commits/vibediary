@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 캘린더 날짜 시트 풀스크린 + 카드 깊이감: SHEET_HEIGHT 60%→92%, 시트 배경 surface→background (카드가 배경 위로 뜨는 효과)
 - [x] pearl 캘린더 density 채도 낮춤: lightDensity #CCFBF1~#0EA5A0 → #D9EEEC~#6BA5A2 (muted teal)
 - [x] pearl 녹음 버튼 정제: 테두리 제거(transparent), 마이크 아이콘 teal 연하게(#A8C5C3)
 - [x] pearl 녹음 버튼 순백 + 그림자 깊이감: micBg #F3F4F6→#FFFFFF, shadow y4/opacity0.12/radius8

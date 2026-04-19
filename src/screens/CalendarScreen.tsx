@@ -38,7 +38,7 @@ import {
 import type { RecordWithTags, DailyRecordSummary } from '../types/record';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.6;
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
 
 function formatTimeHM(h: number, m: number): string {
   const period = h < 12 ? '오전' : '오후';
@@ -82,7 +82,7 @@ function createStyles(colors: AppColors) {
     dimTouchable: { flex: 1 },
     sheet: {
       position: 'absolute', bottom: 0, left: 0, right: 0, height: SHEET_HEIGHT,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
       borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl,
       zIndex: 20, ...SHADOW.lg,
     },
