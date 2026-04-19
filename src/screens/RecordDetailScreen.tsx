@@ -455,9 +455,6 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           <View style={styles.tagEditContainer}>
             <View style={styles.tagEditHeader}>
               <Text style={styles.tagEditLabel}>태그</Text>
-              <TouchableOpacity onPress={handleStartEditTags} style={{ paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs }}>
-                <Text style={{ fontSize: FONT_SIZE.xs, color: colors.primary }}>편집</Text>
-              </TouchableOpacity>
             </View>
             <View style={styles.tagsSection}>
               {record.tags.length > 0

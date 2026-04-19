@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: versionCode 15 고정 + appVersionSource local 전환` (2026-04-19)
+**마지막 커밋**: `feat: AI 호출 월 10회 카운터 (무료 제한) + 인사이트 롱프레스 + 기타 UI` (2026-04-19)
 
 **현재 브랜치**: main
 
@@ -25,6 +25,9 @@
 - [x] pearl 녹음 버튼 정제: 테두리 제거(transparent), 마이크 아이콘 teal 연하게(#A8C5C3)
 - [x] pearl 녹음 버튼 순백 + 그림자 깊이감: micBg #F3F4F6→#FFFFFF, shadow y4/opacity0.12/radius8
 - [x] 팔레트 gold → pearl(진주) 교체: 배경 완전 neutral(#F9FAFB/#0F1117), 카드 white/dark-surface, 포인트 teal(#0EA5A0) 단색 집중 — 퍼슬리 류 전문적 느낌 지향
+- [x] AI 호출 월 10회 통합 카운터 (무료 제한): useAIUsage 훅, appSettingsDao 확장, 등대 질문·인사이트 생성 양쪽 적용
+- [x] 모아보기 voyage/ 필터링 — 이정표 등 non-voyage 페이지 제외
+- [x] 막대 차트 렌더링 (react-native-chart-kit): AI 인사이트 VISUAL_DATA 시각화
 - [x] EventTrackerModal 시트 높이 92% (홈 증상·상태 추적)
 - [x] AI 인사이트 배지 텍스트 가시성 개선 (teal bg + 흰 글씨)
 - [x] 모아보기 인사이트·저장답변 카드 롱프레스 → 공유/삭제 액션시트 (인라인 버튼 제거)

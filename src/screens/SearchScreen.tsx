@@ -15,7 +15,9 @@ import {
   ScrollView,
   Modal,
   Share,
+  Dimensions,
 } from 'react-native';
+import { BarChart } from 'react-native-chart-kit';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
@@ -29,6 +31,7 @@ import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
 import { createSearchLog, getSearchLogs, deleteSearchLog } from '../db/searchLogsDao';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
+import { useAIUsage } from '../hooks/useAIUsage';
 import {
   SPACING,
   FONT_SIZE,
@@ -92,6 +95,7 @@ function createStyles(colors: AppColors) {
     visualChipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.sm },
     visualChip: { backgroundColor: colors.primaryLight, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 3 },
     visualChipText: { fontSize: FONT_SIZE.xs, color: colors.primary },
+    aiUsageLabel: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textAlign: 'center', marginTop: SPACING.sm, marginBottom: SPACING.xs },
     generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: colors.surfaceSecondary, marginHorizontal: SPACING.md, marginBottom: SPACING.md, padding: SPACING.sm + 2, borderRadius: BORDER_RADIUS.sm },
     generateBtnText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
     divider: { height: 1, backgroundColor: colors.divider, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
@@ -261,6 +265,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
   const [expandedLogIds, setExpandedLogIds] = useState<Set<number>>(new Set());
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { canUseAI, remaining, checkAndIncrement, isPremium } = useAIUsage();
   const markdownStyles = useMemo(() => buildMarkdownStyles(colors), [colors]);
 
   const loadAll = useCallback(async () => {
@@ -270,7 +275,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
         getWikiPages(childId),
         getSearchLogs(childId),
       ]);
-      setWikiPages(pages.filter(p => p.slug !== 'wiki-index'));
+      setWikiPages(pages.filter(p => p.slug.startsWith('voyage/')));
       setLogs(logsData);
     } catch {}
     finally { setIsLoading(false); }
@@ -298,6 +303,8 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
   const handleGenerateReport = useCallback(async (type: VoyageReportType) => {
     if (!childId || isGenerating) return;
     setShowTypeModal(false);
+    const allowed = await checkAndIncrement();
+    if (!allowed) return;
     setIsGenerating(true);
     try {
       await generateVoyageReport(childId, type);
@@ -396,10 +403,15 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
       </Modal>
 
       <ScrollView style={styles.logScroll} contentContainerStyle={{ paddingBottom: SPACING.xxl, paddingTop: SPACING.sm }} showsVerticalScrollIndicator={false}>
+        {!isPremium && (
+          <Text style={styles.aiUsageLabel}>
+            {canUseAI ? `이번 달 AI ${remaining}회 남음` : '이번 달 AI 사용 완료'}
+          </Text>
+        )}
         <TouchableOpacity
-          style={[styles.generateBtn, isGenerating && { opacity: 0.7 }]}
+          style={[styles.generateBtn, (isGenerating || !canUseAI) && { opacity: 0.5 }]}
           onPress={() => setShowTypeModal(true)}
-          disabled={isGenerating}
+          disabled={isGenerating || !canUseAI}
           activeOpacity={0.85}
         >
           {isGenerating
@@ -437,14 +449,31 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
                         typeof p?.emoji === 'string' && typeof p?.label === 'string' && typeof p?.count === 'number'
                       ) as { emoji: string; label: string; count: number }[];
                       if (valid.length === 0) return null;
+                      const chartW = Dimensions.get('window').width - SPACING.md * 4;
                       return (
-                        <View style={styles.visualChipsContainer}>
-                          {valid.map((p, i) => (
-                            <View key={i} style={styles.visualChip}>
-                              <Text style={styles.visualChipText}>{p.emoji} {p.label} {p.count}회</Text>
-                            </View>
-                          ))}
-                        </View>
+                        <BarChart
+                          data={{
+                            labels: valid.map(p => p.emoji + '\n' + p.label.slice(0, 4)),
+                            datasets: [{ data: valid.map(p => p.count) }],
+                          }}
+                          width={chartW}
+                          height={140}
+                          yAxisLabel=""
+                          yAxisSuffix="회"
+                          fromZero
+                          showValuesOnTopOfBars
+                          withInnerLines={false}
+                          chartConfig={{
+                            backgroundGradientFrom: colors.surface,
+                            backgroundGradientTo: colors.surface,
+                            decimalPlaces: 0,
+                            color: () => colors.primary,
+                            labelColor: () => colors.textTertiary,
+                            barPercentage: 0.6,
+                            propsForLabels: { fontSize: 10 },
+                          }}
+                          style={{ marginTop: SPACING.sm, marginLeft: -SPACING.md, borderRadius: BORDER_RADIUS.sm }}
+                        />
                       );
                     } catch { return null; }
                   })()}
@@ -503,6 +532,7 @@ export default function SearchScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAbsorbing, setIsAbsorbing] = useState(false);
+  const { canUseAI: chatCanUseAI, remaining: chatRemaining, isPremium: chatIsPremium, checkAndIncrement: chatCheckAndIncrement } = useAIUsage();
   // 현재 대화에서 마지막 질문 추적 (저장 시 query 전달용)
   const lastQueryRef = useRef<string>('');
 
@@ -526,6 +556,8 @@ export default function SearchScreen() {
   const handleSearch = useCallback(async (overrideText?: string) => {
     const trimmed = (overrideText ?? query).trim();
     if (!trimmed) return;
+    const allowed = await chatCheckAndIncrement();
+    if (!allowed) return;
     lastQueryRef.current = trimmed;
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', text: trimmed, createdAt: Date.now() };
     const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
@@ -631,6 +663,11 @@ export default function SearchScreen() {
               ) : null}
             />
           )}
+          {!chatIsPremium && (
+            <Text style={[styles.aiUsageLabel, { marginHorizontal: SPACING.md }]}>
+              {chatCanUseAI ? `이번 달 AI ${chatRemaining}회 남음` : '이번 달 AI 사용 완료'}
+            </Text>
+          )}
           <View style={styles.inputArea}>
             <TextInput
               style={styles.input}
@@ -643,7 +680,7 @@ export default function SearchScreen() {
               multiline={false}
               accessibilityLabel="검색어 입력"
             />
-            <TouchableOpacity onPress={() => handleSearch()} style={[styles.searchButton, (!query.trim() || isSearching) && styles.searchButtonDisabled]} disabled={!query.trim() || isSearching} accessibilityLabel="검색" accessibilityRole="button">
+            <TouchableOpacity onPress={() => handleSearch()} style={[styles.searchButton, (!query.trim() || isSearching || !chatCanUseAI) && styles.searchButtonDisabled]} disabled={!query.trim() || isSearching || !chatCanUseAI} accessibilityLabel="검색" accessibilityRole="button">
               {isSearching ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={styles.searchButtonText}>검색</Text>}
             </TouchableOpacity>
           </View>
