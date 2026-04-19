@@ -20,7 +20,7 @@ import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, SHADOW, PALETTES, type AppColors, type PaletteKey } from '../constants/theme';
+import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, PALETTES, type AppColors, type PaletteKey } from '../constants/theme';
 import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import { getSetting, setSetting } from '../db/appSettingsDao';
@@ -36,12 +36,12 @@ function createStyles(colors: AppColors) {
     title: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
     section: { marginTop: SPACING.md, paddingHorizontal: SPACING.md },
     sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.sm },
-    card: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm, ...SHADOW.sm },
+    card: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm },
     cardTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
     cardDescription: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 22 },
     processButton: { marginTop: SPACING.md, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.sm, paddingVertical: SPACING.sm, alignItems: 'center' },
     processButtonText: { color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium, fontSize: FONT_SIZE.sm },
-    appName: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.primary, marginBottom: SPACING.xs },
+    appName: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginBottom: SPACING.xs },
     slogan: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontStyle: 'italic', marginBottom: SPACING.xs },
     version: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     // 후원
@@ -72,14 +72,14 @@ function createStyles(colors: AppColors) {
     backupButtonPrimary: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     backupButtonText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
     backupButtonTextPrimary: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
-    // 테마 토글
-    themeToggleRow: {
+    // 테마 토글 (카드 내부 row)
+    themeToggleInnerRow: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
-      paddingHorizontal: SPACING.md, paddingVertical: SPACING.md,
-      ...SHADOW.sm,
+      paddingVertical: SPACING.xs,
     },
     themeToggleLabel: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    sectionDivider: { height: 1, backgroundColor: colors.divider, marginVertical: SPACING.md },
+    paletteSectionLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.xs },
     toggleTrack: {
       width: 51, height: 31, borderRadius: 16,
       justifyContent: 'center', paddingHorizontal: 2,
@@ -102,11 +102,7 @@ function createStyles(colors: AppColors) {
     deleteModalBtnTextDestructive: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.error },
     deleteModalBtnTextCancel: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
     // 팔레트 선택
-    paletteCard: {
-      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
-      padding: SPACING.md, marginTop: SPACING.sm, ...SHADOW.sm,
-    },
-    paletteRow: { flexDirection: 'row', flexWrap: 'nowrap', marginTop: SPACING.sm },
+    paletteRow: { flexDirection: 'row', flexWrap: 'nowrap', marginTop: SPACING.xs },
     paletteItem: { flex: 1, alignItems: 'center', gap: 4 },
     paletteCircle: { width: 32, height: 32, borderRadius: 16 },
     paletteCircleSelected: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.textPrimary },
@@ -563,38 +559,39 @@ export default function SettingsScreen() {
         {/* 테마 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>화면 모드</Text>
-          <TouchableOpacity
-            style={styles.themeToggleRow}
-            onPress={() => setTheme(isDark ? 'light' : 'dark')}
-            activeOpacity={0.7}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.themeToggleLabel}>{isDark ? '밤바다' : '바다'}</Text>
-            </View>
-            <Animated.View style={[
-              styles.toggleTrack,
-              {
-                backgroundColor: toggleAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['#CBD5E1', colors.primary],
-                }),
-              },
-            ]}>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.themeToggleInnerRow}
+              onPress={() => setTheme(isDark ? 'light' : 'dark')}
+              activeOpacity={0.7}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.themeToggleLabel}>{isDark ? '밤바다' : '바다'}</Text>
+              </View>
               <Animated.View style={[
-                styles.toggleThumb,
+                styles.toggleTrack,
                 {
-                  transform: [{
-                    translateX: toggleAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 20],
-                    }),
-                  }],
+                  backgroundColor: toggleAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['#CBD5E1', colors.primary],
+                  }),
                 },
-              ]} />
-            </Animated.View>
-          </TouchableOpacity>
-          <View style={styles.paletteCard}>
-            <Text style={styles.cardTitle}>색상 테마</Text>
+              ]}>
+                <Animated.View style={[
+                  styles.toggleThumb,
+                  {
+                    transform: [{
+                      translateX: toggleAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 20],
+                      }),
+                    }],
+                  },
+                ]} />
+              </Animated.View>
+            </TouchableOpacity>
+            <View style={styles.sectionDivider} />
+            <Text style={styles.paletteSectionLabel}>색상 테마</Text>
             <View style={styles.paletteRow}>
               {(Object.keys(PALETTES) as PaletteKey[]).map((key) => {
                 const entry = PALETTES[key];

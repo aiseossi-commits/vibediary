@@ -19,7 +19,6 @@ import {
   FONT_SIZE,
   FONT_WEIGHT,
   BORDER_RADIUS,
-  SHADOW,
   type AppColors,
 } from '../constants/theme';
 import type { Tag, RecordWithTags } from '../types/record';
@@ -151,9 +150,9 @@ function createStyles(colors: AppColors) {
     timelineYearHeader: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginTop: SPACING.lg, marginBottom: SPACING.sm },
     timelineMonthGroup: { marginBottom: SPACING.sm },
     timelineMonthRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, marginBottom: SPACING.xs },
-    timelineMonthLabel: { width: 32, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.primary, paddingTop: 2 },
+    timelineMonthLabel: { width: 32, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textSecondary, paddingTop: 2 },
     timelineEntries: { flex: 1, borderLeftWidth: 1.5, borderLeftColor: colors.divider, paddingLeft: SPACING.sm, gap: SPACING.xs },
-    timelineEntry: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.sm, backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.sm, ...SHADOW.sm },
+    timelineEntry: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.sm, backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.sm },
     timelineEntryDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginBottom: 2 },
     timelineEntrySummary: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, lineHeight: 20 },
     timelineEntryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
@@ -396,7 +395,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
 
     if (isEditing) {
       return (
-        <View key={tag.id} style={[styles.tagItem, SHADOW.sm, { borderColor: tagColor, borderWidth: 1.5 }]}>
+        <View key={tag.id} style={[styles.tagItem, { borderColor: tagColor, borderWidth: 1.5 }]}>
           <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
           <TextInput
             style={[styles.tagName, { flex: 1, marginLeft: SPACING.sm, padding: 0, color: colors.textPrimary }]}
@@ -425,7 +424,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
         onLongPress={() => setLongPressedTagId(tag.id)}
         delayLongPress={400}
         activeOpacity={0.7}
-        style={[styles.tagItem, SHADOW.sm, isSelected && { borderColor: tagColor, borderWidth: 1.5 }]}
+        style={[styles.tagItem, isSelected && { borderColor: tagColor, borderWidth: 1.5 }]}
       >
         <View style={styles.tagItemLeft}>
           <View style={[styles.tagDot, { backgroundColor: tagColor }]} />

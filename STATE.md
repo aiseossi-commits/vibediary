@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 홈 위젯 토글 3종 추가 + 등대 마크다운 렌더링 + 홈 오늘만 표시` (2026-04-19)
+**마지막 커밋**: `refactor: 빼기 리팩터 5패스 — border/shadow 제거, radius 통일, 설정 통합, accent 절제` (2026-04-19)
 
 **현재 브랜치**: main
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] UI 빼기 리팩터 5패스 (아마추어 느낌 제거, Persly 류 차분한 밀도 지향): **Pass 1** RecordCard 4방향 border 제거 + padding 18→14 + radius 20→12, SearchScreen insightCard/logCard shadow 제거. **Pass 2** 전체 정적 카드 surface에서 SHADOW.sm 제거 (RecordDetailScreen 3곳, TagsScreen 3곳, SearchScreen 4곳, SettingsScreen 3곳) — 떠있는 요소(CalendarScreen 헤더, Bottom Sheet)·진주 버튼은 브랜드 포인트로 유지. **Pass 3** 카드 radius를 `BORDER_RADIUS.md`(=12)로 통일 (기존 14·20 산재). **Pass 4** SettingsScreen 화면모드 섹션 통합 — "바다/밤바다 토글" 카드 + "색상 테마 팔레트" 카드를 하나의 카드로 병합하고 sectionDivider로 구분(iOS 그룹드 리스트 느낌). `themeToggleRow`/`paletteCard` 폐기, `themeToggleInnerRow`/`sectionDivider`/`paletteSectionLabel` 추가. **Pass 5** Accent(primary) 과용 감사 — CTA/액티브 상태가 아닌 3곳만 textSecondary/textPrimary로 치환: SearchScreen `insightSectionToggle`(접기/펼치기 보조 액션), TagsScreen `timelineMonthLabel`(장식성 레이블), SettingsScreen `appName`(앱 정보 표지). 탭바/버튼/체크/북마크/녹음버튼은 그대로 유지 (기능 신호로 작동)
 - [x] 홈 위젯 3종 개선: (A) "AI 입력 모드" 토글 추가 — OFF 시 진주 버튼 롱프레스 비활성, 탭으로 녹음 화면만 이동, 힌트 문구 동기화 "탭하여 녹음 화면 열기" / ON 시 기존 동작 유지. (B) 홈 피드를 `getAllRecords(10)` → `getRecordsByDate(today)`로 전환, 설정 라벨 "최근 기록" → "오늘 기록"으로 문구 동기화 (이전 기록은 캘린더·태그·검색에서 조회). (C) 등대 물어보기 답변 마크다운 렌더링 (buildChatMarkdownStyles: 16pt/24lh, heading·bold 강조). (D) 모아보기 인사이트·저장 답변 카드 preview에 stripMarkdown 적용 — collapsed일 때 ## ** - 등 원문 제거된 깔끔한 텍스트, expanded에선 기존 Markdown 렌더링
 - [x] 등대 탭 UX 재구성 + 은유 일관성 유지: 탭 라벨 "등대/항해일지" → "물어보기/모아보기"로 변경 (앱 타이틀·답변 버블·빈상태 아이콘은 바다 은유 유지). 물어보기=채팅+추천질문만, 모아보기=AI인사이트+항해일지생성+저장답변 3섹션 통합. 기존 InsightSection + VoyageLogFeed 두 컴포넌트를 CollectionFeed로 병합 — 이전에 고아였던 voyage/* wiki 페이지도 인사이트 섹션에 노출됨 (필터 제거)
 - [x] VISUAL_DATA 파싱·저장 버그 수정 (absorbService): (A) 메인 프롬프트의 visual_data 스키마 재명시 (emoji+label+count 세 필드만), 반환값이 객체든 문자열이든 normalizeVisualData로 JSON 문자열 정규화 후 DB 저장 (SQLite가 객체를 [object Object]로 저장하던 문제 해결). (B) fallback 프롬프트 재작성 — VISUAL_DATA 한 줄 JSON 강제, 스키마 명시, 3~6개 패턴 지시. (C) 파싱 로직을 extractVisualDataBlock로 대체 — balanced brace 추적으로 개행 포함 JSON도 추출, `---` 구분자 의존 제거. (D) CollectionFeed가 레거시 body에 VISUAL_DATA 원문이 남아있으면 렌더링 시점에 extractVisualDataBlock로 자동 정화 (DB 마이그레이션 없이 즉시 복구)

@@ -19,7 +19,6 @@ import {
   FONT_SIZE,
   FONT_WEIGHT,
   BORDER_RADIUS,
-  SHADOW,
   type AppColors,
 } from '../constants/theme';
 import type { RecordWithTags, Tag } from '../types/record';
@@ -469,13 +468,13 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           </View>
         </TouchableOpacity>
 
-        <View style={[styles.section, SHADOW.sm]}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>요약</Text>
           <Text style={styles.summaryText}>{record.summary}</Text>
         </View>
 
         {record.structuredData && Object.keys(record.structuredData).length > 0 && (
-          <View style={[styles.section, SHADOW.sm]}>
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>상세 데이터</Text>
             <View style={styles.table}>
               {Object.entries(record.structuredData).map(([key, value], index) => (
@@ -493,7 +492,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           onLongPress={!isEditingRawText ? handleEditRawText : undefined}
           delayLongPress={400}
         >
-        <View style={[styles.section, SHADOW.sm]}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>원본 텍스트</Text>
             {isReprocessing && <ActivityIndicator size="small" color={colors.primary} />}
