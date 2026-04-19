@@ -38,7 +38,7 @@ import {
 import type { RecordWithTags, DailyRecordSummary } from '../types/record';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.82;
 
 function formatTimeHM(h: number, m: number): string {
   const period = h < 12 ? '오전' : '오후';
