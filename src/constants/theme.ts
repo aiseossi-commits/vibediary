@@ -102,7 +102,7 @@ export const PALETTES: Record<PaletteKey, PaletteEntry> = {
       tabBorder: '#FFFFFF', tabInactive: '#9CA3AF',
     },
     darkDensity: ['transparent', '#1A2E2D', '#1A3F3D', '#0D7A76', '#0EA5A0'],
-    lightDensity: ['transparent', '#CCFBF1', '#99F6E4', '#2DD4CF', '#0EA5A0'],
+    lightDensity: ['transparent', '#D9EEEC', '#B8D8D6', '#8FBFBD', '#6BA5A2'],
   },
   amber: {
     name: '앰버',

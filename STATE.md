@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] pearl 캘린더 density 채도 낮춤: lightDensity #CCFBF1~#0EA5A0 → #D9EEEC~#6BA5A2 (muted teal)
 - [x] pearl 녹음 버튼 정제: 테두리 제거(transparent), 마이크 아이콘 teal 연하게(#A8C5C3)
 - [x] pearl 녹음 버튼 순백 + 그림자 깊이감: micBg #F3F4F6→#FFFFFF, shadow y4/opacity0.12/radius8
 - [x] 팔레트 gold → pearl(진주) 교체: 배경 완전 neutral(#F9FAFB/#0F1117), 카드 white/dark-surface, 포인트 teal(#0EA5A0) 단색 집중 — 퍼슬리 류 전문적 느낌 지향
