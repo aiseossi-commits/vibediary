@@ -1,7 +1,11 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
 import { createRecord } from '../db/recordsDao';
 import { getAIUsage, incrementAIUsage, AI_MONTHLY_LIMIT } from '../db/appSettingsDao';
+
+const MAX_DIMENSION = 1024; // 긴 변 최대 1024px → JPEG 0.7 기준 약 100~200KB
+const COMPRESS_QUALITY = 0.7;
 
 export interface PhotoResult {
   uri: string;
@@ -16,14 +20,23 @@ export async function takePhoto(): Promise<PhotoResult | null> {
 
   const result = await ImagePicker.launchCameraAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.7,
-    base64: true,
+    quality: 1, // 원본 촬영 후 manipulator에서 압축
   });
 
   if (result.canceled || !result.assets?.[0]) return null;
 
   const asset = result.assets[0];
-  return { uri: asset.uri, base64: asset.base64 ?? undefined };
+  const { width, height } = asset;
+
+  // 긴 변이 MAX_DIMENSION 초과 시 비율 유지 리사이즈
+  const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
+  const compressed = await ImageManipulator.manipulateAsync(
+    asset.uri,
+    scale < 1 ? [{ resize: { width: Math.round(width * scale), height: Math.round(height * scale) } }] : [],
+    { compress: COMPRESS_QUALITY, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+  );
+
+  return { uri: compressed.uri, base64: compressed.base64 ?? undefined };
 }
 
 export async function uploadPhoto(uri: string, userId: string, recordId: string): Promise<string> {
