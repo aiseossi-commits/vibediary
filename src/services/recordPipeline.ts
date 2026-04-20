@@ -5,6 +5,7 @@ import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
 import { getDatabase } from '../db/database';
 import { DEFAULT_TAGS } from '../db/schema';
+import { syncRecord } from './syncService';
 
 async function getCustomTagNames(childId?: string): Promise<string[]> {
   try {
@@ -63,6 +64,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     }
   });
 
+  void syncRecord(recordId).catch(() => {});
   return recordId;
 }
 
@@ -102,5 +104,6 @@ export async function processTextRecord(text: string, childId?: string, date?: s
     }
   });
 
+  void syncRecord(recordId).catch(() => {});
   return recordId;
 }

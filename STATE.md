@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: photo-attachment openspec 아카이브 + specs 동기화` (2026-04-20)
+**마지막 커밋**: `feat: 서버화 2단계 — SQLite→Supabase 동기화 + 가족 피드` (2026-04-21)
 
 **현재 브랜치**: main
 
@@ -81,7 +81,13 @@
   - `src/screens/FamilyShareScreen.tsx` 생성 (설정 > 가족 공유 진입)
 - [x] **사진 첨부**: DB v17 photo_url, Supabase Storage 업로드, PhotoActionModal (말하기/AI자동태깅/그냥저장), 홈 카메라 버튼, RecordCard 썸네일, RecordDetailScreen 전체보기, 등대 갤러리 응답
   - ⚠️ Supabase 대시보드에서 수동 작업 필요: Storage > `photos` 버킷 생성 (public: false) + RLS 정책 설정
-- [ ] **서버화 2단계**: 로컬 SQLite → Supabase DB 이전
+- [x] **서버화 2단계**: SQLite-first + Supabase mirror 동기화 + 가족 피드
+  - `src/services/syncService.ts`: syncRecord / syncPendingRecords / runInitialMigration
+  - recordPipeline / photoService 저장 후 fire-and-forget 동기화
+  - AppNavigator 앱 시작 시 runInitialMigration (백그라운드)
+  - `src/screens/FamilyFeedScreen.tsx`: 가족방 멤버 기록 피드 (Supabase 직접 조회, pull-to-refresh)
+  - FamilyShareScreen "함께 보기" 버튼 → FamilyFeedScreen 이동
+  - Supabase records 테이블 + RLS (본인 CRUD + 가족 SELECT) 생성 완료
 - [ ] Android AAB versionCode 15 → Play Store 최종 제출
 
 ---

@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
 import { createRecord } from '../db/recordsDao';
+import { syncRecord } from './syncService';
 import { getAIUsage, incrementAIUsage, AI_MONTHLY_LIMIT } from '../db/appSettingsDao';
 
 const MAX_DIMENSION = 1024; // 긴 변 최대 1024px → JPEG 0.7 기준 약 100~200KB
@@ -67,12 +68,14 @@ export async function savePhotoRecord(params: {
   childId: string | null;
   tags?: string[];
 }): Promise<string> {
-  return createRecord({
+  const id = await createRecord({
     summary: '',
     photoUrl: params.photoUrl,
     childId: params.childId,
     source: 'voice', // photo 기록은 photo_url IS NOT NULL로 구분
   });
+  void syncRecord(id).catch(() => {});
+  return id;
 }
 
 export async function analyzePhotoTags(params: {

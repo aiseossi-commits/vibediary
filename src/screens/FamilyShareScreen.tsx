@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -17,6 +18,7 @@ export default function FamilyShareScreen() {
   const { colors } = useTheme();
   const { userId } = useAuth();
   const styles = createStyles(colors);
+  const navigation = useNavigation<any>();
 
   const [room, setRoom] = useState<FamilyRoom | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,6 +133,13 @@ export default function FamilyShareScreen() {
             <Text style={styles.hint}>이 코드를 가족에게 공유하면 같은 방에 참여할 수 있어요</Text>
 
             <TouchableOpacity
+              style={styles.feedBtn}
+              onPress={() => navigation.navigate('FamilyFeed')}
+            >
+              <Text style={styles.feedBtnText}>함께 보기</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.leaveBtn}
               onPress={handleLeave}
               disabled={actionLoading}
@@ -209,6 +218,14 @@ function createStyles(colors: AppColors) {
     copyBtnText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     memberCount: { fontSize: FONT_SIZE.md, color: colors.textPrimary, marginBottom: SPACING.xs },
     hint: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginBottom: SPACING.lg },
+    feedBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: BORDER_RADIUS.md,
+      paddingVertical: SPACING.sm,
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
+    feedBtnText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textOnPrimary },
     leaveBtn: { alignSelf: 'flex-start' },
     leaveBtnText: { fontSize: FONT_SIZE.sm, color: colors.error },
     primaryBtn: {

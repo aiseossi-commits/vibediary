@@ -14,7 +14,9 @@ import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import FamilyShareScreen from '../screens/FamilyShareScreen';
+import FamilyFeedScreen from '../screens/FamilyFeedScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
+import { runInitialMigration } from '../services/syncService';
 import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
 import Constants from 'expo-constants';
@@ -181,6 +183,13 @@ export default function AppNavigator() {
     }
   }, [isLoaded, handleIncomingFile]);
 
+  // 앱 시작 시 Supabase 동기화 (백그라운드)
+  useEffect(() => {
+    if (isLoaded) {
+      void runInitialMigration().catch(() => {});
+    }
+  }, [isLoaded]);
+
   if (!isLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 20 }}>
@@ -243,6 +252,16 @@ export default function AppNavigator() {
               options={{
                 headerShown: true,
                 title: '가족 공유',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="FamilyFeed"
+              component={FamilyFeedScreen}
+              options={{
+                headerShown: true,
+                title: '함께 보기',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.surface },
               }}
