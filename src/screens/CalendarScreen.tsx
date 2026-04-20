@@ -25,6 +25,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatEventDuration } from '../constants/events';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
+import { takePhoto } from '../services/photoService';
+import PhotoActionModal from '../components/PhotoActionModal';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import {
@@ -100,6 +102,11 @@ function createStyles(colors: AppColors) {
       alignItems: 'center',
     },
     recordButtonText: { fontSize: FONT_SIZE.md, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
+    cameraButton: {
+      paddingVertical: SPACING.md, paddingHorizontal: SPACING.md,
+      borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, borderColor: colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+    },
     textInputContainer: { marginTop: SPACING.md, gap: SPACING.sm },
     textInput: {
       borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.md,
@@ -199,6 +206,7 @@ export default function CalendarScreen() {
   const [calendarKey, setCalendarKey] = useState(0);
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
   const [selectedEventForSheet, setSelectedEventForSheet] = useState<{ id: number; name: string } | null>(null);
+  const [photoModal, setPhotoModal] = useState<{ uri: string; base64?: string } | null>(null);
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
   const contentSlideAnim = useRef(new Animated.Value(0)).current;
@@ -380,6 +388,15 @@ setDayRecords(records);
   const handleRecordPress = useCallback((recordId: string) => {
     navigation.navigate('RecordDetail', { recordId });
   }, [navigation]);
+
+  const handleCameraPress = useCallback(async () => {
+    try {
+      const result = await takePhoto();
+      if (result) setPhotoModal(result);
+    } catch (e) {
+      Alert.alert('오류', e instanceof Error ? e.message : '사진을 가져올 수 없습니다');
+    }
+  }, []);
 
   const handleStartRecording = useCallback(() => {
     closeSheet();
@@ -615,9 +632,14 @@ setDayRecords(records);
             ) : dayRecords.length === 0 ? (
               <View style={styles.emptyDay}>
                 <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
-                <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { alignSelf: 'stretch' }]}>
-                  <Text style={styles.recordButtonText}>녹음 시작하기</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: SPACING.sm, alignSelf: 'stretch' }}>
+                  <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { flex: 1 }]}>
+                    <Text style={styles.recordButtonText}>녹음 시작하기</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleCameraPress} style={styles.cameraButton}>
+                    <Ionicons name="camera-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
                 <View style={[styles.inputDivider, { alignSelf: 'stretch' }]}>
                   <View style={styles.inputDividerLine} />
                   <Text style={styles.inputDividerText}>또는</Text>
@@ -660,9 +682,14 @@ setDayRecords(records);
                     timeOnly={true}
                   />
                 ))}
-                <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { marginTop: SPACING.sm }]}>
-                  <Text style={styles.recordButtonText}>녹음 추가하기</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm }}>
+                  <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { flex: 1 }]}>
+                    <Text style={styles.recordButtonText}>녹음 추가하기</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleCameraPress} style={styles.cameraButton}>
+                    <Ionicons name="camera-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.inputDivider}>
                   <View style={styles.inputDividerLine} />
                   <Text style={styles.inputDividerText}>또는</Text>
@@ -785,6 +812,21 @@ setDayRecords(records);
           </TouchableOpacity>
         </View>
       </Modal>
+
+      <PhotoActionModal
+        visible={!!photoModal}
+        photoUri={photoModal?.uri ?? ''}
+        photoBase64={photoModal?.base64}
+        onClose={() => setPhotoModal(null)}
+        onSaved={() => {
+          setPhotoModal(null);
+          loadDayRecords(selectedDate);
+        }}
+        onNavigateToRecording={(photoUrl) => {
+          setPhotoModal(null);
+          navigation.navigate('Recording', { photoUrl, date: selectedDate });
+        }}
+      />
     </SafeAreaView>
   );
 }
