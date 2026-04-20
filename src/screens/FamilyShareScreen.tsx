@@ -157,7 +157,7 @@ export default function FamilyShareScreen() {
               {actionLoading ? (
                 <ActivityIndicator color={colors.textOnPrimary} size="small" />
               ) : (
-                <Text style={styles.primaryBtnText}>가족방 만들기</Text>
+                <Text style={styles.primaryBtnText}>초대코드 만들기</Text>
               )}
             </TouchableOpacity>
 
