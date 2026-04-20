@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: expo-image-manipulator 패키지 추가` (2026-04-20)
+**마지막 커밋**: `chore: photo-attachment openspec 아카이브 + specs 동기화` (2026-04-20)
 
 **현재 브랜치**: main
 

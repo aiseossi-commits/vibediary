@@ -1,7 +1,7 @@
 ## 1. Supabase Storage 설정
 
-- [ ] 1.1 Supabase 대시보드 > Storage > `photos` 버킷 생성 (public: false)
-- [ ] 1.2 Storage RLS 정책: `photos/{userId}/*` 경로는 본인만 업로드/조회 허용
+- [x] 1.1 Supabase 대시보드 > Storage > `photos` 버킷 생성 (public: false)
+- [x] 1.2 Storage RLS 정책: `photos/{userId}/*` 경로는 본인만 업로드/조회 허용
 
 ## 2. DB 마이그레이션
 
