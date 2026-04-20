@@ -44,7 +44,8 @@ export default function FamilyShareScreen() {
       const r = await createFamilyRoom();
       setRoom(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '가족방 생성에 실패했습니다');
+      const msg = e instanceof Error ? e.message : (e as any)?.message ?? JSON.stringify(e);
+      setError(msg || '가족방 생성에 실패했습니다');
     } finally {
       setActionLoading(false);
     }

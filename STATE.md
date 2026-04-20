@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: ai-usage-counter openspec 아카이브 + specs 동기화` (2026-04-19)
+**마지막 커밋**: `feat: Supabase 익명 인증 + 초대코드 기반 가족방 구현` (2026-04-20)
 
 **현재 브랜치**: main
 
