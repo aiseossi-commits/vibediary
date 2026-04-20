@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatEventDuration } from '../constants/events';
 import { processTextRecord } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
-import { takePhoto } from '../services/photoService';
+import { takePhoto, pickPhotoFromLibrary } from '../services/photoService';
 import PhotoActionModal from '../components/PhotoActionModal';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
@@ -389,13 +389,30 @@ setDayRecords(records);
     navigation.navigate('RecordDetail', { recordId });
   }, [navigation]);
 
-  const handleCameraPress = useCallback(async () => {
-    try {
-      const result = await takePhoto();
-      if (result) setPhotoModal(result);
-    } catch (e) {
-      Alert.alert('오류', e instanceof Error ? e.message : '사진을 가져올 수 없습니다');
-    }
+  const handleCameraPress = useCallback(() => {
+    Alert.alert('사진 추가', '', [
+      {
+        text: '카메라로 찍기', onPress: async () => {
+          try {
+            const result = await takePhoto();
+            if (result) setPhotoModal(result);
+          } catch (e) {
+            Alert.alert('오류', e instanceof Error ? e.message : '카메라를 열 수 없습니다');
+          }
+        },
+      },
+      {
+        text: '앨범에서 선택', onPress: async () => {
+          try {
+            const result = await pickPhotoFromLibrary();
+            if (result) setPhotoModal(result);
+          } catch (e) {
+            Alert.alert('오류', e instanceof Error ? e.message : '앨범을 열 수 없습니다');
+          }
+        },
+      },
+      { text: '취소', style: 'cancel' },
+    ]);
   }, []);
 
   const handleStartRecording = useCallback(() => {

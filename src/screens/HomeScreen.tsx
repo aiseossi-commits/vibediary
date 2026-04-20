@@ -44,7 +44,7 @@ import { createEvent } from '../db/eventDao';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
 import PhotoActionModal from '../components/PhotoActionModal';
-import { takePhoto } from '../services/photoService';
+import { takePhoto, pickPhotoFromLibrary } from '../services/photoService';
 import * as FileSystem from 'expo-file-system';
 
 interface HomeScreenProps {
@@ -422,13 +422,30 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     try { await rec.stop(); } catch {}
   }, [rec]);
 
-  const handleCameraPress = useCallback(async () => {
-    try {
-      const result = await takePhoto();
-      if (result) setPhotoModal({ uri: result.uri, base64: result.base64 });
-    } catch (e) {
-      Alert.alert('카메라 오류', e instanceof Error ? e.message : '카메라를 열 수 없습니다');
-    }
+  const handleCameraPress = useCallback(() => {
+    Alert.alert('사진 추가', '', [
+      {
+        text: '카메라로 찍기', onPress: async () => {
+          try {
+            const result = await takePhoto();
+            if (result) setPhotoModal({ uri: result.uri, base64: result.base64 });
+          } catch (e) {
+            Alert.alert('오류', e instanceof Error ? e.message : '카메라를 열 수 없습니다');
+          }
+        },
+      },
+      {
+        text: '앨범에서 선택', onPress: async () => {
+          try {
+            const result = await pickPhotoFromLibrary();
+            if (result) setPhotoModal({ uri: result.uri, base64: result.base64 });
+          } catch (e) {
+            Alert.alert('오류', e instanceof Error ? e.message : '앨범을 열 수 없습니다');
+          }
+        },
+      },
+      { text: '취소', style: 'cancel' },
+    ]);
   }, []);
 
   // AI 입력 모드는 시간 제한 없음 — 유저가 직접 뗄 때 중지
