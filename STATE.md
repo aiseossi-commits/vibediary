@@ -73,7 +73,15 @@
 - [x] 태그 피커 UI — Bottom Sheet 모달로 교체, 카테고리 탭(치료/투약/신체·증상/행동·정서/기타/내태그), 부모-자식 자동 선택
 - [x] 의료 타임라인 뷰 — TagsScreen에서 #의료 단독 선택 시 연도/월 그룹 타임라인 자동 전환 (FlatList 레코드 카드 대체)
 - [x] AI 입력 모드 v2 — 요일·범위 파싱, 복수 아이 라우팅(이름→childId), 이벤트 자동 등록(발열/발작 등), "길게 눌러서 AI 입력" 힌트 레이블
-- [ ] 버전 bump → TestFlight / Play Store 배포
+- [x] 버전 1.0.4 빌드 — iOS TestFlight 제출, Android AAB versionCode 15 서명 키 수정(credentialsSource: local)
+- [x] **서버화 1단계**: Supabase 익명 인증 + 초대코드 기반 가족방 구현
+  - Anonymous Auth 활성화, families/family_members 테이블 + RLS 생성
+  - `@supabase/supabase-js` + `expo-secure-store` 설치
+  - `src/lib/supabase.ts`, `src/context/AuthContext.tsx`, `src/services/familyService.ts` 생성
+  - `src/screens/FamilyShareScreen.tsx` 생성 (설정 > 가족 공유 진입)
+- [ ] **서버화 2단계**: 로컬 SQLite → Supabase DB 이전
+- [ ] **사진 첨부**: 서버화 완료 후 (독립 기록 타입 source='photo', Supabase Storage, Gemini 멀티모달 분석)
+- [ ] Android AAB versionCode 15 → Play Store 최종 제출
 
 ---
 

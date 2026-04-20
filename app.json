@@ -90,7 +90,8 @@
           "imageWidth": 200,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

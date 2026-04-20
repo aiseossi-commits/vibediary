@@ -68,6 +68,9 @@ function createStyles(colors: AppColors) {
     modalConfirmText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
     // 백업/복원
     backupRow: { flexDirection: 'row', gap: SPACING.sm },
+    menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SPACING.sm },
+    menuRowText: { fontSize: FONT_SIZE.md, color: colors.textPrimary },
+    menuRowArrow: { fontSize: FONT_SIZE.lg, color: colors.textTertiary },
     backupButton: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
     backupButtonPrimary: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     backupButtonText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
@@ -512,6 +515,20 @@ export default function SettingsScreen() {
             ))}
             <TouchableOpacity style={styles.addChildButton} onPress={handleAddChild}>
               <Text style={styles.addChildText}>+ 바다 추가</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 가족 공유 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>가족 공유</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => (navigation as any).navigate('FamilyShare')}
+            >
+              <Text style={styles.menuRowText}>초대코드로 가족과 공유</Text>
+              <Text style={styles.menuRowArrow}>›</Text>
             </TouchableOpacity>
           </View>
         </View>

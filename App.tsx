@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ChildProvider } from './src/context/ChildContext';
+import { AuthProvider } from './src/context/AuthContext';
 import { initializeDatabase } from './src/db';
 import SplashOverlay from './src/components/SplashOverlay';
 
@@ -59,11 +60,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <ChildProvider>
-          <AppContent />
-        </ChildProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <ChildProvider>
+            <AppContent />
+          </ChildProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

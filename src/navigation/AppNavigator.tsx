@@ -13,6 +13,7 @@ import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import FamilyShareScreen from '../screens/FamilyShareScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
 import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
@@ -232,6 +233,16 @@ export default function AppNavigator() {
               options={{
                 headerShown: true,
                 title: '설정',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="FamilyShare"
+              component={FamilyShareScreen}
+              options={{
+                headerShown: true,
+                title: '가족 공유',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.surface },
               }}
