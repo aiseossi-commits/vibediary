@@ -11,7 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -182,6 +184,26 @@ function createStyles(colors: AppColors) {
     tagPickerTextSelected: { color: colors.primary, fontWeight: FONT_WEIGHT.medium },
     // 시간 picker modal
   });
+}
+
+function PhotoFullView({ uri }: { uri: string }) {
+  const { width } = useWindowDimensions();
+  const [viewerOpen, setViewerOpen] = useState(false);
+  return (
+    <>
+      <TouchableOpacity onPress={() => setViewerOpen(true)} activeOpacity={0.85} style={{ marginBottom: 8 }}>
+        <Image source={{ uri }} style={{ width: '100%', height: 220, borderRadius: 8 }} contentFit="cover" />
+      </TouchableOpacity>
+      <Modal visible={viewerOpen} transparent animationType="fade" onRequestClose={() => setViewerOpen(false)} statusBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 8 }} onPress={() => setViewerOpen(false)}>
+            <Text style={{ color: '#fff', fontSize: 28 }}>✕</Text>
+          </TouchableOpacity>
+          <Image source={{ uri }} style={{ width, height: width }} contentFit="contain" />
+        </View>
+      </Modal>
+    </>
+  );
 }
 
 export default function RecordDetailScreen({ route, navigation }: RecordDetailScreenProps) {
@@ -464,6 +486,10 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
             </View>
           </View>
         </TouchableOpacity>
+
+        {record.photoUrl && (
+          <PhotoFullView uri={record.photoUrl} />
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>요약</Text>

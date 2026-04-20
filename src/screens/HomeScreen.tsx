@@ -43,6 +43,8 @@ import { parseMultiEntries } from '../services/aiProcessor';
 import { createEvent } from '../db/eventDao';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
+import PhotoActionModal from '../components/PhotoActionModal';
+import { takePhoto } from '../services/photoService';
 import * as FileSystem from 'expo-file-system';
 
 interface HomeScreenProps {
@@ -187,6 +189,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
+  const [photoModal, setPhotoModal] = useState<{ uri: string; base64?: string } | null>(null);
 
   const pulseAnims = useRef(
     Array.from({ length: PULSE_COUNT }, () => ({
@@ -419,6 +422,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     try { await rec.stop(); } catch {}
   }, [rec]);
 
+  const handleCameraPress = useCallback(async () => {
+    try {
+      const result = await takePhoto();
+      if (result) setPhotoModal({ uri: result.uri, base64: result.base64 });
+    } catch (e) {
+      Alert.alert('카메라 오류', e instanceof Error ? e.message : '카메라를 열 수 없습니다');
+    }
+  }, []);
+
   // AI 입력 모드는 시간 제한 없음 — 유저가 직접 뗄 때 중지
 
   const handleTextSubmit = useCallback(async () => {
@@ -515,6 +527,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           onChanged={() => { setEventModalVisible(false); loadActiveEvents(); }}
         />
       )}
+      {photoModal && (
+        <PhotoActionModal
+          visible={!!photoModal}
+          photoUri={photoModal.uri}
+          photoBase64={photoModal.base64}
+          onClose={() => setPhotoModal(null)}
+          onNavigateToRecording={(photoUrl) => {
+            setPhotoModal(null);
+            navigation.navigate('Recording', { photoUrl });
+          }}
+          onSaved={() => { setPhotoModal(null); loadRecords(); }}
+        />
+      )}
 
       <Modal visible={childModalVisible} transparent animationType="fade" onRequestClose={() => setChildModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setChildModalVisible(false)}>
@@ -558,6 +583,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         <View style={styles.headerRight}>
+          <TouchableOpacity onPress={handleCameraPress} style={styles.headerIcon} accessibilityLabel="사진 촬영" accessibilityRole="button">
+            <Ionicons name="camera-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerIcon} accessibilityLabel="설정" accessibilityRole="button">
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>

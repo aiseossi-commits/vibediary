@@ -25,6 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import WaveLoader from '../components/WaveLoader';
+import PhotoGallery from '../components/PhotoGallery';
 import { searchRecords } from '../services/searchPipeline';
 import { shouldAbsorb, runAbsorb, generateVoyageReport, extractVisualDataBlock, VOYAGE_REPORT_OPTIONS, type VoyageReportType } from '../services/absorbService';
 import { getWikiPages, deleteWikiPage } from '../db/wikiDao';
@@ -234,6 +235,9 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
         <Markdown style={chatMarkdownStyles}>{message.text}</Markdown>
+        {message.photoUrls && message.photoUrls.length > 0 && (
+          <PhotoGallery urls={message.photoUrls} thumbnailSize={72} />
+        )}
         <View style={styles.actionRow}>
           {onSave && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleSave} activeOpacity={0.7} disabled={saved}>
@@ -566,7 +570,7 @@ export default function SearchScreen() {
     setIsSearching(true);
     try {
       const searchResult = await searchRecords(trimmed, activeChild?.id, history, activeChild?.name);
-      setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: searchResult.answer, createdAt: Date.now() }]);
+      setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: searchResult.answer, createdAt: Date.now(), photoUrls: searchResult.photo_urls }]);
     } catch {
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', text: '검색 중 오류가 발생했어요. 다시 시도해 주세요.', createdAt: Date.now() }]);
     } finally {

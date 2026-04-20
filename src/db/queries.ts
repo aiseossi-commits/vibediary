@@ -178,6 +178,7 @@ function mapRow(row: any, tags: Tag[]): RecordWithTags {
     })(),
     isSynced: row.is_synced === 1,
     aiPending: row.ai_pending === 1,
+    photoUrl: row.photo_url ?? null,
     tags,
   };
 }

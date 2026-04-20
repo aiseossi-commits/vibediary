@@ -271,8 +271,9 @@ function RecordingScreenWrapper({ navigation, route }: any) {
         return;
       }
       const dateStr: string | undefined = route.params?.date;
+      const photoUrl: string | undefined = route.params?.photoUrl;
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
-      await processFromText(uri, text, createdAt, activeChild?.id);
+      await processFromText(uri, text, createdAt, activeChild?.id, photoUrl);
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
       if (msg === 'NO_SPEECH') {

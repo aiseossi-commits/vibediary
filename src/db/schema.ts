@@ -20,7 +20,8 @@ export const CREATE_RECORDS_TABLE = `
     embedding BLOB, -- DEPRECATED: 벡터 임베딩 제거됨, 기존 데이터 호환용으로 컬럼만 유지
     is_synced INTEGER DEFAULT 0,
     ai_pending INTEGER DEFAULT 0,
-    child_id TEXT REFERENCES children(id) ON DELETE SET NULL
+    child_id TEXT REFERENCES children(id) ON DELETE SET NULL,
+    photo_url TEXT
   );
 `;
 

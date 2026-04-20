@@ -104,7 +104,14 @@ export async function searchRecords(
   }
 
   const answer = await generateAnswer(query, contextText, records.length, conversationHistory, childName, hasWiki);
-  return { answer };
+
+  // 사진이 있는 기록의 URL 추출 (등대 갤러리 응답용)
+  const photoUrls = records
+    .filter(r => r.photoUrl)
+    .map(r => r.photoUrl as string)
+    .slice(0, 10);
+
+  return { answer, photo_urls: photoUrls.length > 0 ? photoUrls : undefined };
 }
 
 async function generateAnswer(

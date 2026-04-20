@@ -11,6 +11,7 @@ export interface DiaryRecord {
   aiPending: boolean; // AI 처리 대기 상태
   source?: 'voice' | 'calendar_text';
   childId?: string | null;
+  photoUrl?: string | null;
 }
 
 export interface StructuredData {
@@ -55,6 +56,7 @@ export interface STTResult {
 // 검색 결과 타입
 export interface SearchResult {
   answer: string;
+  photo_urls?: string[];
 }
 
 // AI 등대 채팅 메시지
@@ -63,6 +65,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
   createdAt: number;
+  photoUrls?: string[];
 }
 
 // 항해일지 (AI 등대 검색 로그)

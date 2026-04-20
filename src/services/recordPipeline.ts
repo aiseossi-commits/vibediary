@@ -26,7 +26,7 @@ export async function runSTTOnly(audioUri: string, subjectName?: string): Promis
 }
 
 // 텍스트 받아서 AI 처리 + DB 저장
-export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string): Promise<string> {
+export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string, photoUrl?: string | null): Promise<string> {
   let aiResult;
   let aiPending = false;
 
@@ -55,6 +55,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
       createdAt,
       childId,
       source: 'voice',
+      photoUrl: photoUrl ?? null,
     });
     await setTagsForRecord(recordId, aiResult.tags, childId);
     if (aiPending && text.trim().length > 0) {

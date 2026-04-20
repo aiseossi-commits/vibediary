@@ -6,13 +6,13 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: Supabase 익명 인증 + 초대코드 기반 가족방 구현` (2026-04-20)
+**마지막 커밋**: `feat: 사진 첨부 기능 구현` (2026-04-20)
 
 **현재 브랜치**: main
 
 **미커밋**: 없음
 
-**DB 현재 버전**: v16 (app_settings)
+**DB 현재 버전**: v17 (records.photo_url)
 
 ---
 
@@ -79,8 +79,9 @@
   - `@supabase/supabase-js` + `expo-secure-store` 설치
   - `src/lib/supabase.ts`, `src/context/AuthContext.tsx`, `src/services/familyService.ts` 생성
   - `src/screens/FamilyShareScreen.tsx` 생성 (설정 > 가족 공유 진입)
+- [x] **사진 첨부**: DB v17 photo_url, Supabase Storage 업로드, PhotoActionModal (말하기/AI자동태깅/그냥저장), 홈 카메라 버튼, RecordCard 썸네일, RecordDetailScreen 전체보기, 등대 갤러리 응답
+  - ⚠️ Supabase 대시보드에서 수동 작업 필요: Storage > `photos` 버킷 생성 (public: false) + RLS 정책 설정
 - [ ] **서버화 2단계**: 로컬 SQLite → Supabase DB 이전
-- [ ] **사진 첨부**: 서버화 완료 후 (독립 기록 타입 source='photo', Supabase Storage, Gemini 멀티모달 분석)
 - [ ] Android AAB versionCode 15 → Play Store 최종 제출
 
 ---

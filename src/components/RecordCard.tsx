@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import {
   SPACING,
   FONT_SIZE,
@@ -111,6 +112,11 @@ function createStyles(colors: AppColors) {
       flexWrap: 'wrap',
       gap: 6,
     },
+    thumbnail: {
+      width: 60, height: 60,
+      borderRadius: BORDER_RADIUS.sm,
+      marginBottom: SPACING.xs,
+    },
   });
 }
 
@@ -139,6 +145,9 @@ function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, 
         )}
       </View>
 
+      {record.photoUrl && (
+        <Image source={{ uri: record.photoUrl }} style={styles.thumbnail} contentFit="cover" />
+      )}
       <Text style={styles.summary} numberOfLines={3}>
         {record.summary}
       </Text>

@@ -283,6 +283,16 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 16');
     }
 
+    if (currentVersion < 17) {
+      // v16 → v17: records.photo_url 컬럼 추가 (사진 기록)
+      try {
+        await database.execAsync('ALTER TABLE records ADD COLUMN photo_url TEXT');
+      } catch {
+        // 컬럼이 이미 존재하면 무시 (신규 설치 케이스)
+      }
+      await database.execAsync('PRAGMA user_version = 17');
+    }
+
     dbInitialized = true;
   })();
 
