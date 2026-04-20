@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 서버화 2단계 — SQLite→Supabase 동기화 + 가족 피드` (2026-04-21)
+**마지막 커밋**: `chore: supabase-records-sync openspec 아카이브 + specs 동기화` (2026-04-21)
 
 **현재 브랜치**: main
 
