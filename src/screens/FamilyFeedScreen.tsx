@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { supabase } from '../lib/supabase';
+import { getSignedPhotoUrl } from '../services/photoService';
 import { useTheme } from '../context/ThemeContext';
 import TagChip from '../components/TagChip';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
@@ -44,6 +45,13 @@ async function loadFamilyFeed(): Promise<{ records: FeedRecord[]; noFamily: bool
 function FeedCard({ record }: { record: FeedRecord }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (record.photo_url) {
+      getSignedPhotoUrl(record.photo_url).then(setPhotoUri).catch(() => {});
+    }
+  }, [record.photo_url]);
 
   let tags: string[] = [];
   try { tags = JSON.parse(record.tags ?? '[]'); } catch { tags = []; }
@@ -58,9 +66,9 @@ function FeedCard({ record }: { record: FeedRecord }) {
         <Text style={styles.authorName}>{record.author_name ?? '가족'}</Text>
         <Text style={styles.dateText}>{dateStr}</Text>
       </View>
-      {record.photo_url ? (
+      {photoUri ? (
         <Image
-          source={{ uri: record.photo_url }}
+          source={{ uri: photoUri }}
           style={styles.thumbnail}
           contentFit="cover"
         />

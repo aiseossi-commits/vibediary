@@ -26,6 +26,7 @@ import {
 import type { RecordWithTags, Tag } from '../types/record';
 import { getRecordById, updateRecord, deleteRecord } from '../db';
 import { deleteAudioFile } from '../services/audioRecorder';
+import { getSignedPhotoUrl } from '../services/photoService';
 import { processWithAI, createFallbackResult } from '../services/aiProcessor';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { onQueueProcessed } from '../services/offlineQueue';
@@ -213,6 +214,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const { activeChild } = useChild();
 
   const [record, setRecord] = useState<RecordWithTags | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingRawText, setIsEditingRawText] = useState(false);
   const [editedRawText, setEditedRawText] = useState('');
@@ -229,7 +231,11 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const loadRecord = useCallback(async () => {
     try {
       const data = await getRecordById(recordId);
-      if (data) { setRecord(data); setEditedRawText(data.rawText ?? ''); }
+      if (data) {
+        setRecord(data);
+        setEditedRawText(data.rawText ?? '');
+        if (data.photoUrl) getSignedPhotoUrl(data.photoUrl).then(setPhotoUri).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to load record:', error);
     } finally {
@@ -487,8 +493,8 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
           </View>
         </TouchableOpacity>
 
-        {record.photoUrl && (
-          <PhotoFullView uri={record.photoUrl} />
+        {photoUri && (
+          <PhotoFullView uri={photoUri} />
         )}
 
         <View style={styles.section}>

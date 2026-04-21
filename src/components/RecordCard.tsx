@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
+import { getSignedPhotoUrl } from '../services/photoService';
 import {
   SPACING,
   FONT_SIZE,
@@ -124,6 +125,12 @@ function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const overlayOpacity = showAgeOverlay ? getAgeOverlayOpacity(record.createdAt) : 0;
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  useEffect(() => {
+    if (record.photoUrl) {
+      getSignedPhotoUrl(record.photoUrl).then(setPhotoUri).catch(() => {});
+    }
+  }, [record.photoUrl]);
   const dateLabel = customLabel
     ?? (timeOnly
       ? new Date(record.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })
@@ -145,8 +152,8 @@ function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, 
         )}
       </View>
 
-      {record.photoUrl && (
-        <Image source={{ uri: record.photoUrl }} style={styles.thumbnail} contentFit="cover" />
+      {photoUri && (
+        <Image source={{ uri: photoUri }} style={styles.thumbnail} contentFit="cover" />
       )}
       <Text style={styles.summary} numberOfLines={3}>
         {record.summary}

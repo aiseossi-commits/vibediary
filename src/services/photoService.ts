@@ -81,10 +81,28 @@ export async function uploadPhoto(uri: string, userId: string, recordId: string,
 
   if (error) throw new Error(`사진 업로드 실패: ${error.message}`);
 
-  const { data } = supabase.storage.from('photos').getPublicUrl(path);
-  if (!data.publicUrl) throw new Error('사진 URL을 가져올 수 없습니다');
+  return path; // URL 대신 path 저장 — 표시 시 signed URL 발급
+}
 
-  return data.publicUrl;
+type CacheEntry = { url: string; expiresAt: number };
+const signedUrlCache = new Map<string, CacheEntry>();
+
+export async function getSignedPhotoUrl(pathOrUrl: string): Promise<string> {
+  if (!pathOrUrl) return '';
+  // 기존 레코드 중 full URL이 저장된 경우 그대로 반환
+  if (pathOrUrl.startsWith('https://')) return pathOrUrl;
+
+  const cached = signedUrlCache.get(pathOrUrl);
+  if (cached && cached.expiresAt > Date.now() + 60_000) return cached.url;
+
+  const { data, error } = await supabase.storage
+    .from('photos')
+    .createSignedUrl(pathOrUrl, 3600); // 1시간
+
+  if (error || !data?.signedUrl) throw new Error('사진 URL 생성 실패');
+
+  signedUrlCache.set(pathOrUrl, { url: data.signedUrl, expiresAt: Date.now() + 3_600_000 });
+  return data.signedUrl;
 }
 
 export async function savePhotoRecord(params: {
