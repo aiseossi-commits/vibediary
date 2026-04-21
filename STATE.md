@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 사진 모달 — 텍스트 기록 + 그냥 저장으로 단순화, 아이콘 제거` (2026-04-21)
+**마지막 커밋**: `fix: iOS NSPhotoLibraryUsageDescription 추가 + pbxproj 번들 업데이트` (2026-04-21)
 
 **현재 브랜치**: main
 
