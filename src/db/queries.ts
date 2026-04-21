@@ -47,13 +47,15 @@ export async function getDailyRecordSummaries(
 
   // 날짜별 기록 수
   const rows = childId
-    ? await db.getAllAsync<{ date_str: string; count: number }>(
-        `SELECT date(created_at / 1000, 'unixepoch', 'localtime') as date_str, COUNT(*) as count
+    ? await db.getAllAsync<{ date_str: string; count: number; has_photo: number }>(
+        `SELECT date(created_at / 1000, 'unixepoch', 'localtime') as date_str, COUNT(*) as count,
+         MAX(CASE WHEN photo_url IS NOT NULL THEN 1 ELSE 0 END) as has_photo
          FROM records WHERE created_at >= ? AND created_at <= ? AND child_id = ? GROUP BY date_str`,
         startTs, endTs, childId
       )
-    : await db.getAllAsync<{ date_str: string; count: number }>(
-        `SELECT date(created_at / 1000, 'unixepoch', 'localtime') as date_str, COUNT(*) as count
+    : await db.getAllAsync<{ date_str: string; count: number; has_photo: number }>(
+        `SELECT date(created_at / 1000, 'unixepoch', 'localtime') as date_str, COUNT(*) as count,
+         MAX(CASE WHEN photo_url IS NOT NULL THEN 1 ELSE 0 END) as has_photo
          FROM records WHERE created_at >= ? AND created_at <= ? GROUP BY date_str`,
         startTs, endTs
       );
@@ -84,6 +86,7 @@ export async function getDailyRecordSummaries(
       date: row.date_str,
       count: row.count,
       tags: tagRows.map((t) => t.name),
+      hasPhoto: row.has_photo === 1,
     });
   }
 

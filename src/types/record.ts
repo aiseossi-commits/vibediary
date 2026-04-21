@@ -134,4 +134,5 @@ export interface DailyRecordSummary {
   date: string; // YYYY-MM-DD
   count: number;
   tags: string[];
+  hasPhoto: boolean;
 }

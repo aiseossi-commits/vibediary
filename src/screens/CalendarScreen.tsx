@@ -73,6 +73,7 @@ function createStyles(colors: AppColors) {
     dayTextSelected: { fontWeight: FONT_WEIGHT.bold },
     dayTextDisabled: { color: colors.textTertiary },
     pearlDot: { position: 'absolute', top: 3, right: 3, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.secondary },
+    photoDot: { position: 'absolute', top: 3, left: 3, width: 6, height: 6, borderRadius: 1, backgroundColor: colors.primary },
     eventDotsRow: { flexDirection: 'row', gap: 2, marginTop: 1 },
     eventDot: { width: 4, height: 4, borderRadius: 2 },
     legend: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs },
@@ -486,6 +487,7 @@ setDayRecords(records);
     const summary = summaryMap[dateStr];
     const count = summary?.count ?? 0;
     const isMedical = summary ? hasMedical(summary.tags) : false;
+    const hasPhoto = summary?.hasPhoto ?? false;
     const isSelected = dateStr === selectedDate;
     const isToday = state === 'today';
     const bgColor = getDensityColor(count, densityColors);
@@ -500,6 +502,7 @@ setDayRecords(records);
         activeOpacity={0.7}
       >
         {isMedical && <View style={styles.pearlDot} />}
+        {hasPhoto && <View style={styles.photoDot} />}
         <Text style={[
           styles.dayText,
           isToday ? styles.dayTextToday : isSelected && styles.dayTextSelected,
