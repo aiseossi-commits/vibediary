@@ -30,7 +30,9 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
+    // 오버레이 페이드인이 시작된 후 네이티브 스플래시 숨김
+    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 100);
+    return () => clearTimeout(t);
   }, []);
 
   const showOverlay = !(dbReady && minTimePassed);

@@ -79,7 +79,7 @@ export default function PhotoActionModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={resetAndClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
         <View style={styles.sheet}>
           <Image source={{ uri: photoUri }} style={styles.preview} resizeMode="cover" />
 
