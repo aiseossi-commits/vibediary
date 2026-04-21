@@ -35,7 +35,7 @@ export default function PhotoActionModal({
     setLoadingMsg('업로드 중...');
     try {
       const tempId = Math.random().toString(36).slice(2);
-      const photoUrl = await uploadPhoto(photoUri, userId, `speak-${tempId}`);
+      const photoUrl = await uploadPhoto(photoUri, userId, `speak-${tempId}`, photoBase64);
       onClose();
       onNavigateToRecording(photoUrl);
     } catch (e) {
@@ -56,7 +56,7 @@ export default function PhotoActionModal({
     try {
       const tempId = Math.random().toString(36).slice(2);
       const [photoUrl, tags] = await Promise.all([
-        uploadPhoto(photoUri, userId, `ai-${tempId}`),
+        uploadPhoto(photoUri, userId, `ai-${tempId}`, photoBase64),
         analyzePhotoTags({ base64: photoBase64, childId: activeChild?.id }),
       ]);
       const recordId = await savePhotoRecord({ photoUrl, childId: activeChild?.id ?? null });
@@ -85,7 +85,7 @@ export default function PhotoActionModal({
     setLoadingMsg('저장 중...');
     try {
       const tempId = Math.random().toString(36).slice(2);
-      const photoUrl = await uploadPhoto(photoUri, userId, `save-${tempId}`);
+      const photoUrl = await uploadPhoto(photoUri, userId, `save-${tempId}`, photoBase64);
       await savePhotoRecord({ photoUrl, childId: activeChild?.id ?? null });
       Alert.alert('', '사진이 저장됐어요');
       onSaved();

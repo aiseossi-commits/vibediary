@@ -55,13 +55,22 @@ export async function pickPhotoFromLibrary(): Promise<PhotoResult | null> {
   return compressImage(uri, width, height);
 }
 
-export async function uploadPhoto(uri: string, userId: string, recordId: string): Promise<string> {
+export async function uploadPhoto(uri: string, userId: string, recordId: string, base64?: string): Promise<string> {
   const path = `${userId}/${recordId}.jpg`;
 
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const arrayBuffer = await blob.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
+  let uint8Array: Uint8Array;
+  if (base64) {
+    const binaryStr = atob(base64);
+    uint8Array = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      uint8Array[i] = binaryStr.charCodeAt(i);
+    }
+  } else {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    uint8Array = new Uint8Array(arrayBuffer);
+  }
 
   const { error } = await supabase.storage
     .from('photos')
