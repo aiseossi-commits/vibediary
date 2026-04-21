@@ -839,10 +839,6 @@ setDayRecords(records);
           setPhotoModal(null);
           loadDayRecords(selectedDate);
         }}
-        onNavigateToRecording={(photoUrl) => {
-          setPhotoModal(null);
-          navigation.navigate('Recording', { photoUrl, date: selectedDate });
-        }}
       />
     </SafeAreaView>
   );

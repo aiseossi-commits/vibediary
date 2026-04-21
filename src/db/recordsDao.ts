@@ -129,6 +129,11 @@ export async function updateRecord(
   );
 }
 
+export async function updateRecordPhoto(id: string, photoUrl: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE records SET photo_url = ? WHERE id = ?', photoUrl, id);
+}
+
 // 미분류 기록 수 조회 (child_id IS NULL)
 export async function getOrphanedRecordsCount(): Promise<number> {
   const db = await getDatabase();

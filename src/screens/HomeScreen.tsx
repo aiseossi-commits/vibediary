@@ -550,10 +550,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           photoUri={photoModal.uri}
           photoBase64={photoModal.base64}
           onClose={() => setPhotoModal(null)}
-          onNavigateToRecording={(photoUrl) => {
-            setPhotoModal(null);
-            navigation.navigate('Recording', { photoUrl });
-          }}
           onSaved={() => { setPhotoModal(null); loadRecords(); }}
         />
       )}
