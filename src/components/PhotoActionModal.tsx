@@ -122,7 +122,11 @@ export default function PhotoActionModal({
             </View>
           )}
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={resetAndClose} disabled={loading}>
+          <TouchableOpacity
+            style={styles.cancelBtn}
+            onPress={view === 'text' ? () => { setView('menu'); setInputText(''); } : resetAndClose}
+            disabled={loading}
+          >
             <Text style={styles.cancelText}>{view === 'text' ? '뒤로' : '취소'}</Text>
           </TouchableOpacity>
         </View>
