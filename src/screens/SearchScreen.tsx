@@ -191,8 +191,14 @@ function stripMarkdown(text: string): string {
 }
 
 function formatRelativeDate(ts: number): string {
+  const now = Date.now();
+  const diff = Math.floor((now - ts) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return '오늘';
+  if (diff === 1) return '어제';
+  if (diff < 7) return `${diff}일 전`;
+  if (diff < 30) return `${Math.floor(diff / 7)}주 전`;
   const d = new Date(ts);
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
 function UserBubble({ message, styles }: { message: ChatMessage; styles: ReturnType<typeof createStyles> }) {
@@ -442,6 +448,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
                 <TouchableOpacity key={page.id} style={styles.insightCard} onPress={() => togglePage(key)} onLongPress={() => handleLongPressPage(page)} activeOpacity={0.85}>
                   <View style={styles.insightCardHeader}>
                     <Text style={styles.insightTypeLabel}>{getWikiTypeLabel(page)}</Text>
+                    <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)}</Text>
                   </View>
                   <Text style={styles.insightTitle}>{page.title}</Text>
                   {displayVisualData && (() => {
@@ -485,7 +492,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
                     ? <Markdown style={markdownStyles}>{displayBody}</Markdown>
                     : <Text style={styles.insightBody} numberOfLines={3}>{stripMarkdown(displayBody)}</Text>
                   }
-                  <Text style={styles.insightDate}>{formatRelativeDate(page.updatedAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
+                  <Text style={styles.insightDate}>{isExpanded ? '접기' : '전체 보기'}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -501,12 +508,15 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
                 const isExpanded = expandedLogIds.has(log.id);
                 return (
                   <TouchableOpacity key={log.id} style={styles.logCard} onPress={() => toggleLog(log.id)} onLongPress={() => handleLongPressLog(log)} activeOpacity={0.85}>
-                    <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
+                    <View style={styles.logCardHeader}>
+                      <Text style={styles.logQuery} numberOfLines={isExpanded ? undefined : 1}>{log.query}</Text>
+                      <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)}</Text>
+                    </View>
                     {isExpanded
                       ? <Markdown style={markdownStyles}>{log.answer}</Markdown>
                       : <Text style={styles.logAnswer} numberOfLines={4}>{stripMarkdown(log.answer)}</Text>
                     }
-                    <Text style={styles.logDate}>{formatRelativeDate(log.createdAt)} · {isExpanded ? '접기' : '전체 보기'}</Text>
+                    <Text style={styles.logDate}>{isExpanded ? '접기' : '전체 보기'}</Text>
                   </TouchableOpacity>
                 );
               })}
