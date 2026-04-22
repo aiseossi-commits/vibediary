@@ -14,6 +14,7 @@ interface Props {
   visible: boolean;
   photoUri: string;
   photoBase64?: string;
+  date?: string; // YYYY-MM-DD, 미지정 시 현재 시각
   onClose: () => void;
   onSaved: () => void;
 }
@@ -21,7 +22,7 @@ interface Props {
 type ModalView = 'menu' | 'text';
 
 export default function PhotoActionModal({
-  visible, photoUri, photoBase64, onClose, onSaved,
+  visible, photoUri, photoBase64, date, onClose, onSaved,
 }: Props) {
   const { colors } = useTheme();
   const { activeChild } = useChild();
@@ -48,7 +49,7 @@ export default function PhotoActionModal({
       const tempId = Math.random().toString(36).slice(2);
       const [photoUrl, recordId] = await Promise.all([
         uploadPhoto(photoUri, userId, `text-${tempId}`, photoBase64),
-        processTextRecord(inputText.trim(), activeChild?.id),
+        processTextRecord(inputText.trim(), activeChild?.id, date),
       ]);
       await updateRecordPhoto(recordId, photoUrl);
       onSaved();
@@ -67,7 +68,7 @@ export default function PhotoActionModal({
     try {
       const tempId = Math.random().toString(36).slice(2);
       const photoUrl = await uploadPhoto(photoUri, userId, `save-${tempId}`, photoBase64);
-      await savePhotoRecord({ photoUrl, childId: activeChild?.id ?? null });
+      await savePhotoRecord({ photoUrl, childId: activeChild?.id ?? null, date });
       onSaved();
       resetAndClose();
     } catch (e) {

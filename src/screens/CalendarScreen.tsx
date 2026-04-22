@@ -837,6 +837,7 @@ setDayRecords(records);
         visible={!!photoModal}
         photoUri={photoModal?.uri ?? ''}
         photoBase64={photoModal?.base64}
+        date={selectedDate}
         onClose={() => setPhotoModal(null)}
         onSaved={() => {
           setPhotoModal(null);

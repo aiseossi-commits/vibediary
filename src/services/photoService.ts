@@ -109,12 +109,17 @@ export async function savePhotoRecord(params: {
   photoUrl: string;
   childId: string | null;
   tags?: string[];
+  date?: string; // YYYY-MM-DD, 미지정 시 현재 시각
 }): Promise<string> {
+  const createdAt = params.date
+    ? new Date(params.date + 'T12:00:00').getTime()
+    : Date.now();
   const id = await createRecord({
     summary: '',
     photoUrl: params.photoUrl,
     childId: params.childId,
-    source: 'voice', // photo 기록은 photo_url IS NOT NULL로 구분
+    source: 'voice',
+    createdAt,
   });
   void syncRecord(id).catch(() => {});
   return id;
