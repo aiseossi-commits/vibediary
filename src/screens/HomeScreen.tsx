@@ -69,8 +69,8 @@ function createStyles(colors: AppColors) {
       paddingHorizontal: 24, paddingVertical: 20,
     },
     titleRow: { flexDirection: 'row', alignItems: 'center' },
-    titleChevron: { marginLeft: 4, marginTop: 2 },
-    title: { fontSize: 30, fontWeight: '700' as const, color: colors.textPrimary, letterSpacing: -0.6 },
+    titleName: { fontSize: 26, fontWeight: '600' as const, color: colors.textPrimary, letterSpacing: -0.5 },
+    titleSuffix: { fontSize: 26, fontWeight: '400' as const, color: colors.textSecondary, letterSpacing: -0.5 },
     subtitle: { fontSize: 13, color: colors.textTertiary, marginTop: 4, letterSpacing: 0.2 },
     headerRight: { flexDirection: 'row', gap: SPACING.sm },
     headerIcon: { padding: SPACING.sm },
@@ -593,11 +593,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             activeOpacity={childList.length >= 2 ? 0.7 : 1}
             style={styles.titleRow}
           >
-            <Text style={styles.title}>
-              {activeChild ? `${activeChild.name}의 ${isDark ? '밤바다' : '바다'}` : (isDark ? '밤바다' : '바다')}
-            </Text>
-            {childList.length >= 2 && (
-              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} style={styles.titleChevron} />
+            {activeChild ? (
+              <Text>
+                <Text style={styles.titleName}>{activeChild.name}</Text>
+                <Text style={styles.titleSuffix}>의 {isDark ? '밤바다' : '바다'}</Text>
+              </Text>
+            ) : (
+              <Text style={styles.titleName}>{isDark ? '밤바다' : '바다'}</Text>
             )}
           </TouchableOpacity>
           <Text style={styles.subtitle}>{subtitle}</Text>

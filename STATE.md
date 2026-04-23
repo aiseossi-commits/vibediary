@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 홈 타이틀 시각 비중 축소: "이름" (26/600/textPrimary) + "의 바다" (26/400/textSecondary) 분리 렌더링, chevron 드롭다운 아이콘 제거 (탭 기능 유지)
 - [x] AI 모드 pulse 애니메이션 freezing 수정: `Animated.delay`를 loop 안에서 `setTimeout` stagger로 교체 (HomeScreen)
 - [x] `getNetworkState()` 무한 대기 수정: fallback fetch에 5초 AbortController 타임아웃 추가 (network.ts) → AI 처리중 무한 스피닝 원인 제거
 - [x] 팔레트 pearl 단일화: sage/emerald/amber/deepOcean/clearSky/slateNavy 제거, 기본값 pearl로 고정, 설정 색상 테마 선택 UI 완전 제거
