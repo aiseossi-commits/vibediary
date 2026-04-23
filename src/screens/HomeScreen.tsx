@@ -199,26 +199,33 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   ).current;
 
   useEffect(() => {
-    const loops = pulseAnims.map(({ scale, opacity }, i) => {
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 600),
-          Animated.parallel([
-            Animated.timing(scale, { toValue: 1.9, duration: 1800, useNativeDriver: true }),
-            Animated.sequence([
-              Animated.timing(opacity, { toValue: 0.08, duration: 400, useNativeDriver: true }),
-              Animated.timing(opacity, { toValue: 0, duration: 1400, useNativeDriver: true }),
+    const loops: Animated.CompositeAnimation[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    pulseAnims.forEach(({ scale, opacity }, i) => {
+      const timer = setTimeout(() => {
+        const loop = Animated.loop(
+          Animated.sequence([
+            Animated.parallel([
+              Animated.timing(scale, { toValue: 1.9, duration: 1800, useNativeDriver: true }),
+              Animated.sequence([
+                Animated.timing(opacity, { toValue: 0.08, duration: 400, useNativeDriver: true }),
+                Animated.timing(opacity, { toValue: 0, duration: 1400, useNativeDriver: true }),
+              ]),
             ]),
-          ]),
-          Animated.parallel([
             Animated.timing(scale, { toValue: 1, duration: 0, useNativeDriver: true }),
-          ]),
-        ])
-      );
-      loop.start();
-      return loop;
+          ])
+        );
+        loop.start();
+        loops.push(loop);
+      }, i * 600);
+      timers.push(timer);
     });
-    return () => loops.forEach((l) => l.stop());
+
+    return () => {
+      loops.forEach((l) => l.stop());
+      timers.forEach((t) => clearTimeout(t));
+    };
   }, [pulseAnims]);
 
   const activeChildIdRef = useRef(activeChild?.id);

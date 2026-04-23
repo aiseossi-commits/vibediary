@@ -6,11 +6,11 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 모아보기 카드 날짜 헤더 우측 정렬 + 상대적 날짜 표시` (2026-04-21)
+**마지막 커밋**: `fix: AI 모드 pulse 애니메이션 freezing + 네트워크 체크 무한 대기` (2026-04-23)
 
 **현재 브랜치**: main
 
-**미커밋**: 없음
+**미커밋**: 없음 (방금 수정 완료)
 
 **DB 현재 버전**: v17 (records.photo_url)
 
@@ -18,6 +18,8 @@
 
 ## 최근 완료된 작업
 
+- [x] AI 모드 pulse 애니메이션 freezing 수정: `Animated.delay`를 loop 안에서 `setTimeout` stagger로 교체 (HomeScreen)
+- [x] `getNetworkState()` 무한 대기 수정: fallback fetch에 5초 AbortController 타임아웃 추가 (network.ts) → AI 처리중 무한 스피닝 원인 제거
 - [x] 팔레트 pearl 단일화: sage/emerald/amber/deepOcean/clearSky/slateNavy 제거, 기본값 pearl로 고정, 설정 색상 테마 선택 UI 완전 제거
 - [x] 모아보기 "AI 인사이트 생성" 버튼 최상단으로 이동 + 문구 정리 (항해일지→AI 인사이트)
 - [x] 캘린더 날짜 시트 풀스크린 + 카드 깊이감: SHEET_HEIGHT 60%→82%, 시트 배경 surface→background (카드가 배경 위로 뜨는 효과)
