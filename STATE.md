@@ -6,18 +6,21 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `docs: 보안 점검 1차 완료 + 시큐리티플랜.md 작성` (795679f, 2026-04-24)
+**마지막 커밋**: `feat: 가족 피드 동기화 전면 보강 — Phase 1~4 + 백업 복원 sync` (main, 2026-04-24)
 
 **현재 브랜치**: main
 
-**미커밋**: Phase 4 — 호출처 syncRecord 보강
+**미커밋**: 없음
 
-**DB 현재 버전**: v17 (records.photo_url)
+**DB 현재 버전**: v19 (pending_deletes 테이블)
 
 ---
 
 ## 최근 완료된 작업
 
+- [x] 백업 복원(restoreOverwrite/restoreMerge) 동기화 보강: is_synced=0·updated_at=created_at로 INSERT + 복원 완료 후 syncPendingRecords() 호출 (backupService.ts)
+- [x] joinFamilyRoom → SECURITY DEFINER RPC join_family_by_code 교체 (RLS 우회 없이 원자적 가입, 열거 공격 차단)
+- [x] DB v18 records.updated_at + v19 pending_deletes 테이블 마이그레이션 추가
 - [x] 가족 피드 동기화 Phase 4 완료: 수정 경로 6개 syncRecord 보강 — 시간수정·원문편집·태그편집(RecordDetailScreen), 사진추가(PhotoActionModal), AI큐처리완료(offlineQueue), 배치재분석(SettingsScreen→syncPendingRecords 1회)
 - [x] 가족 피드 동기화 Phase 3 완료: syncPendingRecords 싱글플라이트 락 (try/finally) + AppState active 복귀·네트워크 복구·세션 확보 재동기화 트리거 (AppNavigator)
 - [x] 가족 피드 동기화 Phase 2 완료: DB v19 `pending_deletes` 테이블 추가 + `deleteRecord` → 로컬 hard delete + 큐 등록 + `processPendingDeletes()` → Supabase 삭제 처리 (syncPendingRecords에 통합)

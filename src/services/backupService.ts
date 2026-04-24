@@ -6,6 +6,7 @@ import { getDatabase } from '../db/database';
 import { getAllChildren } from '../db/childrenDao';
 import { getAllRecordTags } from '../db/tagsDao';
 import { getAllRecordsForBackup } from '../db/recordsDao';
+import { syncPendingRecords } from './syncService';
 
 const BACKUP_VERSION = 2;
 
@@ -173,10 +174,10 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
 
   for (const r of data.records) {
     await db.runAsync(
-      `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
-       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
-      r.id, r.created_at, r.audio_path, r.raw_text, r.summary,
-      r.structured_data, r.is_synced, r.child_id
+      `INSERT INTO records (id, created_at, updated_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, ?)`,
+      r.id, r.created_at, r.created_at, r.audio_path, r.raw_text, r.summary,
+      r.structured_data, r.child_id
     );
   }
 
@@ -213,6 +214,8 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
 
   // 태그 없는 기록 AI 재처리 큐 등록 (복구 실패 또는 원래부터 태그 누락된 기록 구제)
   await _requeueUntaggedRecords(db);
+  // 복원된 기록 전체를 가족 피드에 동기화
+  void syncPendingRecords().catch(() => {});
 }
 
 // 병합 복원: 기존 데이터 유지 + 신규 데이터만 추가
@@ -283,10 +286,10 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   for (const r of data.records) {
     const mappedChildId = r.child_id ? (childIdMap.get(r.child_id) ?? r.child_id) : null;
     await db.runAsync(
-      `INSERT OR IGNORE INTO records (id, created_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
-       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
-      r.id, r.created_at, r.audio_path, r.raw_text, r.summary,
-      r.structured_data, r.is_synced, mappedChildId
+      `INSERT OR IGNORE INTO records (id, created_at, updated_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, ?)`,
+      r.id, r.created_at, r.created_at, r.audio_path, r.raw_text, r.summary,
+      r.structured_data, mappedChildId
     );
   }
 
@@ -331,6 +334,8 @@ export async function restoreMerge(data: BackupData): Promise<void> {
 
   // 태그 없는 기록 AI 재처리 큐 등록
   await _requeueUntaggedRecords(db);
+  // 복원된 기록 전체를 가족 피드에 동기화
+  void syncPendingRecords().catch(() => {});
 }
 
 // 태그 없는 기록을 AI 재처리 큐에 등록 (raw_text 있고 record_tags 없는 기록)
