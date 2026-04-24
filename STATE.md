@@ -6,11 +6,11 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: AI 요약 품질 개선 — 명사 우선 + 재현 가능성 기준` (85fb890, 2026-04-23)
+**마지막 커밋**: `docs: 보안 점검 1차 완료 + 시큐리티플랜.md 작성` (795679f, 2026-04-24)
 
 **현재 브랜치**: main
 
-**미커밋**: 시큐리티플랜.md (보안 점검 기획 문서)
+**미커밋**: familyService.ts (joinFamilyRoom → RPC 교체)
 
 **DB 현재 버전**: v17 (records.photo_url)
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 보안 2차 점검 A영역 진행 중: RLS 정책 분석 완료 + `joinFamilyRoom` → `join_family_by_code` SECURITY DEFINER RPC로 교체 (families SELECT 열람 없이 원자적 가입, 열거 공격 차단)
 - [x] 보안 1차 점검 완료 + `시큐리티플랜.md` 작성: 위협 모델 합의 / 1차 발견사항 / 2차 점검 영역(서버 RLS·의존성·클라 추가·운영) / ROI 기반 우선순위 체계. 외부 AI 보고서 교차 검증 — `.env.save`는 로컬만(gitignore OK), Worker secret 한계는 JWT 전환 대신 per-IP/per-day 상한 권장
 - [x] AI 요약 품질 개선 (2+3 조합): 명사 우선 파악 지시 + 재현 가능성 기준 추가 + 보호자 추측 보존 규칙 + 장소·음식·인과 가설 예시 추가 (aiProcessor.ts)
 - [x] 홈 타이틀 시각 비중 축소: "이름" (26/600/textPrimary) + "의 바다" (26/400/textSecondary) 분리 렌더링, chevron 드롭다운 아이콘 제거 (탭 기능 유지)

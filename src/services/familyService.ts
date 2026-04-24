@@ -46,32 +46,16 @@ export async function createFamilyRoom(): Promise<FamilyRoom> {
 }
 
 export async function joinFamilyRoom(code: string): Promise<FamilyRoom> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('인증이 필요합니다');
+  const { data, error } = await supabase.rpc('join_family_by_code', { p_code: code });
 
-  const { data: family, error: findError } = await supabase
-    .from('families')
-    .select('id, invite_code')
-    .eq('invite_code', code.toUpperCase().trim())
-    .single();
-
-  if (findError || !family) throw new Error('유효하지 않은 초대코드입니다');
-
-  const { error: joinError } = await supabase
-    .from('family_members')
-    .insert({ family_id: family.id, user_id: user.id });
-
-  if (joinError) {
-    if (joinError.code === '23505') throw new Error('이미 참여 중인 가족방입니다');
-    throw joinError;
+  if (error) {
+    if (error.message.includes('INVALID_CODE')) throw new Error('유효하지 않은 초대코드입니다');
+    if (error.message.includes('ALREADY_MEMBER')) throw new Error('이미 참여 중인 가족방입니다');
+    if (error.message.includes('UNAUTHENTICATED')) throw new Error('인증이 필요합니다');
+    throw error;
   }
 
-  const { count } = await supabase
-    .from('family_members')
-    .select('*', { count: 'exact', head: true })
-    .eq('family_id', family.id);
-
-  return { id: family.id, invite_code: family.invite_code, member_count: count ?? 1 };
+  return { id: data.family_id, invite_code: data.invite_code, member_count: data.member_count };
 }
 
 export async function getMyFamilyRoom(): Promise<FamilyRoom | null> {
