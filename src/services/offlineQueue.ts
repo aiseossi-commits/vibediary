@@ -4,6 +4,7 @@ import { DEFAULT_TAGS } from '../db/schema';
 import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
+import { syncRecord } from './syncService';
 
 // 오프라인 큐에 추가
 export async function addToOfflineQueue(recordId: string, rawText: string): Promise<void> {
@@ -112,6 +113,7 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
 
         // 태그 업데이트
         await setTagsForRecord(item.record_id, result.tags, record.childId ?? undefined);
+        void syncRecord(item.record_id).catch(() => {});
 
         // 큐에서 완료 처리
         await db.runAsync(

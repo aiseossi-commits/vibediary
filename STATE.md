@@ -10,7 +10,7 @@
 
 **현재 브랜치**: main
 
-**미커밋**: Phase 3 — 싱글플라이트 락 + 재시도 트리거
+**미커밋**: Phase 4 — 호출처 syncRecord 보강
 
 **DB 현재 버전**: v17 (records.photo_url)
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 가족 피드 동기화 Phase 4 완료: 수정 경로 6개 syncRecord 보강 — 시간수정·원문편집·태그편집(RecordDetailScreen), 사진추가(PhotoActionModal), AI큐처리완료(offlineQueue), 배치재분석(SettingsScreen→syncPendingRecords 1회)
 - [x] 가족 피드 동기화 Phase 3 완료: syncPendingRecords 싱글플라이트 락 (try/finally) + AppState active 복귀·네트워크 복구·세션 확보 재동기화 트리거 (AppNavigator)
 - [x] 가족 피드 동기화 Phase 2 완료: DB v19 `pending_deletes` 테이블 추가 + `deleteRecord` → 로컬 hard delete + 큐 등록 + `processPendingDeletes()` → Supabase 삭제 처리 (syncPendingRecords에 통합)
 - [x] 가족 피드 동기화 Phase 1 완료: DB v18 `records.updated_at` 추가 + DAO mutation 자동 `is_synced=0`·`updated_at` 마킹 (`updateRecord`, `updateRecordPhoto`, `setTagsForRecord`) + syncService last-write-wins upsert + Supabase 컬럼 추가

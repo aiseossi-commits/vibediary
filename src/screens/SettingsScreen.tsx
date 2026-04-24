@@ -16,6 +16,7 @@ import {
   getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
 import { getTagsOnly } from '../services/aiProcessor';
+import { syncPendingRecords } from '../services/syncService';
 import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
@@ -389,6 +390,7 @@ export default function SettingsScreen() {
               const today = new Date().toISOString().slice(0, 10);
               await setSetting(LAST_RETAG_KEY, today);
               setRetagDoneToday(true);
+              void syncPendingRecords().catch(() => {});
               Alert.alert('완료', `${successCount}/${withText.length}건의 기록 태그가 업데이트되었습니다.`);
             } catch (e: any) {
               if (e?.message === 'OFFLINE') {
