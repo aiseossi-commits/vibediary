@@ -64,6 +64,28 @@ export async function syncRecord(recordId: string): Promise<void> {
   }
 }
 
+export async function processPendingDeletes(): Promise<void> {
+  try {
+    const ctx = await getAuthContext();
+    if (!ctx) return;
+
+    const db = await getDatabase();
+    const rows = await db.getAllAsync<{ id: number; record_id: string }>(
+      'SELECT id, record_id FROM pending_deletes ORDER BY created_at ASC LIMIT ?',
+      BATCH_SIZE
+    );
+
+    for (const row of rows) {
+      const { error } = await supabase.from('records').delete().eq('id', row.record_id);
+      if (!error) {
+        await db.runAsync('DELETE FROM pending_deletes WHERE id = ?', row.id);
+      }
+    }
+  } catch {
+    // 네트워크 오류 — 다음 기회에 재시도
+  }
+}
+
 export async function syncPendingRecords(): Promise<void> {
   try {
     const db = await getDatabase();
@@ -74,6 +96,7 @@ export async function syncPendingRecords(): Promise<void> {
     for (const row of rows) {
       await syncRecord(row.id);
     }
+    await processPendingDeletes();
   } catch {
     // 무시
   }

@@ -172,6 +172,11 @@ export async function reassignChildRecords(fromChildId: string, toChildId: strin
 
 export async function deleteRecord(id: string): Promise<void> {
   const db = await getDatabase();
+  // Supabase 삭제 큐에 등록 (네트워크 복구 시 원격 삭제 처리)
+  await db.runAsync(
+    'INSERT OR IGNORE INTO pending_deletes (record_id, created_at) VALUES (?, ?)',
+    id, Date.now()
+  );
   // CASCADE로 record_tags도 자동 삭제
   await db.runAsync('DELETE FROM records WHERE id = ?', id);
 }

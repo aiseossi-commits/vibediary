@@ -19,6 +19,7 @@ import {
   CREATE_WIKI_PAGES_INDEXES,
   CREATE_INDEXES,
   CREATE_SYNTHESIS_INDEXES,
+  CREATE_PENDING_DELETES_TABLE,
   MIGRATE_TAGS_V3,
   CLEANUP_DUPLICATE_DEFAULT_TAGS,
   CLEANUP_NULL_DUPLICATE_TAGS,
@@ -72,6 +73,7 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE);
     await database.execAsync(CREATE_EVENT_DAILY_LOGS_TABLE);
     await database.execAsync(CREATE_APP_SETTINGS_TABLE);
+    await database.execAsync(CREATE_PENDING_DELETES_TABLE);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
@@ -303,6 +305,12 @@ export async function initializeDatabase(): Promise<void> {
       // 기존 기록은 created_at을 updated_at 초기값으로 설정, is_synced=0 으로 리셋 (전체 재동기화)
       await database.execAsync('UPDATE records SET updated_at = created_at, is_synced = 0 WHERE updated_at = 0 OR updated_at IS NULL');
       await database.execAsync('PRAGMA user_version = 18');
+    }
+
+    if (currentVersion < 19) {
+      // v18 → v19: pending_deletes 테이블 추가 (Supabase 삭제 큐)
+      await database.execAsync(CREATE_PENDING_DELETES_TABLE);
+      await database.execAsync('PRAGMA user_version = 19');
     }
 
     dbInitialized = true;

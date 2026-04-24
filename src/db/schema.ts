@@ -223,6 +223,14 @@ export const CREATE_APP_SETTINGS_TABLE = `
   );
 `;
 
+export const CREATE_PENDING_DELETES_TABLE = `
+  CREATE TABLE IF NOT EXISTS pending_deletes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_id TEXT NOT NULL UNIQUE,
+    created_at INTEGER NOT NULL
+  );
+`;
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   // 상위 태그

@@ -10,7 +10,7 @@
 
 **현재 브랜치**: main
 
-**미커밋**: Phase 1 — DAO 자동 마킹 + updated_at 충돌 정책
+**미커밋**: Phase 2 — pending_deletes 큐 + Supabase hard delete
 
 **DB 현재 버전**: v17 (records.photo_url)
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 가족 피드 동기화 Phase 2 완료: DB v19 `pending_deletes` 테이블 추가 + `deleteRecord` → 로컬 hard delete + 큐 등록 + `processPendingDeletes()` → Supabase 삭제 처리 (syncPendingRecords에 통합)
 - [x] 가족 피드 동기화 Phase 1 완료: DB v18 `records.updated_at` 추가 + DAO mutation 자동 `is_synced=0`·`updated_at` 마킹 (`updateRecord`, `updateRecordPhoto`, `setTagsForRecord`) + syncService last-write-wins upsert + Supabase 컬럼 추가
 - [x] 보안 2차 점검 A영역 진행 중: RLS 정책 분석 완료 + `joinFamilyRoom` → `join_family_by_code` SECURITY DEFINER RPC로 교체 (families SELECT 열람 없이 원자적 가입, 열거 공격 차단)
 - [x] 보안 1차 점검 완료 + `시큐리티플랜.md` 작성: 위협 모델 합의 / 1차 발견사항 / 2차 점검 영역(서버 RLS·의존성·클라 추가·운영) / ROI 기반 우선순위 체계. 외부 AI 보고서 교차 검증 — `.env.save`는 로컬만(gitignore OK), Worker secret 한계는 JWT 전환 대신 per-IP/per-day 상한 권장
