@@ -102,9 +102,23 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
         // AI 처리 (커스텀 태그 포함)
         const allTagNames = (await getAllTags().catch(() => [])).map((t) => t.name);
         const customTags = allTagNames.filter((n) => !DEFAULT_TAGS.includes(n));
-        const result = await processWithAI(item.raw_text, customTags);
+        let result;
+        try {
+          result = await processWithAI(item.raw_text, customTags);
+        } catch (aiError) {
+          console.warn(`오프라인 큐 AI 처리 실패 (record: ${item.record_id}):`, aiError);
+          // AI 재처리 실패 → structuredData 업데이트 안 함, aiPending 유지
+          // 다음 재시도 때 다시 시도하도록 함
+          const errMsg = aiError instanceof Error ? aiError.message : '';
+          if (errMsg.includes('429')) {
+            apiErrorCooldownUntil = Date.now() + API_ERROR_COOLDOWN_MS;
+            break;
+          }
+          hasPendingLeft = true;
+          continue;
+        }
 
-        // 기록 업데이트
+        // 기록 업데이트 (AI 성공 시만)
         await updateRecord(item.record_id, {
           summary: result.summary,
           structuredData: result.structuredData,
@@ -123,7 +137,7 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
 
         processed++;
       } catch (error) {
-        console.warn(`오프라인 큐 처리 실패 (record: ${item.record_id}):`, error);
+        console.warn(`오프라인 큐 처리 중 예기치 않은 오류 (record: ${item.record_id}):`, error);
         hasPendingLeft = true;
 
         const errMsg = error instanceof Error ? error.message : '';

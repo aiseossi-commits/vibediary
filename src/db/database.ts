@@ -23,6 +23,7 @@ import {
   MIGRATE_TAGS_V3,
   CLEANUP_DUPLICATE_DEFAULT_TAGS,
   CLEANUP_NULL_DUPLICATE_TAGS,
+  CLEANUP_EMPTY_STRUCTURED_DATA,
 } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -311,6 +312,12 @@ export async function initializeDatabase(): Promise<void> {
       // v18 → v19: pending_deletes 테이블 추가 (Supabase 삭제 큐)
       await database.execAsync(CREATE_PENDING_DELETES_TABLE);
       await database.execAsync('PRAGMA user_version = 19');
+    }
+
+    if (currentVersion < 20) {
+      // v19 → v20: 빈 structured_data ({}) → null로 정리 (지연 저장 정책)
+      await database.execAsync(CLEANUP_EMPTY_STRUCTURED_DATA);
+      await database.execAsync('PRAGMA user_version = 20');
     }
 
     dbInitialized = true;

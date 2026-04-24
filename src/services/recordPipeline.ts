@@ -1,5 +1,5 @@
 import { processSTT } from './stt';
-import { processWithAI, createFallbackResult } from './aiProcessor';
+import { processWithAI } from './aiProcessor';
 import { createRecord } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
@@ -40,7 +40,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     aiResult = await processWithAI(text, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패 (fromText):', e);
-    aiResult = createFallbackResult(text);
+    aiResult = { summary: text.length > 100 ? text.substring(0, 100) + '...' : text, tags: ['#일상'], structuredData: null };
     aiPending = true;
   }
 
@@ -51,7 +51,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
       audioPath: audioUri,
       rawText: text,
       summary: aiResult.summary,
-      structuredData: aiResult.structuredData,
+      structuredData: aiPending ? null : aiResult.structuredData,
       aiPending,
       createdAt,
       childId,
@@ -79,7 +79,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
     aiResult = await processWithAI(text, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패 (textRecord):', e);
-    aiResult = createFallbackResult(text);
+    aiResult = { summary: text.length > 100 ? text.substring(0, 100) + '...' : text, tags: ['#일상'], structuredData: null };
     aiPending = true;
   }
 
@@ -91,7 +91,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
       audioPath: '',
       rawText: text,
       summary: aiResult.summary,
-      structuredData: aiResult.structuredData,
+      structuredData: aiPending ? null : aiResult.structuredData,
 
       aiPending,
       childId,

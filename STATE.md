@@ -12,11 +12,13 @@
 
 **미커밋**: 없음
 
-**DB 현재 버전**: v19 (pending_deletes 테이블)
+**DB 현재 버전**: v20 (empty structured_data cleanup)
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] 상세 데이터(structured_data) 일관성 개선 — 지연 저장 정책 도입: (1) AI 처리 실패 시 structured_data=null로 저장 (기존 fallback 빈객체={} 제거, aiPending=true 마킹) (2) recordPipeline.ts: processFromText/processTextRecord 수정 (3) offlineQueue.ts: AI 재처리 실패 시 structured_data 업데이트 안 함, aiPending 유지 (4) DB v20 마이그레이션: 기존 structured_data={} 항목을 null로 정리
 
 - [x] 백업 복원(restoreOverwrite/restoreMerge) 동기화 보강: is_synced=0·updated_at=created_at로 INSERT + 복원 완료 후 syncPendingRecords() 호출 (backupService.ts)
 - [x] joinFamilyRoom → SECURITY DEFINER RPC join_family_by_code 교체 (RLS 우회 없이 원자적 가입, 열거 공격 차단)

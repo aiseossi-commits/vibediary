@@ -231,6 +231,11 @@ export const CREATE_PENDING_DELETES_TABLE = `
   );
 `;
 
+// v19 → v20: 빈 structured_data를 null로 정리 (지연 저장 정책)
+export const CLEANUP_EMPTY_STRUCTURED_DATA = `
+  UPDATE records SET structured_data = NULL WHERE structured_data = '{}';
+`;
+
 // 기본 태그 (최초 실행 시 삽입)
 export const DEFAULT_TAGS = [
   // 상위 태그
