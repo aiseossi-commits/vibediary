@@ -33,7 +33,7 @@ import { getSetting } from '../db/appSettingsDao';
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 import type { RecordWithTags } from '../types/record';
-import { getRecordsByDate, isDatabaseReady, getActiveEvents, type ActiveEvent } from '../db';
+import { getRecordsByDate, isDatabaseReady, getActiveEvents, getPendingRecordsCount, type ActiveEvent } from '../db';
 import { processTextRecord, runSTTOnly, processFromText } from '../services/recordPipeline';
 import { processOfflineQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
@@ -170,6 +170,19 @@ function createStyles(colors: AppColors) {
     },
     eventBadgeMoreText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
     eventBadgeHint: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginTop: 2 },
+    pendingBanner: {
+      backgroundColor: colors.primary + '15',
+      borderLeftWidth: 3, borderLeftColor: colors.primary,
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+      marginHorizontal: SPACING.lg, marginBottom: SPACING.md,
+      borderRadius: BORDER_RADIUS.sm,
+    },
+    pendingBannerText: {
+      fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: '500',
+    },
+    pendingBannerCount: {
+      fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: '700',
+    },
   });
 }
 
@@ -190,6 +203,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
   const [photoModal, setPhotoModal] = useState<{ uri: string; base64?: string } | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const pulseAnims = useRef(
     Array.from({ length: PULSE_COUNT }, () => ({
@@ -241,6 +255,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   }, [activeChild?.id]);
 
+  const loadPendingCount = useCallback(async () => {
+    if (!activeChild?.id) { setPendingCount(0); return; }
+    try {
+      const count = await getPendingRecordsCount(activeChild.id);
+      setPendingCount(count);
+    } catch (e) {
+      console.error('[Home] loadPendingCount error:', e);
+    }
+  }, [activeChild?.id]);
+
   const loadRecords = useCallback(async () => {
     try {
       if (!isDatabaseReady()) { setRecords([]); return; }
@@ -265,17 +289,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       setIsLoading(true);
       loadRecords();
       loadActiveEvents();
+      loadPendingCount();
       reloadWidgets();
       getSetting(HOME_SUBTITLE_KEY).then(val => {
         setSubtitle(val ?? HOME_SUBTITLE_DEFAULT);
       });
       warmDeno();
-      processOfflineQueue().then(() => loadRecords()).catch(() => {});
+      processOfflineQueue().then(() => { loadRecords(); loadPendingCount(); }).catch(() => {});
       return () => setShowEmptyState(false);
-    }, [loadRecords, loadActiveEvents, reloadWidgets])
+    }, [loadRecords, loadActiveEvents, loadPendingCount, reloadWidgets])
   );
 
-  useEffect(() => { loadRecords(); loadActiveEvents(); }, [activeChild?.id]);
+  useEffect(() => { loadRecords(); loadActiveEvents(); loadPendingCount(); }, [activeChild?.id, loadRecords, loadActiveEvents, loadPendingCount]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -644,6 +669,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 <Ionicons name="send" size={18} color={colors.textOnPrimary} />
               )}
             </TouchableOpacity>
+          </View>
+        )}
+
+        {pendingCount > 0 && (
+          <View style={styles.pendingBanner}>
+            <Text style={styles.pendingBannerText}>
+              ⏳ <Text style={styles.pendingBannerCount}>{pendingCount}개 기록</Text>이 AI 분석 대기 중입니다
+            </Text>
+            <Text style={[styles.pendingBannerText, { marginTop: 4 }]}>네트워크 복구 시 자동으로 완료됩니다</Text>
           </View>
         )}
 

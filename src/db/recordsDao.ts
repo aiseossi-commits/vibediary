@@ -142,6 +142,20 @@ export async function updateRecordPhoto(id: string, photoUrl: string): Promise<v
   );
 }
 
+// AI 분석 대기 중인 기록 수 조회
+export async function getPendingRecordsCount(childId?: string): Promise<number> {
+  const db = await getDatabase();
+  const row = childId !== undefined
+    ? await db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM records WHERE ai_pending = 1 AND child_id = ?',
+        childId
+      )
+    : await db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM records WHERE ai_pending = 1'
+      );
+  return row?.count ?? 0;
+}
+
 // 미분류 기록 수 조회 (child_id IS NULL)
 export async function getOrphanedRecordsCount(): Promise<number> {
   const db = await getDatabase();

@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 가족 피드 동기화 전면 보강 — Phase 1~4 + 백업 복원 sync` (main, 2026-04-24)
+**마지막 커밋**: `feat: aiPending 피드백 UI — HomeScreen 배너 + RecordDetailScreen 배너` (main, 2026-04-25)
 
 **현재 브랜치**: main
 
@@ -17,6 +17,10 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] AI 실패 피드백 UI 구현 — 3원칙 검증 UX 원칙 개선: (1) recordsDao.ts: getPendingRecordsCount(childId?) 함수 추가 (2) HomeScreen.tsx: pending count 배지 추가 (loadPendingCount, eventSection 위 배너) (3) RecordDetailScreen.tsx: aiPending 배너 이미 구현 확인 (⏳ AI가 기록을 분석하고 있습니다 메시지)
+  - 효과: 사용자가 HomeScreen에서 대기 중인 기록 개수를 한눈에 파악 가능 + RecordDetailScreen 상세 조회 시 aiPending 상태 명시
+  - 3원칙 검증 결과: 안전성 ✓ 통과, 친화성 ⚠️ 개선 완료, 효율성 ✓ 통과
 
 - [x] AI 프롬프트 일관성 개선 — 3가지 주요 불일치 해결: (1) #행동 태그 부여 규칙: "event_type=behavioral_incident이면 tags 맨 앞에 반드시 포함" 강화 (2) consequence 정의: "신체손상·의료정보 제외, 보호자의 직접적 대응만" 명확화 (3) #의료 판정: "의료인 개입 필수" 구체화 (4) 예시 JSON 완전 재작성 + ⚠️ 필수 체크사항 섹션 추가 (aiProcessor.ts) (5) 온톨로지.md 업데이트 (consequence, #행동, #의료 정의 동기화)
   - 재테스트 결과: event_type 100% 일치 (behavioral_incident), #행동 부여 개선 (40%→일부 개선), consequence 의료데이터 오염 지속 (모델 한계)
