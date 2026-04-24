@@ -10,7 +10,7 @@
 
 **현재 브랜치**: main
 
-**미커밋**: Phase 2 — pending_deletes 큐 + Supabase hard delete
+**미커밋**: Phase 3 — 싱글플라이트 락 + 재시도 트리거
 
 **DB 현재 버전**: v17 (records.photo_url)
 
@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] 가족 피드 동기화 Phase 3 완료: syncPendingRecords 싱글플라이트 락 (try/finally) + AppState active 복귀·네트워크 복구·세션 확보 재동기화 트리거 (AppNavigator)
 - [x] 가족 피드 동기화 Phase 2 완료: DB v19 `pending_deletes` 테이블 추가 + `deleteRecord` → 로컬 hard delete + 큐 등록 + `processPendingDeletes()` → Supabase 삭제 처리 (syncPendingRecords에 통합)
 - [x] 가족 피드 동기화 Phase 1 완료: DB v18 `records.updated_at` 추가 + DAO mutation 자동 `is_synced=0`·`updated_at` 마킹 (`updateRecord`, `updateRecordPhoto`, `setTagsForRecord`) + syncService last-write-wins upsert + Supabase 컬럼 추가
 - [x] 보안 2차 점검 A영역 진행 중: RLS 정책 분석 완료 + `joinFamilyRoom` → `join_family_by_code` SECURITY DEFINER RPC로 교체 (families SELECT 열람 없이 원자적 가입, 열거 공격 차단)

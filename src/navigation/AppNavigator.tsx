@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Alert, ActivityIndicator, View, Text, Linking, Platform } from 'react-native';
+import { Alert, ActivityIndicator, View, Text, Linking, Platform, AppState, AppStateStatus } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -16,12 +17,13 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import FamilyShareScreen from '../screens/FamilyShareScreen';
 import FamilyFeedScreen from '../screens/FamilyFeedScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
-import { runInitialMigration } from '../services/syncService';
+import { runInitialMigration, syncPendingRecords } from '../services/syncService';
 import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
 import Constants from 'expo-constants';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
+import { useAuth } from '../context/AuthContext';
 
 function isOlderVersion(current: string, min: string): boolean {
   const c = current.split('.').map(Number);
@@ -84,7 +86,11 @@ function TabNavigator() {
 export default function AppNavigator() {
   const { colors } = useTheme();
   const { children: childList, isLoaded, refreshChildren } = useChild();
+  const { session } = useAuth();
   const pendingFileUrl = useRef<string | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const prevConnectedRef = useRef<boolean | null>(null);
+  const prevHasSessionRef = useRef<boolean>(false);
 
   // 인앱 업데이트 체크
   useEffect(() => {
@@ -189,6 +195,38 @@ export default function AppNavigator() {
       void runInitialMigration().catch(() => {});
     }
   }, [isLoaded]);
+
+  // AppState active 복귀 시 재동기화
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (appStateRef.current !== 'active' && nextState === 'active') {
+        void syncPendingRecords().catch(() => {});
+      }
+      appStateRef.current = nextState;
+    });
+    return () => sub.remove();
+  }, []);
+
+  // 네트워크 오프라인 → 온라인 복구 시 재동기화
+  useEffect(() => {
+    const unsub = NetInfo.addEventListener((state) => {
+      const isNowConnected = !!(state.isConnected && state.isInternetReachable);
+      if (prevConnectedRef.current === false && isNowConnected) {
+        void syncPendingRecords().catch(() => {});
+      }
+      prevConnectedRef.current = isNowConnected;
+    });
+    return () => unsub();
+  }, []);
+
+  // 익명 인증 세션 확보 직후 재동기화 (앱 시작 시 auth가 sync보다 늦게 완료될 경우 대비)
+  useEffect(() => {
+    const hasSession = session !== null;
+    if (!prevHasSessionRef.current && hasSession) {
+      void syncPendingRecords().catch(() => {});
+    }
+    prevHasSessionRef.current = hasSession;
+  }, [session]);
 
   if (!isLoaded) {
     return (

@@ -5,6 +5,8 @@ import { getSetting, setSetting } from '../db/appSettingsDao';
 const INITIAL_MIGRATION_KEY = 'is_initial_migration_done';
 const BATCH_SIZE = 50;
 
+let isSyncInFlight = false;
+
 async function getAuthContext(): Promise<{ userId: string; familyId: string | null; authorName: string } | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -87,6 +89,8 @@ export async function processPendingDeletes(): Promise<void> {
 }
 
 export async function syncPendingRecords(): Promise<void> {
+  if (isSyncInFlight) return;
+  isSyncInFlight = true;
   try {
     const db = await getDatabase();
     const rows = await db.getAllAsync<{ id: string }>(
@@ -99,6 +103,8 @@ export async function syncPendingRecords(): Promise<void> {
     await processPendingDeletes();
   } catch {
     // 무시
+  } finally {
+    isSyncInFlight = false;
   }
 }
 
