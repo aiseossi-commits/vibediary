@@ -293,6 +293,18 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 17');
     }
 
+    if (currentVersion < 18) {
+      // v17 → v18: records.updated_at 컬럼 추가 (last-write-wins 충돌 정책)
+      try {
+        await database.execAsync('ALTER TABLE records ADD COLUMN updated_at INTEGER DEFAULT 0');
+      } catch {
+        // 컬럼이 이미 존재하면 무시 (신규 설치 케이스)
+      }
+      // 기존 기록은 created_at을 updated_at 초기값으로 설정, is_synced=0 으로 리셋 (전체 재동기화)
+      await database.execAsync('UPDATE records SET updated_at = created_at, is_synced = 0 WHERE updated_at = 0 OR updated_at IS NULL');
+      await database.execAsync('PRAGMA user_version = 18');
+    }
+
     dbInitialized = true;
   })();
 

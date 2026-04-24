@@ -19,9 +19,10 @@ export async function createRecord(params: {
   const now = params.createdAt ?? Date.now();
 
   await db.runAsync(
-    `INSERT INTO records (id, created_at, audio_path, raw_text, summary, structured_data, ai_pending, child_id, source, photo_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO records (id, created_at, updated_at, audio_path, raw_text, summary, structured_data, ai_pending, child_id, source, photo_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
+    now,
     now,
     params.audioPath || null,
     params.rawText ?? null,
@@ -122,6 +123,10 @@ export async function updateRecord(
 
   if (sets.length === 0) return;
 
+  // 모든 수정 시 자동으로 재동기화 마킹 (last-write-wins 충돌 정책)
+  sets.push('is_synced = 0', 'updated_at = ?');
+  values.push(Date.now());
+
   values.push(id);
   await db.runAsync(
     `UPDATE records SET ${sets.join(', ')} WHERE id = ?`,
@@ -131,7 +136,10 @@ export async function updateRecord(
 
 export async function updateRecordPhoto(id: string, photoUrl: string): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync('UPDATE records SET photo_url = ? WHERE id = ?', photoUrl, id);
+  await db.runAsync(
+    'UPDATE records SET photo_url = ?, is_synced = 0, updated_at = ? WHERE id = ?',
+    photoUrl, Date.now(), id
+  );
 }
 
 // 미분류 기록 수 조회 (child_id IS NULL)

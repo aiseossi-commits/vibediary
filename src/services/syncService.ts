@@ -40,9 +40,11 @@ export async function syncRecord(recordId: string): Promise<void> {
       recordId
     );
 
+    // last-write-wins: updated_at이 더 최신인 쪽이 항상 덮어씀
     const { error } = await supabase.from('records').upsert({
       id: row.id,
       created_at: row.created_at,
+      updated_at: row.updated_at ?? row.created_at,
       raw_text: row.raw_text,
       summary: row.summary,
       structured_data: row.structured_data,

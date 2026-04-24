@@ -89,6 +89,11 @@ export async function setTagsForRecord(recordId: string, tagNames: string[], chi
     const tag = await createTag(name, childId);
     await addTagToRecord(recordId, tag.id);
   }
+  // 태그 변경 시 자동으로 재동기화 마킹
+  await db.runAsync(
+    'UPDATE records SET is_synced = 0, updated_at = ? WHERE id = ?',
+    Date.now(), recordId
+  );
 }
 
 // 태그별 기록 수 조회 (바다별), isDefault 포함
