@@ -26,6 +26,9 @@ function buildSystemPrompt(extraTags: string[]): string {
    - 의미 변질 없이 최소한의 문법 교정만 허용
    - 문체는 반드시 **~함/~음 체**로 고정 (예: "약 복용함.", "발작 2회 있었음.", "기분 좋아 보였음.")
 2. tags: 아래 기준에 따라 해당하는 태그를 배열로 반환. 기준에 맞는 태그만 선택하고, 해당 없으면 빈 배열.
+   ※ tags 배열에는 태그명만 포함. 설명 텍스트나 콜론(:) 절대 금지.
+      ✓ ["#행동", "#자해"] (O)
+      ✗ ["#행동: 자해", "#자해: 머리 박기"] (X)
 
 기본 태그 및 적용 기준:
 ※ 상위 태그와 해당 하위 태그를 항상 함께 부여할 것. 예: 물리치료 → ["#치료", "#물리치료"]
@@ -49,7 +52,10 @@ function buildSystemPrompt(extraTags: string[]): string {
 - #패치: 패치, 사각패치, 동전패치, 라이프웨이브
 
 [신체/증상 계열]
-- #의료: 병원 방문, 처방, 발작, 수술, 처치 등 의료 행위. 증상 관찰만으로는 해당 안 됨
+- #의료: 의료인(의사, 간호사)이 직접 개입한 경우만.
+  ✓ 병원/의원/응급실 방문, 처방 발급, 수술, 발작 대응
+  ✗ 가정에서 상처 관찰만 (이마 부딪힘, 멍 생김) → #의료 부여 안 함
+  ✗ 보호자가 직접 처치 (밴드 붙임, 연고 바름) → #의료 부여 안 함
 - #배변: 배변, 배변훈련, 똥, 응가, 설사, 무른변, 변비, 소변, 지림, 빈뇨
 - #수면: 잠, 입면, 낮잠, 밤잠, 새벽에 깸, 악몽, 이갈이
 - #감각: 감각추구, 전정감각, 고유수용감각, 구강추구, 소리과민, 촉각회피
@@ -57,7 +63,9 @@ function buildSystemPrompt(extraTags: string[]): string {
 - #건강: 감기, 중이염, 열, 콧물, 기침, 장염 등 질병·신체 증상 (의료 행위 없는 경우)
 
 [행동/정서 계열]
-- #행동: 하위 행동 태그가 붙을 때 반드시 함께 부여
+- #행동: event_type이 behavioral_incident이면 tags 배열 맨 앞에 반드시 포함.
+  하위 태그(#자해, #기분, #공격행동, #상동행동)보다 앞에 위치.
+  예: ["#행동", "#자해"] (❌ ["#자해"] 단독 금지)
 - #기분: 텐트럼, 멜트다운, 울음, 화남, 기분 좋음
 - #상동행동: 손 흔들기, 빙빙 돌기, 반복 발화, 에코랄리아
 - #자해: 머리 박기, 자해, 물기, 할퀴기
@@ -81,7 +89,9 @@ ${customTagSection}
    b. event_type이 "behavioral_incident"이면:
       - antecedent: 행동을 유발한 선행 사건/상황 (A)
       - behavior: 아이가 보인 구체적 행동 (B)
-      - consequence: 결과 또는 보호자 반응 (C)
+      - consequence: 행동 후 보호자의 직접적 대응만. (예: "안아줌", "자리 피함", "무시함", "이유 설명함")
+        신체 손상·의료 정보는 consequence에 포함하지 말 것.
+        신체 손상은 summary에서 사실 그대로 기술.
       - ABC를 명확히 구분하기 어려우면 해당 필드는 생략 (빈 문자열 사용 금지)
    c. event_type이 "developmental"이면:
       - domain: 관찰된 발달 영역 (예: "언어", "사회성", "인지", "운동", "자조")
@@ -96,8 +106,19 @@ ${customTagSection}
       - K-WISC, 언어발달검사 등: score(총점 또는 대표점수), test_name(검사명), assessment_date
       - **반드시 평면(flat) 구조로 추출. 중첩 객체 사용 금지.**
 
+⚠️ 필수 체크사항:
+- tags 배열: 태그명만 포함. 콜론(:)이나 설명 텍스트 절대 금지.
+  ❌ ["#행동: 자해", "#자해: 머리 박기"]
+  ✓ ["#행동", "#자해", "#기분"]
+- consequence: 신체 손상·의료 정보 절대 금지. 보호자의 대응만.
+  ❌ consequence: "이마에 상처가 나고 피가 조금 남"
+  ✓ consequence: "안아줌" 또는 "달래줔음" 또는 ""
+- behavioral_incident이면 tags의 첫 번째가 반드시 "#행동"일 것.
+  ❌ ["#기분", "#자해"]
+  ✓ ["#행동", "#기분", "#자해"]
+
 JSON 응답 예시 (behavioral_incident):
-{"summary": "마트에서 과자 사달라는 요구 거절 후 드러누워 울었음.", "tags": ["#행동"], "structured_data": {"event_type": "behavioral_incident", "antecedent": "마트에서 과자 구매 거절", "behavior": "드러누워 울기", "consequence": "그냥 지나침"}}
+{"summary": "마트에서 과자 사달라는 요구 거절 후 드러누워 울었음.", "tags": ["#행동", "#기분"], "structured_data": {"event_type": "behavioral_incident", "antecedent": "마트에서 과자 구매 거절", "behavior": "드러누워 울기", "consequence": "달래줌"}}
 
 JSON 응답 예시 (developmental):
 {"summary": "오늘 처음으로 '엄마' 발화함.", "tags": ["#발달"], "structured_data": {"event_type": "developmental", "domain": "언어"}}
@@ -108,8 +129,11 @@ JSON 응답 예시 (medical):
 JSON 응답 예시 (치료 세션):
 {"summary": "오늘 언어치료 세션에서 두 단어 조합 연습함.", "tags": ["#치료", "#언어치료"], "structured_data": {"event_type": "daily"}}
 
-JSON 응답 예시 (보충제):
-{"summary": "아침에 마그네슘 200mg, 비타민C 복용함.", "tags": ["#투약", "#보충제"], "structured_data": {"event_type": "medical", "medication": "마그네슘 200mg, 비타민C"}}
+JSON 응답 예시 (보충제 — 의료인 처방 없음):
+{"summary": "아침에 마그네슘 200mg, 비타민C 복용함.", "tags": ["#투약", "#보충제"], "structured_data": {"event_type": "daily"}}
+
+JSON 응답 예시 (행동+신체손상 — 의료인 개입 없음):
+{"summary": "화가 나서 소리를 지르다가 벽에 머리를 부딪혀 이마에 작은 상처가 났음.", "tags": ["#행동", "#기분"], "structured_data": {"event_type": "behavioral_incident", "antecedent": "화남", "behavior": "소리 지르기, 벽에 머리 부딪히기", "consequence": "안아줌"}}
 
 JSON 응답 예시 (장소·음식·인과 가설 포함):
 {"summary": "저녁에 장어 먹은 후 차 안에서 트림을 계속함. 장어 때문인지 불확실.", "tags": ["#건강"], "structured_data": {"event_type": "daily"}}

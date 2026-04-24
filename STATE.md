@@ -18,6 +18,9 @@
 
 ## 최근 완료된 작업
 
+- [x] AI 프롬프트 일관성 개선 — 3가지 주요 불일치 해결: (1) #행동 태그 부여 규칙: "event_type=behavioral_incident이면 tags 맨 앞에 반드시 포함" 강화 (2) consequence 정의: "신체손상·의료정보 제외, 보호자의 직접적 대응만" 명확화 (3) #의료 판정: "의료인 개입 필수" 구체화 (4) 예시 JSON 완전 재작성 + ⚠️ 필수 체크사항 섹션 추가 (aiProcessor.ts) (5) 온톨로지.md 업데이트 (consequence, #행동, #의료 정의 동기화)
+  - 재테스트 결과: event_type 100% 일치 (behavioral_incident), #행동 부여 개선 (40%→일부 개선), consequence 의료데이터 오염 지속 (모델 한계)
+  - 다음 단계: 후처리 검증 로직 필요 가능성
 - [x] 상세 데이터(structured_data) 일관성 개선 — 지연 저장 정책 도입: (1) AI 처리 실패 시 structured_data=null로 저장 (기존 fallback 빈객체={} 제거, aiPending=true 마킹) (2) recordPipeline.ts: processFromText/processTextRecord 수정 (3) offlineQueue.ts: AI 재처리 실패 시 structured_data 업데이트 안 함, aiPending 유지 (4) DB v20 마이그레이션: 기존 structured_data={} 항목을 null로 정리
 
 - [x] 백업 복원(restoreOverwrite/restoreMerge) 동기화 보강: is_synced=0·updated_at=created_at로 INSERT + 복원 완료 후 syncPendingRecords() 호출 (backupService.ts)
