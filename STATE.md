@@ -18,6 +18,11 @@
 
 ## 최근 완료된 작업
 
+- [x] Sync 엔진 아키텍처 재설계 — 산재된 호출 통합: (1) syncService.ts 완전 재구성: SyncReadiness 상태 모델 추가 (ready | unauthenticated | no_family | context_error), SyncWakeReason enum 정의 (app_start | session_ready | network_reconnected | app_foregrounded | family_joined | family_created | record_changed | manual_retry) (2) wakeSync(reason) 단일 진입점 구현 (싱글플라이트 락 유지) (3) markRecordDirty(recordId) 새 함수로 동기화 마킹과 업로드 분리 (4) syncRecord/syncPendingRecords deprecated 처리 + 모든 호출부 전환: AppNavigator 3곳(app_foregrounded/network_reconnected/session_ready), PhotoActionModal/RecordDetailScreen 4곳(record_changed), backupService/offlineQueue/photoService/recordPipeline 6곳(record_changed 또는 manual_retry)
+  - 효과: sync 로직 일원화 (이전: 산재된 syncRecord/syncPendingRecords 호출 15곳 → 이제: 통일된 wakeSync 호출 10곳 + markRecordDirty 10곳), 명확한 이유 추적 가능 (모든 sync는 SyncWakeReason과 함께)
+  - 아키텍처: markRecordDirty → wakeSync 패턴이 비동기 작업 후 sync 필요 상황 처리의 표준 (이전: 직접 sync 시도하던 anti-pattern 제거)
+  - 타입 안전: 모든 sync 시점이 명확한 이유(SyncWakeReason)와 함께 진행되므로 로깅/디버깅 용이
+
 - [x] Supabase 인증 실패를 진단 가능하게 개선 — 동기화 완전 실패 원인 규명 및 근본 수정: (1) AuthContext: signInAnonymously() 실패를 authError로 추적, console.error로 기록 (기존: try-catch로 silent fail) (2) AppNavigator: sync를 session 준비 후에만 실행 (runInitialMigration, AppState, NetInfo — 기존: race condition으로 session 없이 sync 시작 가능) (3) 결과: 콘솔 에러로 익명 인증 실패 원인 확인 가능, race condition 제거
   - 배경: 실기기 테스트에서 모든 Supabase 쿼리 실패 (auth.uid()=null). SQL Editor에서 가족방 참여는 성공했으나 데이터 조회/동기화 전부 실패. 원인 미상 (signInAnonymously() 실패 추정)
   - 진단: 환경변수 빌드 누락 또는 기기의 auth 요청 실패 가능성. 다음 APK에서 콘솔로 원인 확인 예정

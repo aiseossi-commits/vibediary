@@ -5,7 +5,7 @@ import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { addToOfflineQueue } from './offlineQueue';
 import { getDatabase } from '../db/database';
 import { DEFAULT_TAGS } from '../db/schema';
-import { syncRecord } from './syncService';
+import { markRecordDirty, wakeSync } from './syncService';
 import type { AIProcessingResult } from '../types/record';
 
 async function getCustomTagNames(childId?: string): Promise<string[]> {
@@ -112,7 +112,8 @@ export async function processFromText(audioUri: string, text: string, createdAt?
     }
   });
 
-  void syncRecord(recordId).catch(() => {});
+  await markRecordDirty(recordId);
+  void wakeSync('record_changed');
   return recordId;
 }
 
@@ -154,6 +155,7 @@ export async function processTextRecord(text: string, childId?: string, date?: s
     }
   });
 
-  void syncRecord(recordId).catch(() => {});
+  await markRecordDirty(recordId);
+  void wakeSync('record_changed');
   return recordId;
 }

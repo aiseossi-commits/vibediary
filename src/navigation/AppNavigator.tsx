@@ -17,7 +17,7 @@ import OnboardingScreen from '../screens/OnboardingScreen';
 import FamilyShareScreen from '../screens/FamilyShareScreen';
 import FamilyFeedScreen from '../screens/FamilyFeedScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
-import { runInitialMigration, syncPendingRecords } from '../services/syncService';
+import { runInitialMigration, wakeSync } from '../services/syncService';
 import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
 import Constants from 'expo-constants';
@@ -200,7 +200,7 @@ export default function AppNavigator() {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (appStateRef.current !== 'active' && nextState === 'active' && session) {
-        void syncPendingRecords().catch(() => {});
+        void wakeSync('app_foregrounded');
       }
       appStateRef.current = nextState;
     });
@@ -212,7 +212,7 @@ export default function AppNavigator() {
     const unsub = NetInfo.addEventListener((state) => {
       const isNowConnected = !!(state.isConnected && state.isInternetReachable);
       if (prevConnectedRef.current === false && isNowConnected && session) {
-        void syncPendingRecords().catch(() => {});
+        void wakeSync('network_reconnected');
       }
       prevConnectedRef.current = isNowConnected;
     });
@@ -223,7 +223,7 @@ export default function AppNavigator() {
   useEffect(() => {
     const hasSession = session !== null;
     if (!prevHasSessionRef.current && hasSession) {
-      void syncPendingRecords().catch(() => {});
+      void wakeSync('session_ready');
     }
     prevHasSessionRef.current = hasSession;
   }, [session]);

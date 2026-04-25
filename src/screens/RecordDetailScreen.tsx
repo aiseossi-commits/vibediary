@@ -30,7 +30,7 @@ import { getSignedPhotoUrl } from '../services/photoService';
 import { processWithAI, createFallbackResult } from '../services/aiProcessor';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { onQueueProcessed } from '../services/offlineQueue';
-import { syncRecord } from '../services/syncService';
+import { markRecordDirty, wakeSync } from '../services/syncService';
 import { useChild } from '../context/ChildContext';
 import TagChip from '../components/TagChip';
 import TimePickerModal from '../components/TimePickerModal';
@@ -251,7 +251,8 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
     d.setHours(hour, minute, 0, 0);
     try {
       await updateRecord(record.id, { createdAt: d.getTime() });
-      void syncRecord(record.id).catch(() => {});
+      await markRecordDirty(record.id);
+      void wakeSync('record_changed');
       await loadRecord();
     } catch {
       Alert.alert('오류', '시간 저장에 실패했습니다');
@@ -286,7 +287,8 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
       try { aiResult = await processWithAI(trimmed); } catch { aiResult = createFallbackResult(trimmed); }
       await updateRecord(record.id, { rawText: trimmed, summary: aiResult.summary, structuredData: aiResult.structuredData, aiPending: false });
       await setTagsForRecord(record.id, aiResult.tags, record.childId ?? undefined);
-      void syncRecord(record.id).catch(() => {});
+      await markRecordDirty(record.id);
+      void wakeSync('record_changed');
       await loadRecord();
     } catch (error) {
       console.error('Failed to reprocess:', error);
@@ -354,7 +356,8 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
     try {
       const selectedNames = availableTags.filter((t) => editingTagIds.includes(t.id)).map((t) => t.name);
       await setTagsForRecord(record.id, selectedNames, activeChild?.id);
-      void syncRecord(record.id).catch(() => {});
+      await markRecordDirty(record.id);
+      void wakeSync('record_changed');
       await loadRecord();
       setIsEditingTags(false);
     } catch (error) {

@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
 import { createRecord } from '../db/recordsDao';
-import { syncRecord } from './syncService';
+import { markRecordDirty, wakeSync } from './syncService';
 import { getAIUsage, incrementAIUsage, AI_MONTHLY_LIMIT } from '../db/appSettingsDao';
 
 const MAX_DIMENSION = 1024; // 긴 변 최대 1024px → JPEG 0.7 기준 약 100~200KB
@@ -121,7 +121,8 @@ export async function savePhotoRecord(params: {
     source: 'voice',
     createdAt,
   });
-  void syncRecord(id).catch(() => {});
+  await markRecordDirty(id);
+  void wakeSync('record_changed');
   return id;
 }
 

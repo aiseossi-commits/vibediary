@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { uploadPhoto, savePhotoRecord } from '../services/photoService';
 import { processTextRecord } from '../services/recordPipeline';
 import { updateRecordPhoto } from '../db/recordsDao';
-import { syncRecord } from '../services/syncService';
+import { markRecordDirty, wakeSync } from '../services/syncService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 
 interface Props {
@@ -53,7 +53,8 @@ export default function PhotoActionModal({
         processTextRecord(inputText.trim(), activeChild?.id, date),
       ]);
       await updateRecordPhoto(recordId, photoUrl);
-      void syncRecord(recordId).catch(() => {});
+      await markRecordDirty(recordId);
+      void wakeSync('record_changed');
       onSaved();
       resetAndClose();
     } catch (e) {

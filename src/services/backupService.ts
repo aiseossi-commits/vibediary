@@ -6,7 +6,7 @@ import { getDatabase } from '../db/database';
 import { getAllChildren } from '../db/childrenDao';
 import { getAllRecordTags } from '../db/tagsDao';
 import { getAllRecordsForBackup } from '../db/recordsDao';
-import { syncPendingRecords } from './syncService';
+import { wakeSync } from './syncService';
 
 const BACKUP_VERSION = 2;
 
@@ -215,7 +215,7 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
   // 태그 없는 기록 AI 재처리 큐 등록 (복구 실패 또는 원래부터 태그 누락된 기록 구제)
   await _requeueUntaggedRecords(db);
   // 복원된 기록 전체를 가족 피드에 동기화
-  void syncPendingRecords().catch(() => {});
+  void wakeSync('manual_retry');
 }
 
 // 병합 복원: 기존 데이터 유지 + 신규 데이터만 추가
@@ -335,7 +335,7 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   // 태그 없는 기록 AI 재처리 큐 등록
   await _requeueUntaggedRecords(db);
   // 복원된 기록 전체를 가족 피드에 동기화
-  void syncPendingRecords().catch(() => {});
+  void wakeSync('manual_retry');
 }
 
 // 태그 없는 기록을 AI 재처리 큐에 등록 (raw_text 있고 record_tags 없는 기록)
