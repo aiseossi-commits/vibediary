@@ -18,6 +18,10 @@
 
 ## 최근 완료된 작업
 
+- [x] 가족방 가입/생성 직후 동기화 누락 수정 — 진짜 근본 원인 해결: FamilyShareScreen.handleCreate/handleJoin 직후 `wakeSync('family_created'/'family_joined')` 호출 추가. 기존: SyncWakeReason enum에는 정의되어 있었으나 호출부 누락 → 가족방 참여 직후 로컬 누적 records (is_synced=0)가 다음 트리거(앱 재시작/네트워크 변경)까지 영원히 안 올라감. 이제 가입 즉시 누적 records 자동 업로드.
+  - 증거: family_members에는 user `59febfac` ↔ family `830dc87e` 등록됨, 그러나 records 테이블에서 같은 user의 family_id는 NULL/다른 family로 분산 → 현재 가족방으로 들어간 record 0건 (sync 트리거 부재 증명)
+  - 빌드: vibediary04260734.apk (versionCode 22)
+
 - [x] Sync 엔진 아키텍처 재설계 — 산재된 호출 통합: (1) syncService.ts 완전 재구성: SyncReadiness 상태 모델 추가 (ready | unauthenticated | no_family | context_error), SyncWakeReason enum 정의 (app_start | session_ready | network_reconnected | app_foregrounded | family_joined | family_created | record_changed | manual_retry) (2) wakeSync(reason) 단일 진입점 구현 (싱글플라이트 락 유지) (3) markRecordDirty(recordId) 새 함수로 동기화 마킹과 업로드 분리 (4) syncRecord/syncPendingRecords deprecated 처리 + 모든 호출부 전환: AppNavigator 3곳(app_foregrounded/network_reconnected/session_ready), PhotoActionModal/RecordDetailScreen 4곳(record_changed), backupService/offlineQueue/photoService/recordPipeline 6곳(record_changed 또는 manual_retry)
   - 효과: sync 로직 일원화 (이전: 산재된 syncRecord/syncPendingRecords 호출 15곳 → 이제: 통일된 wakeSync 호출 10곳 + markRecordDirty 10곳), 명확한 이유 추적 가능 (모든 sync는 SyncWakeReason과 함께)
   - 아키텍처: markRecordDirty → wakeSync 패턴이 비동기 작업 후 sync 필요 상황 처리의 표준 (이전: 직접 sync 시도하던 anti-pattern 제거)
