@@ -189,35 +189,35 @@ export default function AppNavigator() {
     }
   }, [isLoaded, handleIncomingFile]);
 
-  // 앱 시작 시 Supabase 동기화 (백그라운드)
+  // 앱 시작 시 Supabase 동기화 (백그라운드) — session 준비 후에만 실행
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && session) {
       void runInitialMigration().catch(() => {});
     }
-  }, [isLoaded]);
+  }, [isLoaded, session]);
 
   // AppState active 복귀 시 재동기화
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      if (appStateRef.current !== 'active' && nextState === 'active') {
+      if (appStateRef.current !== 'active' && nextState === 'active' && session) {
         void syncPendingRecords().catch(() => {});
       }
       appStateRef.current = nextState;
     });
     return () => sub.remove();
-  }, []);
+  }, [session]);
 
   // 네트워크 오프라인 → 온라인 복구 시 재동기화
   useEffect(() => {
     const unsub = NetInfo.addEventListener((state) => {
       const isNowConnected = !!(state.isConnected && state.isInternetReachable);
-      if (prevConnectedRef.current === false && isNowConnected) {
+      if (prevConnectedRef.current === false && isNowConnected && session) {
         void syncPendingRecords().catch(() => {});
       }
       prevConnectedRef.current = isNowConnected;
     });
     return () => unsub();
-  }, []);
+  }, [session]);
 
   // 익명 인증 세션 확보 직후 재동기화 (앱 시작 시 auth가 sync보다 늦게 완료될 경우 대비)
   useEffect(() => {
