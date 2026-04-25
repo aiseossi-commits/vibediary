@@ -6,6 +6,7 @@ import { addToOfflineQueue } from './offlineQueue';
 import { getDatabase } from '../db/database';
 import { DEFAULT_TAGS } from '../db/schema';
 import { syncRecord } from './syncService';
+import type { AIProcessingResult } from '../types/record';
 
 async function getCustomTagNames(childId?: string): Promise<string[]> {
   try {
@@ -14,6 +15,51 @@ async function getCustomTagNames(childId?: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+// 후처리 검증: AI 응답 정제 (consequence 정제, tags 정규화, #행동 배치)
+export function validateAndCleanStructuredData(result: AIProcessingResult, customTagNames: string[]): AIProcessingResult {
+  const allowedTags = new Set([...DEFAULT_TAGS, ...customTagNames]);
+
+  // 1. consequence 정제: 의료 데이터 제거
+  if (result.structuredData && 'consequence' in result.structuredData && typeof result.structuredData.consequence === 'string') {
+    const medicalPatterns = [
+      '상처', '피', '병원', '응급실', '의원', '응급', '처치',
+      '밴드', '연고', '붕대', '발작', '수술', '검사', '멍',
+    ];
+    const hasmedicalKeyword = medicalPatterns.some(pattern =>
+      result.structuredData.consequence!.includes(pattern)
+    );
+    if (hasmedicalKeyword) {
+      (result.structuredData as any).consequence = '';
+    }
+  }
+
+  // 2. tags 정규화: 콜론 제거, 정의되지 않은 태그 필터링, 중복 제거
+  if (Array.isArray(result.tags)) {
+    result.tags = [
+      ...new Set(
+        result.tags
+          .map(tag => {
+            const cleanTag = tag.split(':')[0].split('(')[0].trim();
+            return cleanTag.startsWith('#') ? cleanTag : `#${cleanTag}`;
+          })
+          .filter(tag => allowedTags.has(tag))
+      )
+    ];
+  }
+
+  // 3. behavioral_incident이면 #행동 반드시 맨 앞에
+  if (result.structuredData?.event_type === 'behavioral_incident') {
+    result.tags = result.tags.filter(t => t !== '#행동');
+    if (!result.tags.includes('#행동')) {
+      result.tags.unshift('#행동');
+    } else {
+      result.tags.unshift('#행동');
+    }
+  }
+
+  return result;
 }
 
 // STT만 실행, 실패 시 빈 문자열 반환
@@ -38,6 +84,8 @@ export async function processFromText(audioUri: string, text: string, createdAt?
   const customTags = await getCustomTagNames(childId);
   try {
     aiResult = await processWithAI(text, customTags);
+    // 후처리 검증
+    aiResult = validateAndCleanStructuredData(aiResult, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패 (fromText):', e);
     aiResult = { summary: text.length > 100 ? text.substring(0, 100) + '...' : text, tags: ['#일상'], structuredData: null };
@@ -77,6 +125,8 @@ export async function processTextRecord(text: string, childId?: string, date?: s
   const customTags = await getCustomTagNames(childId);
   try {
     aiResult = await processWithAI(text, customTags);
+    // 후처리 검증
+    aiResult = validateAndCleanStructuredData(aiResult, customTags);
   } catch (e) {
     console.error('[Pipeline] AI 처리 실패 (textRecord):', e);
     aiResult = { summary: text.length > 100 ? text.substring(0, 100) + '...' : text, tags: ['#일상'], structuredData: null };

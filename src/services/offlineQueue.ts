@@ -5,6 +5,7 @@ import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
 import { syncRecord } from './syncService';
+import { validateAndCleanStructuredData } from './recordPipeline';
 
 // 오프라인 큐에 추가
 export async function addToOfflineQueue(recordId: string, rawText: string): Promise<void> {
@@ -105,6 +106,8 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
         let result;
         try {
           result = await processWithAI(item.raw_text, customTags);
+          // 후처리 검증
+          result = validateAndCleanStructuredData(result, customTags);
         } catch (aiError) {
           console.warn(`오프라인 큐 AI 처리 실패 (record: ${item.record_id}):`, aiError);
           // AI 재처리 실패 → structuredData 업데이트 안 함, aiPending 유지

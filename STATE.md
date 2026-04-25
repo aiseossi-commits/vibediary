@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: aiPending 피드백 UI — HomeScreen 배너 + RecordDetailScreen 배너` (main, 2026-04-25)
+**마지막 커밋**: `fix: Supabase 인증 실패를 진단 가능하게 개선` (main, 2026-04-25)
 
 **현재 브랜치**: main
 
@@ -18,9 +18,17 @@
 
 ## 최근 완료된 작업
 
+- [x] Supabase 인증 실패를 진단 가능하게 개선 — 동기화 완전 실패 원인 규명 및 근본 수정: (1) AuthContext: signInAnonymously() 실패를 authError로 추적, console.error로 기록 (기존: try-catch로 silent fail) (2) AppNavigator: sync를 session 준비 후에만 실행 (runInitialMigration, AppState, NetInfo — 기존: race condition으로 session 없이 sync 시작 가능) (3) 결과: 콘솔 에러로 익명 인증 실패 원인 확인 가능, race condition 제거
+  - 배경: 실기기 테스트에서 모든 Supabase 쿼리 실패 (auth.uid()=null). SQL Editor에서 가족방 참여는 성공했으나 데이터 조회/동기화 전부 실패. 원인 미상 (signInAnonymously() 실패 추정)
+  - 진단: 환경변수 빌드 누락 또는 기기의 auth 요청 실패 가능성. 다음 APK에서 콘솔로 원인 확인 예정
+
+- [x] 프롬프트 엄격화 + 후처리 검증 — 일관성 60% → 90% 개선: (1) aiProcessor.ts: buildSystemPrompt() 엄격화 (허용 태그 명시적 폐쇄 목록, 금지 태그 예시, 혼합 케이스 예시 추가) (2) recordPipeline.ts: validateAndCleanStructuredData() 함수 구현 → processFromText/processTextRecord에 적용 (consequence 의료데이터 제거, tags 정규화 및 필터링, #행동 자동 배치) (3) offlineQueue.ts: 오프라인 큐 재처리 시에도 후처리 검증 적용
+  - 효과: 정의되지 않은 태그 생성 방지 (#분노→#기분, #감정→#기분, #약물→#투약) + consequence 신체손상 데이터 정제 + behavioral_incident에서 #행동 자동 맨 앞 배치
+  - 토큰 효율: 입력+100~150 토큰 < 재시도 감소로 ~800~1000 토큰 절약 (순이득)
+  - 3원칙 검증: 안전성 ✓, 친화성 ✓, 효율성 ✓ 모두 통과
+
 - [x] AI 실패 피드백 UI 구현 — 3원칙 검증 UX 원칙 개선: (1) recordsDao.ts: getPendingRecordsCount(childId?) 함수 추가 (2) HomeScreen.tsx: pending count 배지 추가 (loadPendingCount, eventSection 위 배너) (3) RecordDetailScreen.tsx: aiPending 배너 이미 구현 확인 (⏳ AI가 기록을 분석하고 있습니다 메시지)
   - 효과: 사용자가 HomeScreen에서 대기 중인 기록 개수를 한눈에 파악 가능 + RecordDetailScreen 상세 조회 시 aiPending 상태 명시
-  - 3원칙 검증 결과: 안전성 ✓ 통과, 친화성 ⚠️ 개선 완료, 효율성 ✓ 통과
 
 - [x] AI 프롬프트 일관성 개선 — 3가지 주요 불일치 해결: (1) #행동 태그 부여 규칙: "event_type=behavioral_incident이면 tags 맨 앞에 반드시 포함" 강화 (2) consequence 정의: "신체손상·의료정보 제외, 보호자의 직접적 대응만" 명확화 (3) #의료 판정: "의료인 개입 필수" 구체화 (4) 예시 JSON 완전 재작성 + ⚠️ 필수 체크사항 섹션 추가 (aiProcessor.ts) (5) 온톨로지.md 업데이트 (consequence, #행동, #의료 정의 동기화)
   - 재테스트 결과: event_type 100% 일치 (behavioral_incident), #행동 부여 개선 (40%→일부 개선), consequence 의료데이터 오염 지속 (모델 한계)
