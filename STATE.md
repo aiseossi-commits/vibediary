@@ -6,17 +6,20 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: Supabase 인증 실패를 진단 가능하게 개선` (main, 2026-04-25)
+**마지막 커밋**: `feat: 가족 sync 확장 Phase 1+2` (main, 2026-04-26)
 
 **현재 브랜치**: main
 
 **미커밋**: 없음
 
-**DB 현재 버전**: v20 (empty structured_data cleanup)
+**DB 현재 버전**: v21 (UUID 마이그레이션 + sync 컬럼 추가)
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **가족 sync 확장 Phase 1 (Supabase)**: 9개 테이블 생성 + RLS — children, tags, active_events, event_daily_logs, event_name_presets, hidden_default_event_names, synthesis_articles, wiki_pages, search_logs. user_id UUID NOT NULL (FK 없음), family_id → families(id), 모든 테이블 RLS (가족방 멤버 SELECT, 본인 쓰기).
+- [x] **가족 sync 확장 Phase 2 (DB v21)**: 9개 SQLite 테이블 UUID 마이그레이션 + sync 컬럼 추가. INTEGER AUTOINCREMENT → TEXT UUID (8개 테이블), children에 is_synced/updated_at 추가, pending_deletes table_name+row_id 구조로 변경. `PRAGMA foreign_keys = OFF` 안전 마이그레이션. 타입 변경: Tag/SearchLog/SynthesisArticle/WikiPage/ActiveEvent.id number→string, 모든 DAO UUID 생성 패턴 적용.
 
 - [x] 가족방 가입/생성 직후 동기화 누락 수정 — 진짜 근본 원인 해결: FamilyShareScreen.handleCreate/handleJoin 직후 `wakeSync('family_created'/'family_joined')` 호출 추가. 기존: SyncWakeReason enum에는 정의되어 있었으나 호출부 누락 → 가족방 참여 직후 로컬 누적 records (is_synced=0)가 다음 트리거(앱 재시작/네트워크 변경)까지 영원히 안 올라감. 이제 가입 즉시 누적 records 자동 업로드.
   - 증거: family_members에는 user `59febfac` ↔ family `830dc87e` 등록됨, 그러나 records 테이블에서 같은 user의 family_id는 NULL/다른 family로 분산 → 현재 가족방으로 들어간 record 0건 (sync 트리거 부재 증명)

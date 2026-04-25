@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import { DEFAULT_TAGS } from './schema';
 import type { Tag } from '../types/record';
@@ -20,7 +21,8 @@ export async function createTag(name: string, childId?: string): Promise<Tag> {
   const normalizedName = name.startsWith('#') ? name : `#${name}`;
 
   await db.runAsync(
-    'INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)',
+    'INSERT OR IGNORE INTO tags (id, name, child_id) VALUES (?, ?, ?)',
+    Crypto.randomUUID(),
     normalizedName,
     childId ?? null
   );
@@ -40,7 +42,7 @@ export async function createTag(name: string, childId?: string): Promise<Tag> {
 }
 
 // 태그 이름 변경
-export async function renameTag(tagId: number, newName: string, childId?: string): Promise<void> {
+export async function renameTag(tagId: string, newName: string, childId?: string): Promise<void> {
   const db = await getDatabase();
   const normalizedName = newName.startsWith('#') ? newName : `#${newName}`;
   // 같은 바다 내 중복 이름 체크
@@ -58,21 +60,21 @@ export async function renameTag(tagId: number, newName: string, childId?: string
 }
 
 // 태그 삭제
-export async function deleteTag(tagId: number): Promise<void> {
+export async function deleteTag(tagId: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM tags WHERE id = ?', tagId);
 }
 
 // 백업용: record_tags 전체 조회
-export async function getAllRecordTags(): Promise<{ record_id: string; tag_id: number }[]> {
+export async function getAllRecordTags(): Promise<{ record_id: string; tag_id: string }[]> {
   const db = await getDatabase();
-  return db.getAllAsync<{ record_id: string; tag_id: number }>(
+  return db.getAllAsync<{ record_id: string; tag_id: string }>(
     'SELECT record_id, tag_id FROM record_tags'
   );
 }
 
 // 기록에 태그 연결 (내부용)
-async function addTagToRecord(recordId: string, tagId: number): Promise<void> {
+async function addTagToRecord(recordId: string, tagId: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     'INSERT OR IGNORE INTO record_tags (record_id, tag_id) VALUES (?, ?)',

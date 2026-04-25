@@ -306,7 +306,7 @@ export default function EventTrackerModal({ visible, onClose, childId, activeEve
   const [customPresets, setCustomPresets] = useState<string[]>([]);
   const [hiddenDefaults, setHiddenDefaults] = useState<string[]>([]);
   const [staged, setStaged] = useState<StagedItem[]>([]);
-  const [todayLogs, setTodayLogs] = useState<Record<number, EventSeverity>>({});
+  const [todayLogs, setTodayLogs] = useState<Record<string, EventSeverity>>({});
 
   const loadPresets = useCallback(async () => {
     const [presets, hidden] = await Promise.all([
@@ -362,7 +362,7 @@ export default function EventTrackerModal({ visible, onClose, childId, activeEve
     onChanged();
   }
 
-  async function handleSeverity(eventId: number, severity: EventSeverity) {
+  async function handleSeverity(eventId: string, severity: EventSeverity) {
     await upsertDailyLog(eventId, todayStr(), severity);
     setTodayLogs(prev => ({ ...prev, [eventId]: severity }));
   }

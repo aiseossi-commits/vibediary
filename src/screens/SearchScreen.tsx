@@ -272,7 +272,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
   const [logs, setLogs] = useState<SearchLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedPageIds, setExpandedPageIds] = useState<Set<string>>(new Set());
-  const [expandedLogIds, setExpandedLogIds] = useState<Set<number>>(new Set());
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const { canUseAI, remaining, checkAndIncrement, isPremium } = useAIUsage();
@@ -302,7 +302,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
     });
   }, []);
 
-  const toggleLog = useCallback((id: number) => {
+  const toggleLog = useCallback((id: string) => {
     setExpandedLogIds(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -328,7 +328,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
     }
   }, [childId, isGenerating, loadAll]);
 
-  const handleDeleteLog = useCallback((id: number) => {
+  const handleDeleteLog = useCallback((id: string) => {
     Alert.alert('삭제', '저장된 답변을 삭제할까요?', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: async () => {

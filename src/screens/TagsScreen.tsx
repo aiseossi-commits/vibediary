@@ -167,14 +167,14 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   const { activeChild } = useChild();
 
   const [tags, setTags] = useState<TagWithCount[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<RecordWithTags[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [showCreateInput, setShowCreateInput] = useState(false);
-  const [editingTagId, setEditingTagId] = useState<number | null>(null);
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [longPressedTagId, setLongPressedTagId] = useState<number | null>(null);
+  const [longPressedTagId, setLongPressedTagId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList<RecordWithTags>>(null);
   const headerHeightRef = useRef(0);
   const scrollToInput = useCallback(() => {
@@ -204,7 +204,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
   // 화면 포커스 시 갱신 (다른 탭에서 돌아올 때)
   useFocusEffect(useCallback(() => { setIsLoading(true); loadTags(); }, [loadTags]));
 
-  const loadFilteredRecords = useCallback(async (tagIds: number[]) => {
+  const loadFilteredRecords = useCallback(async (tagIds: string[]) => {
     if (tagIds.length === 0 || !isDatabaseReady()) { setFilteredRecords([]); return; }
     setIsLoadingRecords(true);
     try {
@@ -217,7 +217,7 @@ export default function TagsScreen({ navigation }: TagsScreenProps) {
     }
   }, [activeChild?.id]);
 
-  const handleToggleTag = useCallback((tagId: number) => {
+  const handleToggleTag = useCallback((tagId: string) => {
     setLongPressedTagId(null);
     setSelectedTagIds((prev) => {
       const next = prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId];

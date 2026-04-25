@@ -24,10 +24,10 @@ export interface BackupData {
     is_synced: number;
     child_id: string | null;
   }[];
-  tags: { id: number; name: string; child_id?: string | null }[];
-  recordTags: { record_id: string; tag_id: number }[];
+  tags: { id: string; name: string; child_id?: string | null }[];
+  recordTags: { record_id: string; tag_id: string }[];
   synthesisArticles: {
-    id: number;
+    id: string;
     child_id: string;
     type: string;
     title: string;
@@ -39,7 +39,7 @@ export interface BackupData {
     updated_at: number;
   }[];
   wikiPages?: {
-    id: number;
+    id: string;
     child_id: string;
     slug: string;
     title: string;
@@ -62,16 +62,16 @@ export async function exportBackup(): Promise<void> {
     getAllRecordTags(),
   ]);
   const [tags, synthesisArticles, wikiPages] = await Promise.all([
-    db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
+    db.getAllAsync<{ id: string; name: string; child_id: string | null }>(
       'SELECT id, name, child_id FROM tags ORDER BY name'
     ),
     db.getAllAsync<{
-      id: number; child_id: string; type: string; title: string; body: string;
+      id: string; child_id: string; type: string; title: string; body: string;
       source_record_ids: string | null; period_start: number | null; period_end: number | null;
       created_at: number; updated_at: number;
     }>('SELECT id, child_id, type, title, body, source_record_ids, period_start, period_end, created_at, updated_at FROM synthesis_articles ORDER BY created_at ASC'),
     db.getAllAsync<{
-      id: number; child_id: string; slug: string; title: string; type: string; body: string;
+      id: string; child_id: string; slug: string; title: string; type: string; body: string;
       source_record_ids: string | null; cross_refs: string | null; visual_data: string | null;
       created_at: number; updated_at: number;
     }>('SELECT id, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at FROM wiki_pages ORDER BY created_at ASC'),
@@ -255,12 +255,12 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   }
 
   // tags 삽입 (name+child_id 조합으로 중복 체크)
-  const existingTagRows = await db.getAllAsync<{ id: number; name: string; child_id: string | null }>(
+  const existingTagRows = await db.getAllAsync<{ id: string; name: string; child_id: string | null }>(
     'SELECT id, name, child_id FROM tags'
   );
   // key: "name|child_id" → id
   const existingTagKey = new Map(existingTagRows.map(t => [`${t.name}|${t.child_id ?? ''}`, t.id]));
-  const tagIdMap = new Map<number, number>(); // 백업 tag id → 실제 tag id
+  const tagIdMap = new Map<string, string>(); // 백업 tag id → 실제 tag id
 
   for (const t of data.tags) {
     const mappedChildId = t.child_id ? (childIdMap.get(t.child_id) ?? t.child_id) : null;
@@ -268,8 +268,9 @@ export async function restoreMerge(data: BackupData): Promise<void> {
     if (existingTagKey.has(key)) {
       tagIdMap.set(t.id, existingTagKey.get(key)!);
     } else {
-      await db.runAsync('INSERT OR IGNORE INTO tags (name, child_id) VALUES (?, ?)', t.name, mappedChildId);
-      const inserted = await db.getFirstAsync<{ id: number }>(
+      const newTagId = Crypto.randomUUID();
+      await db.runAsync('INSERT OR IGNORE INTO tags (id, name, child_id) VALUES (?, ?, ?)', newTagId, t.name, mappedChildId);
+      const inserted = await db.getFirstAsync<{ id: string }>(
         mappedChildId
           ? 'SELECT id FROM tags WHERE name = ? AND child_id = ?'
           : 'SELECT id FROM tags WHERE name = ? AND child_id IS NULL',

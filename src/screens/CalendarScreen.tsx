@@ -192,7 +192,7 @@ export default function CalendarScreen() {
   });
   const [dailySummaries, setDailySummaries] = useState<DailyRecordSummary[]>([]);
   const [monthEvents, setMonthEvents] = useState<ActiveEvent[]>([]);
-  const [dayEventLogs, setDayEventLogs] = useState<Record<number, EventSeverity>>({});
+  const [dayEventLogs, setDayEventLogs] = useState<Record<string, EventSeverity>>({});
   const [dayRecords, setDayRecords] = useState<RecordWithTags[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
@@ -206,7 +206,7 @@ export default function CalendarScreen() {
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
   const [calendarKey, setCalendarKey] = useState(0);
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
-  const [selectedEventForSheet, setSelectedEventForSheet] = useState<{ id: number; name: string } | null>(null);
+  const [selectedEventForSheet, setSelectedEventForSheet] = useState<{ id: string; name: string } | null>(null);
   const [photoModal, setPhotoModal] = useState<{ uri: string; base64?: string } | null>(null);
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
@@ -283,7 +283,7 @@ setDayRecords(records);
     }
   }, [activeChild?.id]);
 
-  const handleDeleteEvent = useCallback(async (id: number) => {
+  const handleDeleteEvent = useCallback(async (id: string) => {
     await deleteEvent(id);
     loadMonthData(currentMonthRef.current);
   }, [loadMonthData]);

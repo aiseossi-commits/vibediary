@@ -320,6 +320,140 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 20');
     }
 
+    if (currentVersion < 21) {
+      // v20 → v21: 9개 sync 대상 테이블 UUID 마이그레이션 + sync 컬럼 추가
+      // pending_deletes: table_name 추가 (record_id → row_id)
+      await database.execAsync('PRAGMA foreign_keys = OFF');
+      const ts = Date.now();
+      const uuid = `lower(substr(hex(randomblob(4)),1,8)||'-'||substr(hex(randomblob(2)),1,4)||'-4'||substr(hex(randomblob(2)),1,3)||'-'||substr('89ab',abs(random())%4+1,1)||substr(hex(randomblob(2)),1,3)||'-'||substr(hex(randomblob(6)),1,12))`;
+
+      // 1. children: sync 컬럼 추가 (id 변경 없음)
+      try { await database.execAsync('ALTER TABLE children ADD COLUMN is_synced INTEGER DEFAULT 0'); } catch {}
+      try { await database.execAsync('ALTER TABLE children ADD COLUMN updated_at INTEGER DEFAULT 0'); } catch {}
+      await database.execAsync('UPDATE children SET updated_at = created_at WHERE updated_at = 0');
+
+      // 2. tags: INTEGER id → UUID, sync 컬럼 추가, record_tags 외래키 업데이트
+      await database.execAsync('ALTER TABLE tags ADD COLUMN _uuid TEXT');
+      await database.execAsync(`UPDATE tags SET _uuid = ${uuid}`);
+      await database.execAsync(`CREATE TABLE tags_v21 (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL,
+        child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
+        is_synced INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0,
+        UNIQUE(name, child_id)
+      )`);
+      await database.runAsync(`INSERT INTO tags_v21 (id, name, child_id, updated_at) SELECT _uuid, name, child_id, ${ts} FROM tags`);
+      await database.execAsync(`CREATE TABLE record_tags_v21 (
+        record_id TEXT REFERENCES records(id) ON DELETE CASCADE,
+        tag_id TEXT REFERENCES tags_v21(id) ON DELETE CASCADE,
+        PRIMARY KEY (record_id, tag_id)
+      )`);
+      await database.execAsync(`INSERT INTO record_tags_v21 (record_id, tag_id) SELECT rt.record_id, t._uuid FROM record_tags rt JOIN tags t ON rt.tag_id = t.id`);
+      await database.execAsync('DROP TABLE record_tags');
+      await database.execAsync('ALTER TABLE record_tags_v21 RENAME TO record_tags');
+      await database.execAsync('DROP TABLE tags');
+      await database.execAsync('ALTER TABLE tags_v21 RENAME TO tags');
+      for (const idx of CREATE_INDEXES.filter(s => s.includes('record_tags'))) {
+        await database.execAsync(idx);
+      }
+
+      // 3. active_events: INTEGER id → UUID, sync 컬럼 추가
+      await database.execAsync('ALTER TABLE active_events ADD COLUMN _uuid TEXT');
+      await database.execAsync(`UPDATE active_events SET _uuid = ${uuid}`);
+      await database.execAsync(`CREATE TABLE active_events_v21 (
+        id TEXT PRIMARY KEY, child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
+        name TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER,
+        created_at INTEGER NOT NULL, is_synced INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0
+      )`);
+      await database.runAsync(`INSERT INTO active_events_v21 (id, child_id, name, started_at, ended_at, created_at, updated_at) SELECT _uuid, child_id, name, started_at, ended_at, created_at, ${ts} FROM active_events`);
+
+      // 4. event_daily_logs: INTEGER id → UUID, event_id: INTEGER → TEXT (active_events UUID 매핑)
+      await database.execAsync(`CREATE TABLE event_daily_logs_v21 (
+        id TEXT PRIMARY KEY, event_id TEXT NOT NULL,
+        date TEXT NOT NULL, severity TEXT NOT NULL, created_at INTEGER NOT NULL,
+        is_synced INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0,
+        UNIQUE(event_id, date)
+      )`);
+      await database.runAsync(`INSERT INTO event_daily_logs_v21 (id, event_id, date, severity, created_at, updated_at)
+        SELECT ${uuid}, ae._uuid, edl.date, edl.severity, edl.created_at, ${ts}
+        FROM event_daily_logs edl JOIN active_events ae ON edl.event_id = ae.id`);
+      await database.execAsync('DROP TABLE event_daily_logs');
+      await database.execAsync('ALTER TABLE event_daily_logs_v21 RENAME TO event_daily_logs');
+      await database.execAsync('DROP TABLE active_events');
+      await database.execAsync('ALTER TABLE active_events_v21 RENAME TO active_events');
+
+      // 5. event_name_presets: INTEGER id → UUID
+      await database.execAsync(`CREATE TABLE event_name_presets_v21 (
+        id TEXT PRIMARY KEY, child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+        name TEXT NOT NULL, created_at INTEGER NOT NULL,
+        is_synced INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0,
+        UNIQUE(child_id, name)
+      )`);
+      await database.runAsync(`INSERT INTO event_name_presets_v21 (id, child_id, name, created_at, updated_at) SELECT ${uuid}, child_id, name, created_at, ${ts} FROM event_name_presets`);
+      await database.execAsync('DROP TABLE event_name_presets');
+      await database.execAsync('ALTER TABLE event_name_presets_v21 RENAME TO event_name_presets');
+
+      // 6. hidden_default_event_names: INTEGER id → UUID
+      await database.execAsync(`CREATE TABLE hidden_default_event_names_v21 (
+        id TEXT PRIMARY KEY, child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+        name TEXT NOT NULL, created_at INTEGER NOT NULL,
+        is_synced INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0,
+        UNIQUE(child_id, name)
+      )`);
+      await database.runAsync(`INSERT INTO hidden_default_event_names_v21 (id, child_id, name, created_at, updated_at) SELECT ${uuid}, child_id, name, created_at, ${ts} FROM hidden_default_event_names`);
+      await database.execAsync('DROP TABLE hidden_default_event_names');
+      await database.execAsync('ALTER TABLE hidden_default_event_names_v21 RENAME TO hidden_default_event_names');
+
+      // 7. synthesis_articles: INTEGER id → UUID, is_synced 추가 (updated_at 기존 존재)
+      await database.execAsync(`CREATE TABLE synthesis_articles_v21 (
+        id TEXT PRIMARY KEY, child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+        type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
+        source_record_ids TEXT, period_start INTEGER, period_end INTEGER, visual_data TEXT,
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, is_synced INTEGER DEFAULT 0
+      )`);
+      await database.execAsync(`INSERT INTO synthesis_articles_v21 SELECT ${uuid}, child_id, type, title, body, source_record_ids, period_start, period_end, visual_data, created_at, updated_at, 0 FROM synthesis_articles`);
+      await database.execAsync('DROP TABLE synthesis_articles');
+      await database.execAsync('ALTER TABLE synthesis_articles_v21 RENAME TO synthesis_articles');
+      for (const idx of CREATE_SYNTHESIS_INDEXES) await database.execAsync(idx);
+
+      // 8. wiki_pages: INTEGER id → UUID, is_synced 추가 (updated_at 기존 존재)
+      await database.execAsync(`CREATE TABLE wiki_pages_v21 (
+        id TEXT PRIMARY KEY, child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+        slug TEXT NOT NULL, title TEXT NOT NULL, type TEXT NOT NULL, body TEXT NOT NULL,
+        source_record_ids TEXT, cross_refs TEXT, visual_data TEXT,
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, is_synced INTEGER DEFAULT 0,
+        UNIQUE(child_id, slug)
+      )`);
+      await database.execAsync(`INSERT INTO wiki_pages_v21 SELECT ${uuid}, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at, 0 FROM wiki_pages`);
+      await database.execAsync('DROP TABLE wiki_pages');
+      await database.execAsync('ALTER TABLE wiki_pages_v21 RENAME TO wiki_pages');
+      for (const idx of CREATE_WIKI_PAGES_INDEXES) await database.execAsync(idx);
+
+      // 9. search_logs: INTEGER id → UUID, sync 컬럼 추가
+      await database.execAsync(`CREATE TABLE search_logs_v21 (
+        id TEXT PRIMARY KEY, child_id TEXT,
+        query TEXT NOT NULL, answer TEXT NOT NULL,
+        created_at INTEGER NOT NULL, is_synced INTEGER DEFAULT 0, updated_at INTEGER DEFAULT 0
+      )`);
+      await database.runAsync(`INSERT INTO search_logs_v21 (id, child_id, query, answer, created_at, updated_at) SELECT ${uuid}, child_id, query, answer, created_at, ${ts} FROM search_logs`);
+      await database.execAsync('DROP TABLE search_logs');
+      await database.execAsync('ALTER TABLE search_logs_v21 RENAME TO search_logs');
+
+      // 10. pending_deletes: record_id → row_id, table_name 컬럼 추가
+      await database.execAsync(`CREATE TABLE pending_deletes_v21 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_name TEXT NOT NULL DEFAULT 'records',
+        row_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE(table_name, row_id)
+      )`);
+      await database.execAsync(`INSERT OR IGNORE INTO pending_deletes_v21 (table_name, row_id, created_at) SELECT 'records', record_id, created_at FROM pending_deletes`);
+      await database.execAsync('DROP TABLE pending_deletes');
+      await database.execAsync('ALTER TABLE pending_deletes_v21 RENAME TO pending_deletes');
+
+      await database.execAsync('PRAGMA foreign_keys = ON');
+      await database.execAsync('PRAGMA user_version = 21');
+    }
+
     dbInitialized = true;
   })();
 

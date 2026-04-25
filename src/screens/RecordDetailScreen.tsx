@@ -223,7 +223,7 @@ export default function RecordDetailScreen({ route, navigation }: RecordDetailSc
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [editingTagIds, setEditingTagIds] = useState<number[]>([]);
+  const [editingTagIds, setEditingTagIds] = useState<string[]>([]);
   const [isSavingTags, setIsSavingTags] = useState(false);
   const [activeCategoryTab, setActiveCategoryTab] = useState(0);
   const [showTimePicker, setShowTimePicker] = useState(false);

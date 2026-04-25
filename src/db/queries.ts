@@ -100,7 +100,7 @@ export async function getRecordsByDate(date: string, childId?: string): Promise<
 
 // 태그 기반 필터링 (OR 필터: 태그 중 하나라도 포함)
 export async function getRecordsByTags(
-  tagIds: number[],
+  tagIds: string[],
   limit = 50,
   offset = 0,
   childId?: string

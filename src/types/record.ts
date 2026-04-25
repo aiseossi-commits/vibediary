@@ -31,7 +31,7 @@ export interface StructuredData {
 }
 
 export interface Tag {
-  id: number;
+  id: string;
   name: string; // "#의료", "#투약" 등
 }
 
@@ -70,7 +70,7 @@ export interface ChatMessage {
 
 // 항해일지 (AI 등대 검색 로그)
 export interface SearchLog {
-  id: number;
+  id: string;
   childId: string | null;
   query: string;
   answer: string;
@@ -81,7 +81,7 @@ export interface SearchLog {
 export type SynthesisArticleType = 'weekly_overview' | 'developmental_domain' | 'milestone_timeline' | 'behavioral_pattern' | 'medical_summary' | 'therapy_log';
 
 export interface SynthesisArticle {
-  id: number;
+  id: string;
   childId: string;
   type: SynthesisArticleType;
   title: string;
@@ -105,7 +105,7 @@ export interface AbsorbResult {
 export type WikiPageType = 'wiki-index' | 'overview' | 'timeline' | 'entity';
 
 export interface WikiPage {
-  id: number;
+  id: string;
   childId: string;
   slug: string;         // 예: "overview/weekly", "entity/food/돼지고기"
   title: string;

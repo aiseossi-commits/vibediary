@@ -4,7 +4,9 @@ export const CREATE_CHILDREN_TABLE = `
   CREATE TABLE IF NOT EXISTS children (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0
   );
 `;
 
@@ -28,9 +30,11 @@ export const CREATE_RECORDS_TABLE = `
 
 export const CREATE_TAGS_TABLE = `
   CREATE TABLE IF NOT EXISTS tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0,
     UNIQUE(name, child_id)
   );
 `;
@@ -51,7 +55,7 @@ export const MIGRATE_TAGS_V3 = `
 export const CREATE_RECORD_TAGS_TABLE = `
   CREATE TABLE IF NOT EXISTS record_tags (
     record_id TEXT REFERENCES records(id) ON DELETE CASCADE,
-    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+    tag_id TEXT REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (record_id, tag_id)
   );
 `;
@@ -79,11 +83,13 @@ export const CREATE_DAILY_AI_CACHE_TABLE = `
 
 export const CREATE_SEARCH_LOGS_TABLE = `
   CREATE TABLE IF NOT EXISTS search_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     child_id TEXT,
     query TEXT NOT NULL,
     answer TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0
   );
 `;
 
@@ -122,7 +128,7 @@ export const CLEANUP_NULL_DUPLICATE_TAGS = `
 
 export const CREATE_SYNTHESIS_ARTICLES_TABLE = `
   CREATE TABLE IF NOT EXISTS synthesis_articles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     type TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -132,7 +138,8 @@ export const CREATE_SYNTHESIS_ARTICLES_TABLE = `
     period_end INTEGER,
     visual_data TEXT,
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0
   );
 `;
 
@@ -154,7 +161,7 @@ export const CREATE_SYNTHESIS_INDEXES = [
 
 export const CREATE_WIKI_PAGES_TABLE = `
   CREATE TABLE IF NOT EXISTS wiki_pages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     slug TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -165,6 +172,7 @@ export const CREATE_WIKI_PAGES_TABLE = `
     visual_data TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
     UNIQUE(child_id, slug)
   );
 `;
@@ -176,42 +184,50 @@ export const CREATE_WIKI_PAGES_INDEXES = [
 
 export const CREATE_ACTIVE_EVENTS_TABLE = `
   CREATE TABLE IF NOT EXISTS active_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     started_at INTEGER NOT NULL,
     ended_at INTEGER,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0
   );
 `;
 
 export const CREATE_EVENT_NAME_PRESETS_TABLE = `
   CREATE TABLE IF NOT EXISTS event_name_presets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     created_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0,
     UNIQUE(child_id, name)
   );
 `;
 
 export const CREATE_HIDDEN_DEFAULT_EVENT_NAMES_TABLE = `
   CREATE TABLE IF NOT EXISTS hidden_default_event_names (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     child_id TEXT NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     created_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0,
     UNIQUE(child_id, name)
   );
 `;
 
 export const CREATE_EVENT_DAILY_LOGS_TABLE = `
   CREATE TABLE IF NOT EXISTS event_daily_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id INTEGER NOT NULL REFERENCES active_events(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL REFERENCES active_events(id) ON DELETE CASCADE,
     date TEXT NOT NULL,
     severity TEXT NOT NULL,
     created_at INTEGER NOT NULL,
+    is_synced INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0,
     UNIQUE(event_id, date)
   );
 `;
@@ -226,8 +242,10 @@ export const CREATE_APP_SETTINGS_TABLE = `
 export const CREATE_PENDING_DELETES_TABLE = `
   CREATE TABLE IF NOT EXISTS pending_deletes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    record_id TEXT NOT NULL UNIQUE,
-    created_at INTEGER NOT NULL
+    table_name TEXT NOT NULL DEFAULT 'records',
+    row_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(table_name, row_id)
   );
 `;
 

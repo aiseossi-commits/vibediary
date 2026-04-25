@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import type { WikiPage, WikiPageType } from '../types/record';
 
@@ -64,9 +65,9 @@ export async function upsertWikiPage(params: {
     return 'updated';
   } else {
     await db.runAsync(
-      `INSERT INTO wiki_pages (child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      params.childId, params.slug, params.title, params.type, params.body,
+      `INSERT INTO wiki_pages (id, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      Crypto.randomUUID(), params.childId, params.slug, params.title, params.type, params.body,
       sourceJson, crossRefsJson, visualData, now, now
     );
     return 'created';
@@ -74,7 +75,7 @@ export async function upsertWikiPage(params: {
 }
 
 // 단건 삭제
-export async function deleteWikiPage(id: number): Promise<void> {
+export async function deleteWikiPage(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM wiki_pages WHERE id = ?', id);
 }

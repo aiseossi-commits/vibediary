@@ -1,9 +1,10 @@
+import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 
 // ─── ActiveEvent ──────────────────────────────────────────────────────────────
 
 export interface ActiveEvent {
-  id: number;
+  id: string;
   childId: string;
   name: string;
   startedAt: number;
@@ -12,7 +13,7 @@ export interface ActiveEvent {
 }
 
 interface ActiveEventRow {
-  id: number;
+  id: string;
   child_id: string;
   name: string;
   started_at: number;
@@ -63,22 +64,16 @@ export async function createEvent(
   startedAt: number
 ): Promise<ActiveEvent> {
   const db = await getDatabase();
+  const id = Crypto.randomUUID();
   const now = Date.now();
-  const result = await db.runAsync(
-    'INSERT INTO active_events (child_id, name, started_at, created_at) VALUES (?, ?, ?, ?)',
-    childId, name, startedAt, now
+  await db.runAsync(
+    'INSERT INTO active_events (id, child_id, name, started_at, created_at) VALUES (?, ?, ?, ?, ?)',
+    id, childId, name, startedAt, now
   );
-  return {
-    id: result.lastInsertRowId,
-    childId,
-    name,
-    startedAt,
-    endedAt: null,
-    createdAt: now,
-  };
+  return { id, childId, name, startedAt, endedAt: null, createdAt: now };
 }
 
-export async function endEvent(id: number, endedAt: number): Promise<void> {
+export async function endEvent(id: string, endedAt: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     'UPDATE active_events SET ended_at = ? WHERE id = ?',
@@ -86,7 +81,7 @@ export async function endEvent(id: number, endedAt: number): Promise<void> {
   );
 }
 
-export async function deleteEvent(id: number): Promise<void> {
+export async function deleteEvent(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM active_events WHERE id = ?', id);
 }
@@ -96,7 +91,7 @@ export async function deleteEvent(id: number): Promise<void> {
 export type EventSeverity = 'high' | 'medium' | 'low' | 'none';
 
 export interface EventDailyLog {
-  eventId: number;
+  eventId: string;
   date: string;
   severity: EventSeverity;
 }
@@ -106,17 +101,17 @@ export function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export async function upsertDailyLog(eventId: number, date: string, severity: EventSeverity): Promise<void> {
+export async function upsertDailyLog(eventId: string, date: string, severity: EventSeverity): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    `INSERT INTO event_daily_logs (event_id, date, severity, created_at)
-     VALUES (?, ?, ?, ?)
+    `INSERT INTO event_daily_logs (id, event_id, date, severity, created_at)
+     VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(event_id, date) DO UPDATE SET severity = excluded.severity`,
-    eventId, date, severity, Date.now()
+    Crypto.randomUUID(), eventId, date, severity, Date.now()
   );
 }
 
-export async function getDailyLog(eventId: number, date: string): Promise<EventSeverity | null> {
+export async function getDailyLog(eventId: string, date: string): Promise<EventSeverity | null> {
   const db = await getDatabase();
   const row = await db.getFirstAsync<{ severity: string }>(
     'SELECT severity FROM event_daily_logs WHERE event_id = ? AND date = ?',
@@ -125,15 +120,15 @@ export async function getDailyLog(eventId: number, date: string): Promise<EventS
   return (row?.severity as EventSeverity) ?? null;
 }
 
-export async function getDailyLogsForEvents(eventIds: number[], date: string): Promise<Record<number, EventSeverity>> {
+export async function getDailyLogsForEvents(eventIds: string[], date: string): Promise<Record<string, EventSeverity>> {
   if (eventIds.length === 0) return {};
   const db = await getDatabase();
   const placeholders = eventIds.map(() => '?').join(',');
-  const rows = await db.getAllAsync<{ event_id: number; severity: string }>(
+  const rows = await db.getAllAsync<{ event_id: string; severity: string }>(
     `SELECT event_id, severity FROM event_daily_logs WHERE event_id IN (${placeholders}) AND date = ?`,
     ...eventIds, date
   );
-  const result: Record<number, EventSeverity> = {};
+  const result: Record<string, EventSeverity> = {};
   for (const row of rows) {
     result[row.event_id] = row.severity as EventSeverity;
   }
@@ -154,8 +149,8 @@ export async function getEventNamePresets(childId: string): Promise<string[]> {
 export async function addEventNamePreset(childId: string, name: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    'INSERT OR IGNORE INTO event_name_presets (child_id, name, created_at) VALUES (?, ?, ?)',
-    childId, name, Date.now()
+    'INSERT OR IGNORE INTO event_name_presets (id, child_id, name, created_at) VALUES (?, ?, ?, ?)',
+    Crypto.randomUUID(), childId, name, Date.now()
   );
 }
 
@@ -179,7 +174,7 @@ export async function getHiddenDefaultEventNames(childId: string): Promise<strin
 export async function hideDefaultEventName(childId: string, name: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    'INSERT OR IGNORE INTO hidden_default_event_names (child_id, name, created_at) VALUES (?, ?, ?)',
-    childId, name, Date.now()
+    'INSERT OR IGNORE INTO hidden_default_event_names (id, child_id, name, created_at) VALUES (?, ?, ?, ?)',
+    Crypto.randomUUID(), childId, name, Date.now()
   );
 }

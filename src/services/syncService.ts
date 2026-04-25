@@ -236,13 +236,13 @@ async function processPendingDeletes(readiness: SyncReadiness): Promise<void> {
 
   try {
     const db = await getDatabase();
-    const rows = await db.getAllAsync<{ id: number; record_id: string }>(
-      'SELECT id, record_id FROM pending_deletes ORDER BY created_at ASC LIMIT ?',
+    const rows = await db.getAllAsync<{ id: number; table_name: string; row_id: string }>(
+      'SELECT id, table_name, row_id FROM pending_deletes ORDER BY created_at ASC LIMIT ?',
       BATCH_SIZE
     );
 
     for (const row of rows) {
-      const { error } = await supabase.from('records').delete().eq('id', row.record_id);
+      const { error } = await supabase.from(row.table_name).delete().eq('id', row.row_id);
       if (!error) {
         await db.runAsync('DELETE FROM pending_deletes WHERE id = ?', row.id);
       }
