@@ -16,7 +16,7 @@ import {
   getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
 import { getTagsOnly } from '../services/aiProcessor';
-import { wakeSync, clearAllDownloadWatermarks } from '../services/syncService';
+import { wakeSync, clearAllDownloadWatermarks, markAllLocalDirty } from '../services/syncService';
 import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
@@ -536,6 +536,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.menuRow}
               onPress={async () => {
+                await markAllLocalDirty();
                 await clearAllDownloadWatermarks();
                 void wakeSync('manual_retry');
                 Alert.alert('', '전체 재동기화를 시작했습니다');

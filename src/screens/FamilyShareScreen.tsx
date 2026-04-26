@@ -13,7 +13,7 @@ import {
   createFamilyRoom, joinFamilyRoom, getMyFamilyRoom, leaveFamilyRoom,
   type FamilyRoom,
 } from '../services/familyService';
-import { clearAllDownloadWatermarks, wakeSync } from '../services/syncService';
+import { clearAllDownloadWatermarks, markAllLocalDirty, wakeSync } from '../services/syncService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 
 export default function FamilyShareScreen() {
@@ -48,6 +48,7 @@ export default function FamilyShareScreen() {
     try {
       const r = await createFamilyRoom();
       setRoom(r);
+      await markAllLocalDirty();
       await clearAllDownloadWatermarks();
       await wakeSync('family_created');
       await refreshChildren();
@@ -67,6 +68,7 @@ export default function FamilyShareScreen() {
       const r = await joinFamilyRoom(codeInput.trim());
       setRoom(r);
       setCodeInput('');
+      await markAllLocalDirty();
       await clearAllDownloadWatermarks();
       await wakeSync('family_joined');
       await refreshChildren();

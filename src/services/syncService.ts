@@ -459,6 +459,14 @@ export async function clearAllDownloadWatermarks(): Promise<void> {
   ]);
 }
 
+// 가족방 생성/가입 시: 로컬 데이터 전체를 새 family로 재업로드하기 위해 dirty 표시
+export async function markAllLocalDirty(): Promise<void> {
+  const db = await getDatabase();
+  await Promise.all(SYNC_TABLES.map(table =>
+    db.runAsync(`UPDATE ${table.name} SET is_synced = 0`)
+  ));
+}
+
 // ============ 동기화 엔진: Sync Wake ============
 
 export async function wakeSync(reason: SyncWakeReason): Promise<void> {
