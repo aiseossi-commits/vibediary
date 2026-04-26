@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] **family_id 변경 감지 자동 dirty 리셋**: `syncPendingRecords` 시작 시 `last_sync_family_id`와 현재 family_id 비교 → 불일치 시 `markAllLocalDirty` 자동 실행. 가족방 재생성/재참여 시 기존 `is_synced=1` 데이터가 새 family로 재업로드 안 되는 문제 근본 해결. 재동기화 버튼: `void wakeSync` → `await wakeSync` + `refreshChildren` 호출로 UI 즉시 반영.
 - [x] **가족방 생성/가입 시 전체 dirty 리셋**: `markAllLocalDirty()` 추가 — 가족방 만들거나 참여할 때 모든 sync 테이블 `is_synced = 0`으로 마킹, 기존에 synced 상태였던 로컬 데이터도 새 family_id로 재업로드됨. 설정 "전체 재동기화" 버튼에도 적용.
 - [x] **삭제 전파 — family_deletes tombstone**: `processPendingDeletes`가 Supabase row 삭제 시 `family_deletes` 테이블에 tombstone 기록. `syncFamilyDeletes`가 sync 사이클 마지막에 다른 기기의 tombstone을 읽어 로컬 SQLite에서 동일 삭제 반영. 워터마크(`last_download_family_deletes`) 기반 중복 처리 방지. `clearAllDownloadWatermarks`에 포함. Supabase `family_deletes` 테이블 + RLS 생성 필요 (1회 수동).
 - [x] **sync 워터마크 통과 보장 — 업로드 시 updated_at 갱신**: 업로드 성공 시 `updated_at = Date.now()`로 SQLite + Supabase 동기화. 이전엔 재업로드(child_id 추가 등)해도 `updated_at`이 바뀌지 않아 다른 기기의 워터마크 필터(`.gt('updated_at', watermark)`)에 걸려 재다운로드 안 되는 구조적 버그 수정. SettingsScreen "전체 재동기화" 버튼 추가 (clearAllDownloadWatermarks + wakeSync).

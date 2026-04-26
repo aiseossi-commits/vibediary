@@ -513,6 +513,13 @@ async function syncPendingRecords(): Promise<SyncRunResult> {
   try {
     const db = await getDatabase();
 
+    // family_id가 바뀌면 모든 로컬 데이터를 새 family로 재업로드
+    const lastSyncFamilyId = await getSetting('last_sync_family_id');
+    if (readiness.familyId !== lastSyncFamilyId) {
+      await markAllLocalDirty();
+      await setSetting('last_sync_family_id', readiness.familyId);
+    }
+
     // 1. dependency order대로 local dirty rows upload
     for (const table of SYNC_TABLES) {
       const result = await syncTableUpload(db, table, readiness);

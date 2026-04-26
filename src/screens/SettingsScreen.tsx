@@ -538,8 +538,9 @@ export default function SettingsScreen() {
               onPress={async () => {
                 await markAllLocalDirty();
                 await clearAllDownloadWatermarks();
-                void wakeSync('manual_retry');
-                Alert.alert('', '전체 재동기화를 시작했습니다');
+                await wakeSync('manual_retry');
+                await refreshChildren();
+                Alert.alert('', '재동기화가 완료됐습니다');
               }}
             >
               <Text style={styles.menuRowText}>전체 재동기화</Text>
