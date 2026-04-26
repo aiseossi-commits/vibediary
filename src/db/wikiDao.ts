@@ -1,5 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
+import { enqueuePendingDelete } from './pendingDeletesDao';
+import { wakeSync } from '../services/syncService';
 import type { WikiPage, WikiPageType } from '../types/record';
 
 function mapRow(row: any): WikiPage {
@@ -59,17 +61,19 @@ export async function upsertWikiPage(params: {
 
   if (existing) {
     await db.runAsync(
-      `UPDATE wiki_pages SET title = ?, type = ?, body = ?, source_record_ids = ?, cross_refs = ?, visual_data = ?, updated_at = ? WHERE id = ?`,
+      `UPDATE wiki_pages SET title = ?, type = ?, body = ?, source_record_ids = ?, cross_refs = ?, visual_data = ?, updated_at = ?, is_synced = 0 WHERE id = ?`,
       params.title, params.type, params.body, sourceJson, crossRefsJson, visualData, now, existing.id
     );
+    void wakeSync('record_changed');
     return 'updated';
   } else {
     await db.runAsync(
-      `INSERT INTO wiki_pages (id, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO wiki_pages (id, child_id, slug, title, type, body, source_record_ids, cross_refs, visual_data, created_at, updated_at, is_synced)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
       Crypto.randomUUID(), params.childId, params.slug, params.title, params.type, params.body,
       sourceJson, crossRefsJson, visualData, now, now
     );
+    void wakeSync('record_changed');
     return 'created';
   }
 }
@@ -77,7 +81,9 @@ export async function upsertWikiPage(params: {
 // 단건 삭제
 export async function deleteWikiPage(id: string): Promise<void> {
   const db = await getDatabase();
+  await enqueuePendingDelete('wiki_pages', id);
   await db.runAsync('DELETE FROM wiki_pages WHERE id = ?', id);
+  void wakeSync('record_changed');
 }
 
 // absorb_log: 마지막 absorb 시각 조회

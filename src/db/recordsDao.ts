@@ -1,5 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
+import { enqueuePendingDelete } from './pendingDeletesDao';
 import type { DiaryRecord, RecordWithTags, StructuredData, Tag } from '../types/record';
 
 // 새 기록 생성
@@ -169,8 +170,8 @@ export async function getOrphanedRecordsCount(): Promise<number> {
 export async function reassignOrphanedRecords(childId: string): Promise<number> {
   const db = await getDatabase();
   const result = await db.runAsync(
-    'UPDATE records SET child_id = ? WHERE child_id IS NULL',
-    childId
+    'UPDATE records SET child_id = ?, is_synced = 0, updated_at = ? WHERE child_id IS NULL',
+    childId, Date.now()
   );
   return result.changes;
 }
@@ -179,18 +180,15 @@ export async function reassignOrphanedRecords(childId: string): Promise<number> 
 export async function reassignChildRecords(fromChildId: string, toChildId: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    'UPDATE records SET child_id = ? WHERE child_id = ?',
-    toChildId, fromChildId
+    'UPDATE records SET child_id = ?, is_synced = 0, updated_at = ? WHERE child_id = ?',
+    toChildId, Date.now(), fromChildId
   );
 }
 
 export async function deleteRecord(id: string): Promise<void> {
   const db = await getDatabase();
   // Supabase 삭제 큐에 등록 (네트워크 복구 시 원격 삭제 처리)
-  await db.runAsync(
-    'INSERT OR IGNORE INTO pending_deletes (record_id, created_at) VALUES (?, ?)',
-    id, Date.now()
-  );
+  await enqueuePendingDelete('records', id);
   // CASCADE로 record_tags도 자동 삭제
   await db.runAsync('DELETE FROM records WHERE id = ?', id);
 }

@@ -439,6 +439,7 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('ALTER TABLE search_logs_v21 RENAME TO search_logs');
 
       // 10. pending_deletes: record_id → row_id, table_name 컬럼 추가
+      await database.execAsync('DROP TABLE IF EXISTS pending_deletes_v21');
       await database.execAsync(`CREATE TABLE pending_deletes_v21 (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT NOT NULL DEFAULT 'records',
@@ -446,7 +447,17 @@ export async function initializeDatabase(): Promise<void> {
         created_at INTEGER NOT NULL,
         UNIQUE(table_name, row_id)
       )`);
-      await database.execAsync(`INSERT OR IGNORE INTO pending_deletes_v21 (table_name, row_id, created_at) SELECT 'records', record_id, created_at FROM pending_deletes`);
+      const pendingDeleteColumns = await database.getAllAsync<{ name: string }>('PRAGMA table_info(pending_deletes)');
+      const pendingDeleteColumnNames = new Set(pendingDeleteColumns.map(column => column.name));
+      const hasLegacyPendingDeleteRecordId = pendingDeleteColumnNames.has('record_id');
+      const hasPendingDeleteRowId = pendingDeleteColumnNames.has('row_id');
+      const hasPendingDeleteTableName = pendingDeleteColumnNames.has('table_name');
+      if (hasLegacyPendingDeleteRecordId) {
+        await database.execAsync(`INSERT OR IGNORE INTO pending_deletes_v21 (table_name, row_id, created_at) SELECT 'records', record_id, created_at FROM pending_deletes`);
+      } else if (hasPendingDeleteRowId) {
+        const tableNameExpr = hasPendingDeleteTableName ? 'table_name' : "'records'";
+        await database.execAsync(`INSERT OR IGNORE INTO pending_deletes_v21 (table_name, row_id, created_at) SELECT ${tableNameExpr}, row_id, created_at FROM pending_deletes`);
+      }
       await database.execAsync('DROP TABLE pending_deletes');
       await database.execAsync('ALTER TABLE pending_deletes_v21 RENAME TO pending_deletes');
 

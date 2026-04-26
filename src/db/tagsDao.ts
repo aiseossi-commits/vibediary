@@ -1,6 +1,8 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
+import { enqueuePendingDelete } from './pendingDeletesDao';
 import { DEFAULT_TAGS } from './schema';
+import { wakeSync } from '../services/syncService';
 import type { Tag } from '../types/record';
 
 // 전체 태그 조회 (바다별)
@@ -16,15 +18,17 @@ export async function getAllTags(childId?: string): Promise<Tag[]> {
 }
 
 // 태그 생성 (이미 존재하면 기존 태그 반환)
-export async function createTag(name: string, childId?: string): Promise<Tag> {
+export async function createTag(name: string, childId?: string, triggerSync = true): Promise<Tag> {
   const db = await getDatabase();
   const normalizedName = name.startsWith('#') ? name : `#${name}`;
+  const now = Date.now();
 
   await db.runAsync(
-    'INSERT OR IGNORE INTO tags (id, name, child_id) VALUES (?, ?, ?)',
+    'INSERT OR IGNORE INTO tags (id, name, child_id, updated_at, is_synced) VALUES (?, ?, ?, ?, 0)',
     Crypto.randomUUID(),
     normalizedName,
-    childId ?? null
+    childId ?? null,
+    now
   );
 
   const tag = await db.getFirstAsync<Tag>(
@@ -38,6 +42,7 @@ export async function createTag(name: string, childId?: string): Promise<Tag> {
   );
 
   if (!tag) throw new Error(`Tag not found after insert: ${normalizedName}`);
+  if (triggerSync && childId) void wakeSync('record_changed');
   return tag;
 }
 
@@ -56,13 +61,19 @@ export async function renameTag(tagId: string, newName: string, childId?: string
   if (existing && existing.id !== tagId) {
     throw new Error('DUPLICATE');
   }
-  await db.runAsync('UPDATE tags SET name = ? WHERE id = ?', normalizedName, tagId);
+  await db.runAsync(
+    'UPDATE tags SET name = ?, updated_at = ?, is_synced = 0 WHERE id = ?',
+    normalizedName, Date.now(), tagId
+  );
+  if (childId) void wakeSync('record_changed');
 }
 
 // 태그 삭제
 export async function deleteTag(tagId: string): Promise<void> {
   const db = await getDatabase();
+  await enqueuePendingDelete('tags', tagId);
   await db.runAsync('DELETE FROM tags WHERE id = ?', tagId);
+  void wakeSync('record_changed');
 }
 
 // 백업용: record_tags 전체 조회
@@ -88,7 +99,7 @@ export async function setTagsForRecord(recordId: string, tagNames: string[], chi
   const db = await getDatabase();
   await db.runAsync('DELETE FROM record_tags WHERE record_id = ?', recordId);
   for (const name of tagNames) {
-    const tag = await createTag(name, childId);
+    const tag = await createTag(name, childId, false);
     await addTagToRecord(recordId, tag.id);
   }
   // 태그 변경 시 자동으로 재동기화 마킹

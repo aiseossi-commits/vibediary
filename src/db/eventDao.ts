@@ -1,5 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
+import { enqueuePendingDelete } from './pendingDeletesDao';
+import { wakeSync } from '../services/syncService';
 
 // ─── ActiveEvent ──────────────────────────────────────────────────────────────
 
@@ -67,23 +69,27 @@ export async function createEvent(
   const id = Crypto.randomUUID();
   const now = Date.now();
   await db.runAsync(
-    'INSERT INTO active_events (id, child_id, name, started_at, created_at) VALUES (?, ?, ?, ?, ?)',
-    id, childId, name, startedAt, now
+    'INSERT INTO active_events (id, child_id, name, started_at, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, 0)',
+    id, childId, name, startedAt, now, now
   );
+  void wakeSync('record_changed');
   return { id, childId, name, startedAt, endedAt: null, createdAt: now };
 }
 
 export async function endEvent(id: string, endedAt: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
-    'UPDATE active_events SET ended_at = ? WHERE id = ?',
-    endedAt, id
+    'UPDATE active_events SET ended_at = ?, updated_at = ?, is_synced = 0 WHERE id = ?',
+    endedAt, Date.now(), id
   );
+  void wakeSync('record_changed');
 }
 
 export async function deleteEvent(id: string): Promise<void> {
   const db = await getDatabase();
+  await enqueuePendingDelete('active_events', id);
   await db.runAsync('DELETE FROM active_events WHERE id = ?', id);
+  void wakeSync('record_changed');
 }
 
 // ─── EventDailyLog ────────────────────────────────────────────────────────────
@@ -103,12 +109,14 @@ export function todayStr(): string {
 
 export async function upsertDailyLog(eventId: string, date: string, severity: EventSeverity): Promise<void> {
   const db = await getDatabase();
+  const now = Date.now();
   await db.runAsync(
-    `INSERT INTO event_daily_logs (id, event_id, date, severity, created_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(event_id, date) DO UPDATE SET severity = excluded.severity`,
-    Crypto.randomUUID(), eventId, date, severity, Date.now()
+    `INSERT INTO event_daily_logs (id, event_id, date, severity, created_at, updated_at, is_synced)
+     VALUES (?, ?, ?, ?, ?, ?, 0)
+     ON CONFLICT(event_id, date) DO UPDATE SET severity = excluded.severity, updated_at = excluded.updated_at, is_synced = 0`,
+    Crypto.randomUUID(), eventId, date, severity, now, now
   );
+  void wakeSync('record_changed');
 }
 
 export async function getDailyLog(eventId: string, date: string): Promise<EventSeverity | null> {
@@ -148,18 +156,26 @@ export async function getEventNamePresets(childId: string): Promise<string[]> {
 
 export async function addEventNamePreset(childId: string, name: string): Promise<void> {
   const db = await getDatabase();
+  const now = Date.now();
   await db.runAsync(
-    'INSERT OR IGNORE INTO event_name_presets (id, child_id, name, created_at) VALUES (?, ?, ?, ?)',
-    Crypto.randomUUID(), childId, name, Date.now()
+    'INSERT OR IGNORE INTO event_name_presets (id, child_id, name, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, 0)',
+    Crypto.randomUUID(), childId, name, now, now
   );
+  void wakeSync('record_changed');
 }
 
 export async function deleteEventNamePreset(childId: string, name: string): Promise<void> {
   const db = await getDatabase();
+  const row = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM event_name_presets WHERE child_id = ? AND name = ?',
+    childId, name
+  );
+  if (row) await enqueuePendingDelete('event_name_presets', row.id);
   await db.runAsync(
     'DELETE FROM event_name_presets WHERE child_id = ? AND name = ?',
     childId, name
   );
+  void wakeSync('record_changed');
 }
 
 export async function getHiddenDefaultEventNames(childId: string): Promise<string[]> {
@@ -173,8 +189,10 @@ export async function getHiddenDefaultEventNames(childId: string): Promise<strin
 
 export async function hideDefaultEventName(childId: string, name: string): Promise<void> {
   const db = await getDatabase();
+  const now = Date.now();
   await db.runAsync(
-    'INSERT OR IGNORE INTO hidden_default_event_names (id, child_id, name, created_at) VALUES (?, ?, ?, ?)',
-    Crypto.randomUUID(), childId, name, Date.now()
+    'INSERT OR IGNORE INTO hidden_default_event_names (id, child_id, name, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, 0)',
+    Crypto.randomUUID(), childId, name, now, now
   );
+  void wakeSync('record_changed');
 }

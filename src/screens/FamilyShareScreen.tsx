@@ -8,16 +8,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useChild } from '../context/ChildContext';
 import {
   createFamilyRoom, joinFamilyRoom, getMyFamilyRoom, leaveFamilyRoom,
   type FamilyRoom,
 } from '../services/familyService';
-import { wakeSync } from '../services/syncService';
+import { clearAllDownloadWatermarks, wakeSync } from '../services/syncService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 
 export default function FamilyShareScreen() {
   const { colors } = useTheme();
   const { userId } = useAuth();
+  const { refreshChildren } = useChild();
   const styles = createStyles(colors);
   const navigation = useNavigation<any>();
 
@@ -46,7 +48,9 @@ export default function FamilyShareScreen() {
     try {
       const r = await createFamilyRoom();
       setRoom(r);
-      void wakeSync('family_created');
+      await clearAllDownloadWatermarks();
+      await wakeSync('family_created');
+      await refreshChildren();
     } catch (e) {
       const msg = e instanceof Error ? e.message : (e as any)?.message ?? JSON.stringify(e);
       setError(msg || '가족방 생성에 실패했습니다');
@@ -63,7 +67,9 @@ export default function FamilyShareScreen() {
       const r = await joinFamilyRoom(codeInput.trim());
       setRoom(r);
       setCodeInput('');
-      void wakeSync('family_joined');
+      await clearAllDownloadWatermarks();
+      await wakeSync('family_joined');
+      await refreshChildren();
       Alert.alert('', '가족방에 참여했습니다!');
     } catch (e) {
       setError(e instanceof Error ? e.message : '참여에 실패했습니다');

@@ -1,5 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
+import { enqueuePendingDelete } from './pendingDeletesDao';
+import { wakeSync } from '../services/syncService';
 import type { SearchLog } from '../types/record';
 
 export async function createSearchLog(
@@ -9,14 +11,17 @@ export async function createSearchLog(
 ): Promise<string> {
   const db = await getDatabase();
   const id = Crypto.randomUUID();
+  const now = Date.now();
   await db.runAsync(
-    'INSERT INTO search_logs (id, child_id, query, answer, created_at) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO search_logs (id, child_id, query, answer, created_at, updated_at, is_synced) VALUES (?, ?, ?, ?, ?, ?, 0)',
     id,
     childId,
     query,
     answer,
-    Date.now()
+    now,
+    now
   );
+  void wakeSync('record_changed');
   return id;
 }
 
@@ -37,5 +42,7 @@ export async function getSearchLogs(childId: string | null): Promise<SearchLog[]
 
 export async function deleteSearchLog(id: string): Promise<void> {
   const db = await getDatabase();
+  await enqueuePendingDelete('search_logs', id);
   await db.runAsync('DELETE FROM search_logs WHERE id = ?', id);
+  void wakeSync('record_changed');
 }

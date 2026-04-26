@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 가족 sync 확장 Phase 1+2` (main, 2026-04-26)
+**마지막 커밋**: `feat: 가족 sync 확장 Phase 3-6 완료 + Supabase records.child_id 수정` (main, 2026-04-26)
 
 **현재 브랜치**: main
 
@@ -17,6 +17,14 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **Supabase records.child_id 컬럼 추가**: 기존 records 테이블(구 스키마)에 child_id 컬럼이 없어 syncService의 toRemote 매퍼가 child_id를 전송하면 Supabase가 42703 에러로 거부하던 문제 수정. `ALTER TABLE records ADD COLUMN IF NOT EXISTS child_id UUID;` 실행으로 해결. children 테이블(Phase 1 신규 생성)은 정상 sync됐으나 records만 실패하던 증상의 근본 원인.
+- [x] **가족 sync 확장 Phase 4 (syncService 확장)**: `SYNC_TABLES` 기반 제네릭 upload/download 엔진 도입. children/tags/records/active_events/event_daily_logs/event_name_presets/hidden_default_event_names/synthesis_articles/wiki_pages/search_logs를 의존성 순서대로 업로드하고, `last_download_<table>` 워터마크 기반으로 가족방 remote 변경사항을 다운로드. 다운로드 row는 `is_synced=1`로 저장해 재업로드 루프 방지, local newer row는 last-write-wins 기준으로 skip.
+- [x] **가족 sync 확장 Phase 5-6 (가족방 가입 download + 검증 보강)**: `clearAllDownloadWatermarks()` 추가, FamilyShareScreen create/join 성공 직후 워터마크 초기화 후 `wakeSync('family_created'/'family_joined')` 실행. sync 완료 후 `refreshChildren()` 호출로 ChildContext를 갱신. 겹치는 `wakeSync` 요청은 drop하지 않고 `pendingSyncWake`로 큐잉해 앱 시작 sync와 가족방 가입 sync가 겹쳐도 다음 sync가 반드시 실행되도록 보강.
+  - 검증: `node --test tests/sync/*.test.js`, `npx tsc --noEmit`, `git diff --check` 통과
+
+- [x] **가족 sync 확장 Phase 3 (DAO dirty marking)**: sync 대상 DAO mutation이 `updated_at`/`is_synced=0`을 유지하도록 보강. children/tags/active_events/event_daily_logs/event_name_presets/hidden_default_event_names/search_logs/wiki_pages 생성·수정·삭제 경로에 dirty marking 및 `wakeSync('record_changed')` 적용. `pending_deletes`는 Phase 2 스키마(`table_name`, `row_id`)에 맞춘 `enqueuePendingDelete()` helper로 통일하고 records 삭제의 legacy `record_id` insert 버그 수정.
+  - 검증: `node --test tests/sync/pendingDeletesContract.test.js`, `npx tsc --noEmit`, `git diff --check` 통과
 
 - [x] **가족 sync 확장 Phase 1 (Supabase)**: 9개 테이블 생성 + RLS — children, tags, active_events, event_daily_logs, event_name_presets, hidden_default_event_names, synthesis_articles, wiki_pages, search_logs. user_id UUID NOT NULL (FK 없음), family_id → families(id), 모든 테이블 RLS (가족방 멤버 SELECT, 본인 쓰기).
 - [x] **가족 sync 확장 Phase 2 (DB v21)**: 9개 SQLite 테이블 UUID 마이그레이션 + sync 컬럼 추가. INTEGER AUTOINCREMENT → TEXT UUID (8개 테이블), children에 is_synced/updated_at 추가, pending_deletes table_name+row_id 구조로 변경. `PRAGMA foreign_keys = OFF` 안전 마이그레이션. 타입 변경: Tag/SearchLog/SynthesisArticle/WikiPage/ActiveEvent.id number→string, 모든 DAO UUID 생성 패턴 적용.
