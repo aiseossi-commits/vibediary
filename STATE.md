@@ -12,12 +12,13 @@
 
 **미커밋**: 없음
 
-**DB 현재 버전**: v22 (sync 진단 인프라 — sync_attempts + sync_error/sync_attempted_at)
+**DB 현재 버전**: v23 (tags 비-UUID id 정리)
 
 ---
 
 ## 최근 완료된 작업
 
+- [x] **Sync 진단으로 두 원인 확정 + DB v23 + Supabase 청소**: 진단 인프라가 즉시 두 원인 짚어냄. (1) Supabase children/records에 옛 family_id로 등록된 row 3개가 RLS USING expression 위반 (42501) → Supabase에서 해당 row 삭제로 해결 (옵션 A). (2) tags 테이블에 v21 마이그레이션이 처리 못한 INTEGER id (192, 266, 256 등) 잔존 → 22P02 invalid uuid syntax. DB v23 마이그레이션 추가: 비-UUID 형식 tag id 전부 새 UUID로 교체 + record_tags의 tag_id 동시 매핑 업데이트.
 - [x] **Sync 블랙박스 진단 인프라 (DB v22)**: 추측 기반 디버깅 종료. (1) `sync_attempts` 테이블 — 매 sync 시도마다 readiness_status, user_id, family_id, pending 카운트, upload/fail/skip/download 카운트, last_error_table/row_id/message 영속 저장. (2) 각 sync 테이블에 `sync_error`, `sync_attempted_at` 컬럼 추가 — row-level 실패 사유 보존. (3) Upload 직후 `select(.eq id).maybeSingle()` echo back 검증으로 RLS/네트워크 silent fail 탐지. (4) `getSyncDiagnostics()` API + SettingsScreen "동기화 진단" 패널 — 최근 attempts 5건, dirty count, 실패 row 미리보기, 클립보드 복사 버튼.
 - [x] **family_id 변경 감지 자동 dirty 리셋**: `syncPendingRecords` 시작 시 `last_sync_family_id`와 현재 family_id 비교 → 불일치 시 `markAllLocalDirty` 자동 실행. 가족방 재생성/재참여 시 기존 `is_synced=1` 데이터가 새 family로 재업로드 안 되는 문제 근본 해결. 재동기화 버튼: `void wakeSync` → `await wakeSync` + `refreshChildren` 호출로 UI 즉시 반영.
 - [x] **가족방 생성/가입 시 전체 dirty 리셋**: `markAllLocalDirty()` 추가 — 가족방 만들거나 참여할 때 모든 sync 테이블 `is_synced = 0`으로 마킹, 기존에 synced 상태였던 로컬 데이터도 새 family_id로 재업로드됨. 설정 "전체 재동기화" 버튼에도 적용.

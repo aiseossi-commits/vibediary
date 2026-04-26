@@ -500,6 +500,29 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 22');
     }
 
+    if (currentVersion < 23) {
+      // v22 → v23: tags의 비-UUID id 정리 (v21 마이그레이션 후에도 INTEGER id가 남아있는 케이스)
+      // record_tags의 tag_id도 같이 매핑 업데이트
+      await database.execAsync('PRAGMA foreign_keys = OFF');
+      const uuid = `lower(substr(hex(randomblob(4)),1,8)||'-'||substr(hex(randomblob(2)),1,4)||'-4'||substr(hex(randomblob(2)),1,3)||'-'||substr('89ab',abs(random())%4+1,1)||substr(hex(randomblob(2)),1,3)||'-'||substr(hex(randomblob(6)),1,12))`;
+
+      // UUID 형식이 아닌 tag id를 찾아서 새 UUID로 교체
+      // (UUID v4는 길이 36, 8-4-4-4-12 hex 형태)
+      const badTags = await database.getAllAsync<{ id: string }>(
+        `SELECT id FROM tags WHERE length(id) <> 36 OR id NOT LIKE '________-____-____-____-____________'`
+      );
+      for (const t of badTags) {
+        const r = await database.getFirstAsync<{ new_id: string }>(`SELECT ${uuid} as new_id`);
+        const newId = r?.new_id;
+        if (!newId) continue;
+        await database.runAsync('UPDATE tags SET id = ?, is_synced = 0, updated_at = ? WHERE id = ?', newId, Date.now(), t.id);
+        await database.runAsync('UPDATE record_tags SET tag_id = ? WHERE tag_id = ?', newId, t.id);
+      }
+
+      await database.execAsync('PRAGMA foreign_keys = ON');
+      await database.execAsync('PRAGMA user_version = 23');
+    }
+
     dbInitialized = true;
   })();
 
