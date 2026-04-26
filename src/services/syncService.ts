@@ -453,7 +453,10 @@ const SYNC_TABLES: SyncTable[] = [
 ];
 
 export async function clearAllDownloadWatermarks(): Promise<void> {
-  await Promise.all(SYNC_TABLES.map(table => setSetting(`last_download_${table.name}`, '0')));
+  await Promise.all([
+    ...SYNC_TABLES.map(table => setSetting(`last_download_${table.name}`, '0')),
+    setSetting('last_download_family_deletes', '0'),
+  ]);
 }
 
 // ============ 동기화 엔진: Sync Wake ============
@@ -520,6 +523,9 @@ async function syncPendingRecords(): Promise<SyncRunResult> {
       failed += result.failed;
       skipped += result.skipped;
     }
+
+    // 4. 다른 기기의 삭제 이력 반영 (family_deletes tombstone)
+    await syncFamilyDeletes(db, readiness);
   } catch (err) {
     console.error('[sync] syncPendingRecords batch failed:', err);
   }
@@ -657,13 +663,60 @@ async function processPendingDeletes(readiness: SyncReadiness): Promise<void> {
     );
 
     for (const row of rows) {
+      const deletedAt = Date.now();
       const { error } = await supabase.from(row.table_name).delete().eq('id', row.row_id);
       if (!error) {
+        // 다른 기기가 이 삭제를 감지할 수 있도록 tombstone 기록
+        await supabase.from('family_deletes').upsert({
+          family_id: readiness.familyId,
+          user_id: readiness.userId,
+          table_name: row.table_name,
+          row_id: row.row_id,
+          deleted_at: deletedAt,
+        }, { onConflict: 'family_id,table_name,row_id' });
         await db.runAsync('DELETE FROM pending_deletes WHERE id = ?', row.id);
       }
     }
   } catch (err) {
     console.error('[sync] processPendingDeletes failed:', err);
+  }
+}
+
+async function syncFamilyDeletes(
+  db: LocalDb,
+  readiness: Extract<SyncReadiness, { status: 'ready' }>
+): Promise<void> {
+  const watermarkKey = 'last_download_family_deletes';
+  const lastDeletedAt = Number(await getSetting(watermarkKey) ?? '0');
+
+  const { data, error } = await supabase
+    .from('family_deletes')
+    .select('*')
+    .eq('family_id', readiness.familyId)
+    .neq('user_id', readiness.userId)
+    .gt('deleted_at', lastDeletedAt)
+    .order('deleted_at', { ascending: true });
+
+  if (error) {
+    console.error('[sync] family_deletes download failed', error);
+    return;
+  }
+
+  const rows = data ?? [];
+  if (rows.length === 0) return;
+
+  let maxDeletedAt = lastDeletedAt;
+  for (const del of rows) {
+    try {
+      await db.runAsync(`DELETE FROM ${del.table_name} WHERE id = ?`, del.row_id);
+      maxDeletedAt = Math.max(maxDeletedAt, Number(del.deleted_at));
+    } catch (err) {
+      console.error('[sync] syncFamilyDeletes local delete failed', del, err);
+    }
+  }
+
+  if (maxDeletedAt > lastDeletedAt) {
+    await setSetting(watermarkKey, String(maxDeletedAt));
   }
 }
 
