@@ -16,7 +16,7 @@ import {
   getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
 import { getTagsOnly } from '../services/aiProcessor';
-import { wakeSync, clearAllDownloadWatermarks, markAllLocalDirty } from '../services/syncService';
+import { wakeSync, clearAllDownloadWatermarks, markAllLocalDirty, getSyncDiagnostics, type SyncDiagnostics } from '../services/syncService';
 import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
@@ -140,6 +140,13 @@ export default function SettingsScreen() {
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orphanedCount, setOrphanedCount] = useState(0);
+  const [diagnostics, setDiagnostics] = useState<SyncDiagnostics | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const loadDiagnostics = useCallback(async () => {
+    const d = await getSyncDiagnostics();
+    setDiagnostics(d);
+  }, []);
 
   // 백업/복원 상태
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -540,11 +547,76 @@ export default function SettingsScreen() {
                 await clearAllDownloadWatermarks();
                 await wakeSync('manual_retry');
                 await refreshChildren();
+                await loadDiagnostics();
                 Alert.alert('', '재동기화가 완료됐습니다');
               }}
             >
               <Text style={styles.menuRowText}>전체 재동기화</Text>
             </TouchableOpacity>
+            <View style={styles.sectionDivider} />
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={async () => {
+                await loadDiagnostics();
+                setShowDiagnostics(v => !v);
+              }}
+            >
+              <Text style={styles.menuRowText}>동기화 진단 {showDiagnostics ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+            {showDiagnostics && diagnostics && (
+              <View style={{ paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs }}>
+                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textSecondary }}>
+                  readiness: {diagnostics.currentReadiness.status}
+                  {diagnostics.currentReadiness.status === 'ready' ? `\nuser_id: ${diagnostics.currentReadiness.userId}\nfamily_id: ${diagnostics.currentReadiness.familyId}` : ''}
+                </Text>
+                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textSecondary }}>
+                  last_sync_family_id: {diagnostics.lastSyncFamilyId ?? '(null)'}
+                </Text>
+                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textPrimary, marginTop: 4 }}>
+                  Pending (is_synced=0):
+                </Text>
+                {Object.entries(diagnostics.pendingCounts).map(([t, c]) => (
+                  <Text key={t} style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: c > 0 ? colors.error : colors.textSecondary }}>
+                    {`  ${t}: ${c}`}
+                  </Text>
+                ))}
+                {Object.keys(diagnostics.failedRowsByTable).length > 0 && (
+                  <>
+                    <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.error, marginTop: 4 }}>
+                      Failed rows:
+                    </Text>
+                    {Object.entries(diagnostics.failedRowsByTable).map(([t, rows]) => (
+                      <View key={t}>
+                        <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textPrimary }}>{t}:</Text>
+                        {rows.map(r => (
+                          <Text key={r.id} style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 10, color: colors.error }}>
+                            {`  ${r.id.slice(0, 8)}: ${r.sync_error}`}
+                          </Text>
+                        ))}
+                      </View>
+                    ))}
+                  </>
+                )}
+                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textPrimary, marginTop: 4 }}>
+                  Recent attempts:
+                </Text>
+                {diagnostics.recentAttempts.slice(0, 5).map(a => (
+                  <Text key={a.id} style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 10, color: colors.textSecondary }}>
+                    {`#${a.id} ${a.reason} ${a.readiness_status} up=${a.uploaded_count}/fail=${a.failed_count}/dl=${a.download_count}${a.last_error_message ? '\n     err: ' + a.last_error_message : ''}`}
+                  </Text>
+                ))}
+                <TouchableOpacity
+                  onPress={async () => {
+                    const text = JSON.stringify(diagnostics, null, 2);
+                    await Clipboard.setStringAsync(text);
+                    Alert.alert('', '진단 정보 복사됨');
+                  }}
+                  style={{ marginTop: SPACING.sm, padding: SPACING.xs, backgroundColor: colors.surfaceSecondary, borderRadius: BORDER_RADIUS.sm }}
+                >
+                  <Text style={{ color: colors.textPrimary, textAlign: 'center', fontSize: FONT_SIZE.sm }}>전체 진단 정보 복사</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
 

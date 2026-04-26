@@ -12,12 +12,13 @@
 
 **미커밋**: 없음
 
-**DB 현재 버전**: v21 (UUID 마이그레이션 + sync 컬럼 추가)
+**DB 현재 버전**: v22 (sync 진단 인프라 — sync_attempts + sync_error/sync_attempted_at)
 
 ---
 
 ## 최근 완료된 작업
 
+- [x] **Sync 블랙박스 진단 인프라 (DB v22)**: 추측 기반 디버깅 종료. (1) `sync_attempts` 테이블 — 매 sync 시도마다 readiness_status, user_id, family_id, pending 카운트, upload/fail/skip/download 카운트, last_error_table/row_id/message 영속 저장. (2) 각 sync 테이블에 `sync_error`, `sync_attempted_at` 컬럼 추가 — row-level 실패 사유 보존. (3) Upload 직후 `select(.eq id).maybeSingle()` echo back 검증으로 RLS/네트워크 silent fail 탐지. (4) `getSyncDiagnostics()` API + SettingsScreen "동기화 진단" 패널 — 최근 attempts 5건, dirty count, 실패 row 미리보기, 클립보드 복사 버튼.
 - [x] **family_id 변경 감지 자동 dirty 리셋**: `syncPendingRecords` 시작 시 `last_sync_family_id`와 현재 family_id 비교 → 불일치 시 `markAllLocalDirty` 자동 실행. 가족방 재생성/재참여 시 기존 `is_synced=1` 데이터가 새 family로 재업로드 안 되는 문제 근본 해결. 재동기화 버튼: `void wakeSync` → `await wakeSync` + `refreshChildren` 호출로 UI 즉시 반영.
 - [x] **가족방 생성/가입 시 전체 dirty 리셋**: `markAllLocalDirty()` 추가 — 가족방 만들거나 참여할 때 모든 sync 테이블 `is_synced = 0`으로 마킹, 기존에 synced 상태였던 로컬 데이터도 새 family_id로 재업로드됨. 설정 "전체 재동기화" 버튼에도 적용.
 - [x] **삭제 전파 — family_deletes tombstone**: `processPendingDeletes`가 Supabase row 삭제 시 `family_deletes` 테이블에 tombstone 기록. `syncFamilyDeletes`가 sync 사이클 마지막에 다른 기기의 tombstone을 읽어 로컬 SQLite에서 동일 삭제 반영. 워터마크(`last_download_family_deletes`) 기반 중복 처리 방지. `clearAllDownloadWatermarks`에 포함. Supabase `family_deletes` 테이블 + RLS 생성 필요 (1회 수동).

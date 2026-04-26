@@ -459,6 +459,38 @@ export async function clearAllDownloadWatermarks(): Promise<void> {
   ]);
 }
 
+export type SyncDiagnostics = {
+  recentAttempts: any[];
+  pendingCounts: Record<string, number>;
+  failedRowsByTable: Record<string, { id: string; sync_error: string; sync_attempted_at: number }[]>;
+  currentReadiness: SyncReadiness;
+  lastSyncFamilyId: string | null;
+};
+
+export async function getSyncDiagnostics(): Promise<SyncDiagnostics> {
+  const db = await getDatabase();
+  const recentAttempts = await db.getAllAsync<any>(
+    `SELECT * FROM sync_attempts ORDER BY started_at DESC LIMIT 10`
+  );
+  const pendingCounts: Record<string, number> = {};
+  const failedRowsByTable: Record<string, { id: string; sync_error: string; sync_attempted_at: number }[]> = {};
+  for (const t of SYNC_TABLES) {
+    try {
+      const r = await db.getFirstAsync<{ c: number }>(`SELECT COUNT(*) as c FROM ${t.name} WHERE is_synced = 0`);
+      pendingCounts[t.name] = r?.c ?? 0;
+      const failed = await db.getAllAsync<{ id: string; sync_error: string; sync_attempted_at: number }>(
+        `SELECT id, sync_error, sync_attempted_at FROM ${t.name} WHERE sync_error IS NOT NULL ORDER BY sync_attempted_at DESC LIMIT 5`
+      );
+      if (failed.length > 0) failedRowsByTable[t.name] = failed;
+    } catch {
+      pendingCounts[t.name] = -1;
+    }
+  }
+  const lastSyncFamilyId = await getSetting('last_sync_family_id');
+  const currentReadiness = await getSyncReadiness();
+  return { recentAttempts, pendingCounts, failedRowsByTable, currentReadiness, lastSyncFamilyId };
+}
+
 // 가족방 생성/가입 시: 로컬 데이터 전체를 새 family로 재업로드하기 위해 dirty 표시
 export async function markAllLocalDirty(): Promise<void> {
   const db = await getDatabase();
@@ -482,7 +514,7 @@ export async function wakeSync(reason: SyncWakeReason): Promise<void> {
       while (true) {
         if (!pendingSyncWake) break;
         pendingSyncWake = false;
-        const result = await syncPendingRecords();
+        const result = await syncPendingRecords(reason);
         listeners.forEach(cb => cb(result));
       }
     } catch (err) {
@@ -497,32 +529,78 @@ export async function wakeSync(reason: SyncWakeReason): Promise<void> {
 
 // ============ 배치 동기화 ============
 
-async function syncPendingRecords(): Promise<SyncRunResult> {
+async function syncPendingRecords(reason: SyncWakeReason = 'manual_retry'): Promise<SyncRunResult> {
+  const startedAt = Date.now();
   const readiness = await getSyncReadiness();
+  const db = await getDatabase();
+
+  // 진단: 현재 dirty 카운트 미리 수집
+  const pendingCounts: Record<string, number> = {};
+  for (const t of SYNC_TABLES) {
+    try {
+      const r = await db.getFirstAsync<{ c: number }>(`SELECT COUNT(*) as c FROM ${t.name} WHERE is_synced = 0`);
+      pendingCounts[t.name] = r?.c ?? 0;
+    } catch {
+      pendingCounts[t.name] = -1;
+    }
+  }
+  const lastSyncFamilyIdBefore = await getSetting('last_sync_family_id');
+
+  // sync_attempts row 시작 기록
+  const attemptResult = await db.runAsync(
+    `INSERT INTO sync_attempts (started_at, reason, readiness_status, user_id, family_id, last_sync_family_id_before, pending_count_before)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    startedAt, reason, readiness.status,
+    readiness.status === 'ready' ? readiness.userId : null,
+    readiness.status === 'ready' ? readiness.familyId : null,
+    lastSyncFamilyIdBefore ?? null,
+    JSON.stringify(pendingCounts)
+  );
+  const attemptId = attemptResult.lastInsertRowId;
+
+  const finishAttempt = async (extra: Record<string, unknown>) => {
+    const cols = Object.keys(extra);
+    const sets = cols.map(c => `${c} = ?`).join(', ');
+    const vals = cols.map(c => extra[c]);
+    await db.runAsync(
+      `UPDATE sync_attempts SET ended_at = ?, ${sets} WHERE id = ?`,
+      Date.now(), ...vals as any[], attemptId
+    );
+  };
 
   // readiness가 'ready'가 아니면 업로드하지 않음
   if (readiness.status !== 'ready') {
     console.warn('[sync] syncPendingRecords: not ready', readiness.status);
+    await finishAttempt({ last_error_message: `not_ready:${readiness.status}` });
     return { processed: 0, failed: 0, skipped: 0 };
   }
 
   let processed = 0;
   let failed = 0;
   let skipped = 0;
+  let downloadCount = 0;
+  let lastErrorTable: string | null = null;
+  let lastErrorRowId: string | null = null;
+  let lastErrorMessage: string | null = null;
 
   try {
-    const db = await getDatabase();
-
     // family_id가 바뀌면 모든 로컬 데이터를 새 family로 재업로드
-    const lastSyncFamilyId = await getSetting('last_sync_family_id');
-    if (readiness.familyId !== lastSyncFamilyId) {
+    if (readiness.familyId !== lastSyncFamilyIdBefore) {
       await markAllLocalDirty();
       await setSetting('last_sync_family_id', readiness.familyId);
     }
 
+    const errorTracker = {
+      record: (tbl: string, rowId: string, msg: string) => {
+        lastErrorTable = tbl;
+        lastErrorRowId = rowId;
+        lastErrorMessage = msg;
+      }
+    };
+
     // 1. dependency order대로 local dirty rows upload
     for (const table of SYNC_TABLES) {
-      const result = await syncTableUpload(db, table, readiness);
+      const result = await syncTableUpload(db, table, readiness, errorTracker);
       processed += result.processed;
       failed += result.failed;
       skipped += result.skipped;
@@ -533,26 +611,40 @@ async function syncPendingRecords(): Promise<SyncRunResult> {
 
     // 3. 같은 순서로 remote rows download
     for (const table of SYNC_TABLES) {
-      const result = await syncTableDownload(db, table, readiness);
+      const result = await syncTableDownload(db, table, readiness, errorTracker);
       processed += result.processed;
       failed += result.failed;
       skipped += result.skipped;
+      downloadCount += result.processed;
     }
 
     // 4. 다른 기기의 삭제 이력 반영 (family_deletes tombstone)
     await syncFamilyDeletes(db, readiness);
   } catch (err) {
     console.error('[sync] syncPendingRecords batch failed:', err);
+    lastErrorMessage = lastErrorMessage ?? `batch_exception:${err instanceof Error ? err.message : String(err)}`;
   }
 
   console.log('[sync] syncPendingRecords result:', { processed, failed, skipped });
+  await finishAttempt({
+    uploaded_count: processed - downloadCount,
+    failed_count: failed,
+    skipped_count: skipped,
+    download_count: downloadCount,
+    last_error_table: lastErrorTable,
+    last_error_row_id: lastErrorRowId,
+    last_error_message: lastErrorMessage,
+  });
   return { processed, failed, skipped };
 }
+
+type ErrorTracker = { record: (tbl: string, rowId: string, msg: string) => void };
 
 async function syncTableUpload(
   db: LocalDb,
   table: SyncTable,
-  readiness: Extract<SyncReadiness, { status: 'ready' }>
+  readiness: Extract<SyncReadiness, { status: 'ready' }>,
+  errorTracker?: ErrorTracker
 ): Promise<SyncRunResult> {
   let processed = 0;
   let failed = 0;
@@ -568,7 +660,31 @@ async function syncTableUpload(
       const remote = await table.toRemote({ ...row, updated_at: uploadedAt }, readiness, db);
       const { error } = await supabase.from(table.name).upsert(remote, { onConflict: 'id' });
       if (error) {
+        const errMsg = `${error.code ?? '?'}:${error.message ?? String(error)}`;
         console.error(`[sync] ${table.name} upload failed`, row.id, error);
+        await db.runAsync(
+          `UPDATE ${table.name} SET sync_error = ?, sync_attempted_at = ? WHERE id = ?`,
+          errMsg, uploadedAt, row.id
+        ).catch(() => {});
+        errorTracker?.record(table.name, String(row.id), errMsg);
+        failed++;
+        batchHadFailure = true;
+        continue;
+      }
+
+      // upload 직후 echo back 검증 — Supabase에 정말 들어갔는지 확인
+      const { data: echo, error: echoErr } = await supabase
+        .from(table.name)
+        .select('id')
+        .eq('id', row.id)
+        .maybeSingle();
+      if (echoErr || !echo) {
+        const errMsg = `echo_missing:${echoErr?.message ?? 'row not visible after upsert'}`;
+        await db.runAsync(
+          `UPDATE ${table.name} SET sync_error = ?, sync_attempted_at = ? WHERE id = ?`,
+          errMsg, uploadedAt, row.id
+        ).catch(() => {});
+        errorTracker?.record(table.name, String(row.id), errMsg);
         failed++;
         batchHadFailure = true;
         continue;
@@ -576,8 +692,8 @@ async function syncTableUpload(
 
       // 업로드 시점으로 updated_at 동기화 — 다른 기기 워터마크가 이보다 낮으면 반드시 재다운로드됨
       await db.runAsync(
-        `UPDATE ${table.name} SET updated_at = ?, is_synced = 1 WHERE id = ?`,
-        uploadedAt, row.id
+        `UPDATE ${table.name} SET updated_at = ?, is_synced = 1, sync_error = NULL, sync_attempted_at = ? WHERE id = ?`,
+        uploadedAt, uploadedAt, row.id
       );
       processed++;
     }
@@ -592,7 +708,8 @@ async function syncTableUpload(
 async function syncTableDownload(
   db: LocalDb,
   table: SyncTable,
-  readiness: Extract<SyncReadiness, { status: 'ready' }>
+  readiness: Extract<SyncReadiness, { status: 'ready' }>,
+  errorTracker?: ErrorTracker
 ): Promise<SyncRunResult> {
   let processed = 0;
   let failed = 0;
@@ -609,6 +726,7 @@ async function syncTableDownload(
 
   if (error) {
     console.error(`[sync] ${table.name} download failed`, error);
+    errorTracker?.record(table.name, '', `download:${error.code ?? '?'}:${error.message ?? String(error)}`);
     return { processed, failed: failed + 1, skipped };
   }
 

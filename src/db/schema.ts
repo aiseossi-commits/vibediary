@@ -249,6 +249,30 @@ export const CREATE_PENDING_DELETES_TABLE = `
   );
 `;
 
+export const CREATE_SYNC_ATTEMPTS_TABLE = `
+  CREATE TABLE IF NOT EXISTS sync_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at INTEGER NOT NULL,
+    ended_at INTEGER,
+    reason TEXT NOT NULL,
+    readiness_status TEXT,
+    user_id TEXT,
+    family_id TEXT,
+    last_sync_family_id_before TEXT,
+    pending_count_before TEXT,
+    uploaded_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    skipped_count INTEGER DEFAULT 0,
+    download_count INTEGER DEFAULT 0,
+    last_error_table TEXT,
+    last_error_row_id TEXT,
+    last_error_message TEXT,
+    echo_check_passed INTEGER
+  );
+`;
+
+export const CREATE_SYNC_ATTEMPTS_INDEX = `CREATE INDEX IF NOT EXISTS idx_sync_attempts_started ON sync_attempts(started_at DESC);`;
+
 // v19 → v20: 빈 structured_data를 null로 정리 (지연 저장 정책)
 export const CLEANUP_EMPTY_STRUCTURED_DATA = `
   UPDATE records SET structured_data = NULL WHERE structured_data = '{}';

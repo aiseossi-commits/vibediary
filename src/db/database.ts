@@ -20,6 +20,8 @@ import {
   CREATE_INDEXES,
   CREATE_SYNTHESIS_INDEXES,
   CREATE_PENDING_DELETES_TABLE,
+  CREATE_SYNC_ATTEMPTS_TABLE,
+  CREATE_SYNC_ATTEMPTS_INDEX,
   MIGRATE_TAGS_V3,
   CLEANUP_DUPLICATE_DEFAULT_TAGS,
   CLEANUP_NULL_DUPLICATE_TAGS,
@@ -75,6 +77,8 @@ export async function initializeDatabase(): Promise<void> {
     await database.execAsync(CREATE_EVENT_DAILY_LOGS_TABLE);
     await database.execAsync(CREATE_APP_SETTINGS_TABLE);
     await database.execAsync(CREATE_PENDING_DELETES_TABLE);
+    await database.execAsync(CREATE_SYNC_ATTEMPTS_TABLE);
+    await database.execAsync(CREATE_SYNC_ATTEMPTS_INDEX);
 
     // 외래 키 활성화 (테이블 생성 후)
     await database.execAsync('PRAGMA foreign_keys = ON;');
@@ -463,6 +467,37 @@ export async function initializeDatabase(): Promise<void> {
 
       await database.execAsync('PRAGMA foreign_keys = ON');
       await database.execAsync('PRAGMA user_version = 21');
+    }
+
+    if (currentVersion < 22) {
+      // v21 → v22: sync 진단 인프라 (sync_attempts 테이블 + 각 sync 테이블에 sync_error/sync_attempted_at 추가)
+      await database.execAsync(`CREATE TABLE IF NOT EXISTS sync_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        started_at INTEGER NOT NULL,
+        ended_at INTEGER,
+        reason TEXT NOT NULL,
+        readiness_status TEXT,
+        user_id TEXT,
+        family_id TEXT,
+        last_sync_family_id_before TEXT,
+        pending_count_before TEXT,
+        uploaded_count INTEGER DEFAULT 0,
+        failed_count INTEGER DEFAULT 0,
+        skipped_count INTEGER DEFAULT 0,
+        download_count INTEGER DEFAULT 0,
+        last_error_table TEXT,
+        last_error_row_id TEXT,
+        last_error_message TEXT,
+        echo_check_passed INTEGER
+      )`);
+      await database.execAsync('CREATE INDEX IF NOT EXISTS idx_sync_attempts_started ON sync_attempts(started_at DESC)');
+
+      const syncErrorTables = ['records', 'children', 'tags', 'active_events', 'event_daily_logs', 'event_name_presets', 'hidden_default_event_names', 'synthesis_articles', 'wiki_pages', 'search_logs'];
+      for (const t of syncErrorTables) {
+        try { await database.execAsync(`ALTER TABLE ${t} ADD COLUMN sync_error TEXT`); } catch {}
+        try { await database.execAsync(`ALTER TABLE ${t} ADD COLUMN sync_attempted_at INTEGER`); } catch {}
+      }
+      await database.execAsync('PRAGMA user_version = 22');
     }
 
     dbInitialized = true;
