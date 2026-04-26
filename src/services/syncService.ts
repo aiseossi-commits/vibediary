@@ -543,7 +543,8 @@ async function syncTableUpload(
 
     let batchHadFailure = false;
     for (const row of rows) {
-      const remote = await table.toRemote(row, readiness, db);
+      const uploadedAt = Date.now();
+      const remote = await table.toRemote({ ...row, updated_at: uploadedAt }, readiness, db);
       const { error } = await supabase.from(table.name).upsert(remote, { onConflict: 'id' });
       if (error) {
         console.error(`[sync] ${table.name} upload failed`, row.id, error);
@@ -552,7 +553,11 @@ async function syncTableUpload(
         continue;
       }
 
-      await db.runAsync(`UPDATE ${table.name} SET is_synced = 1 WHERE id = ?`, row.id);
+      // 업로드 시점으로 updated_at 동기화 — 다른 기기 워터마크가 이보다 낮으면 반드시 재다운로드됨
+      await db.runAsync(
+        `UPDATE ${table.name} SET updated_at = ?, is_synced = 1 WHERE id = ?`,
+        uploadedAt, row.id
+      );
       processed++;
     }
 

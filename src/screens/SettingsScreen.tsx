@@ -16,7 +16,7 @@ import {
   getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
 import { getTagsOnly } from '../services/aiProcessor';
-import { wakeSync } from '../services/syncService';
+import { wakeSync, clearAllDownloadWatermarks } from '../services/syncService';
 import { DEFAULT_TAGS } from '../db/schema';
 import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
@@ -531,6 +531,17 @@ export default function SettingsScreen() {
             >
               <Text style={styles.menuRowText}>초대코드로 가족과 공유</Text>
               <Text style={styles.menuRowArrow}>›</Text>
+            </TouchableOpacity>
+            <View style={styles.sectionDivider} />
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={async () => {
+                await clearAllDownloadWatermarks();
+                void wakeSync('manual_retry');
+                Alert.alert('', '전체 재동기화를 시작했습니다');
+              }}
+            >
+              <Text style={styles.menuRowText}>전체 재동기화</Text>
             </TouchableOpacity>
           </View>
         </View>

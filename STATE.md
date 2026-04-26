@@ -18,6 +18,7 @@
 
 ## 최근 완료된 작업
 
+- [x] **sync 워터마크 통과 보장 — 업로드 시 updated_at 갱신**: 업로드 성공 시 `updated_at = Date.now()`로 SQLite + Supabase 동기화. 이전엔 재업로드(child_id 추가 등)해도 `updated_at`이 바뀌지 않아 다른 기기의 워터마크 필터(`.gt('updated_at', watermark)`)에 걸려 재다운로드 안 되는 구조적 버그 수정. SettingsScreen "전체 재동기화" 버튼 추가 (clearAllDownloadWatermarks + wakeSync).
 - [x] **Supabase records.child_id 컬럼 추가**: 기존 records 테이블(구 스키마)에 child_id 컬럼이 없어 syncService의 toRemote 매퍼가 child_id를 전송하면 Supabase가 42703 에러로 거부하던 문제 수정. `ALTER TABLE records ADD COLUMN IF NOT EXISTS child_id UUID;` 실행으로 해결. children 테이블(Phase 1 신규 생성)은 정상 sync됐으나 records만 실패하던 증상의 근본 원인.
 - [x] **가족 sync 확장 Phase 4 (syncService 확장)**: `SYNC_TABLES` 기반 제네릭 upload/download 엔진 도입. children/tags/records/active_events/event_daily_logs/event_name_presets/hidden_default_event_names/synthesis_articles/wiki_pages/search_logs를 의존성 순서대로 업로드하고, `last_download_<table>` 워터마크 기반으로 가족방 remote 변경사항을 다운로드. 다운로드 row는 `is_synced=1`로 저장해 재업로드 루프 방지, local newer row는 last-write-wins 기준으로 skip.
 - [x] **가족 sync 확장 Phase 5-6 (가족방 가입 download + 검증 보강)**: `clearAllDownloadWatermarks()` 추가, FamilyShareScreen create/join 성공 직후 워터마크 초기화 후 `wakeSync('family_created'/'family_joined')` 실행. sync 완료 후 `refreshChildren()` 호출로 ChildContext를 갱신. 겹치는 `wakeSync` 요청은 drop하지 않고 `pendingSyncWake`로 큐잉해 앱 시작 sync와 가족방 가입 sync가 겹쳐도 다음 sync가 반드시 실행되도록 보강.
