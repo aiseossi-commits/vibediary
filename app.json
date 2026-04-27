@@ -10,6 +10,7 @@
       "bundleIdentifier": "com.aiseossi.vibediary",
       "buildNumber": "4",
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "음성 녹음을 위해 마이크 접근이 필요합니다.",
@@ -90,7 +91,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-image"
+      "expo-image",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

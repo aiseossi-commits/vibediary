@@ -20,6 +20,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "babel-preset-expo": "~55.0.8",
     "expo": "~55.0.5",
+    "expo-apple-authentication": "~55.0.13",
     "expo-application": "~55.0.10",
     "expo-av": "16.0.8",
     "expo-clipboard": "~55.0.9",

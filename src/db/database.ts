@@ -523,6 +523,22 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 23');
     }
 
+    if (currentVersion < 24) {
+      // v23 → v24: family_id, created_by, updated_by, deleted_at 추가 (재설계)
+      const v24Tables = [
+        'children', 'records', 'tags', 'active_events', 'event_daily_logs',
+        'event_name_presets', 'hidden_default_event_names', 'synthesis_articles',
+        'wiki_pages', 'search_logs',
+      ];
+      for (const t of v24Tables) {
+        try { await database.execAsync(`ALTER TABLE ${t} ADD COLUMN family_id TEXT`); } catch {}
+        try { await database.execAsync(`ALTER TABLE ${t} ADD COLUMN created_by TEXT`); } catch {}
+        try { await database.execAsync(`ALTER TABLE ${t} ADD COLUMN updated_by TEXT`); } catch {}
+        try { await database.execAsync(`ALTER TABLE ${t} ADD COLUMN deleted_at INTEGER`); } catch {}
+      }
+      await database.execAsync('PRAGMA user_version = 24');
+    }
+
     dbInitialized = true;
   })();
 

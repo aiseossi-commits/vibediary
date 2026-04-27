@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ActivityIndicator,
-  Alert, StyleSheet, ScrollView,
+  Alert, StyleSheet, ScrollView, Platform,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,14 +11,15 @@ import { useAuth } from '../context/AuthContext';
 import { useChild } from '../context/ChildContext';
 import {
   createFamilyRoom, joinFamilyRoom, getMyFamilyRoom, leaveFamilyRoom,
+  promoteLocalDataToFamily,
   type FamilyRoom,
 } from '../services/familyService';
-import { clearAllDownloadWatermarks, markAllLocalDirty, wakeSync } from '../services/syncService';
+import { clearAllDownloadWatermarks, wakeSync } from '../services/syncService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 
 export default function FamilyShareScreen() {
   const { colors } = useTheme();
-  const { userId } = useAuth();
+  const { userId, isAnonymous, signInWithApple } = useAuth();
   const { refreshChildren } = useChild();
   const styles = createStyles(colors);
   const navigation = useNavigation<any>();
@@ -42,13 +43,31 @@ export default function FamilyShareScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  const authGate = async (): Promise<boolean> => {
+    if (!isAnonymous) return true;
+    if (Platform.OS !== 'ios') {
+      setError('현재 iOS에서만 가족방 기능을 사용할 수 있습니다');
+      return false;
+    }
+    try {
+      await signInWithApple();
+      return true;
+    } catch (e: any) {
+      if (e?.code === 'ERR_REQUEST_CANCELED') return false;
+      setError('Apple 로그인에 실패했습니다. 다시 시도해주세요.');
+      return false;
+    }
+  };
+
   const handleCreate = async () => {
     setActionLoading(true);
     setError(null);
     try {
+      const authed = await authGate();
+      if (!authed) return;
       const r = await createFamilyRoom();
       setRoom(r);
-      await markAllLocalDirty();
+      await promoteLocalDataToFamily(r.id);
       await clearAllDownloadWatermarks();
       await wakeSync('family_created');
       await refreshChildren();
@@ -65,10 +84,12 @@ export default function FamilyShareScreen() {
     setActionLoading(true);
     setError(null);
     try {
+      const authed = await authGate();
+      if (!authed) return;
       const r = await joinFamilyRoom(codeInput.trim());
       setRoom(r);
       setCodeInput('');
-      await markAllLocalDirty();
+      await promoteLocalDataToFamily(r.id);
       await clearAllDownloadWatermarks();
       await wakeSync('family_joined');
       await refreshChildren();

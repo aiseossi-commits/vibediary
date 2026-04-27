@@ -11,6 +11,7 @@ const BATCH_SIZE = 50;
 export type SyncReadiness =
   | { status: 'ready'; userId: string; familyId: string; authorName: string }
   | { status: 'unauthenticated' }
+  | { status: 'anonymous' }
   | { status: 'no_family' }
   | { status: 'context_error'; error: Error };
 
@@ -21,6 +22,7 @@ export type SyncWakeReason =
   | 'app_foregrounded'
   | 'family_joined'
   | 'family_created'
+  | 'family_promoted'
   | 'record_changed'
   | 'manual_retry';
 
@@ -59,6 +61,10 @@ export async function getSyncReadiness(): Promise<SyncReadiness> {
     if (!user) {
       console.warn('[sync] getSyncReadiness: user not authenticated');
       return { status: 'unauthenticated' };
+    }
+
+    if (user.is_anonymous) {
+      return { status: 'anonymous' };
     }
 
     const { data: membership, error: membershipError } = await supabase
@@ -119,7 +125,8 @@ function withRemoteContext(
   return {
     ...row,
     family_id: readiness.familyId,
-    user_id: readiness.userId,
+    created_by: (row.created_by as string | null) ?? readiness.userId,
+    updated_by: readiness.userId,
   };
 }
 
@@ -134,6 +141,13 @@ async function shouldApplyRemote(db: LocalDb, tableName: string, remote: any): P
 
 async function upsertChildrenLocal(db: LocalDb, remote: any): Promise<'applied' | 'skipped'> {
   if (!(await shouldApplyRemote(db, 'children', remote))) return 'skipped';
+  if (remote.deleted_at) {
+    await db.runAsync(
+      `UPDATE children SET deleted_at = ?, is_synced = 1 WHERE id = ?`,
+      remote.deleted_at, remote.id
+    ).catch(() => {});
+    return 'applied';
+  }
   await db.runAsync(
     `INSERT INTO children (id, name, created_at, updated_at, is_synced)
      VALUES (?, ?, ?, ?, 1)
@@ -186,6 +200,13 @@ function parseRemoteTags(value: unknown): string[] {
 
 async function upsertRecordsLocal(db: LocalDb, remote: any): Promise<'applied' | 'skipped'> {
   if (!(await shouldApplyRemote(db, 'records', remote))) return 'skipped';
+  if (remote.deleted_at) {
+    await db.runAsync(
+      `UPDATE records SET deleted_at = ?, is_synced = 1 WHERE id = ?`,
+      remote.deleted_at, remote.id
+    ).catch(() => {});
+    return 'applied';
+  }
   await db.runAsync(
     `INSERT INTO records (id, created_at, updated_at, raw_text, summary, structured_data, source, photo_url, child_id, ai_pending, is_synced)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
@@ -311,6 +332,7 @@ const SYNC_TABLES: SyncTable[] = [
       name: row.name,
       created_at: row.created_at,
       updated_at: row.updated_at || row.created_at,
+      deleted_at: row.deleted_at ?? null,
     }, readiness),
     upsertLocal: upsertChildrenLocal,
   },
@@ -346,6 +368,7 @@ const SYNC_TABLES: SyncTable[] = [
         child_id: row.child_id,
         tags: JSON.stringify(tags.map(t => t.name)),
         author_name: readiness.authorName,
+        deleted_at: row.deleted_at ?? null,
       }, readiness);
     },
     upsertLocal: upsertRecordsLocal,
@@ -453,10 +476,9 @@ const SYNC_TABLES: SyncTable[] = [
 ];
 
 export async function clearAllDownloadWatermarks(): Promise<void> {
-  await Promise.all([
-    ...SYNC_TABLES.map(table => setSetting(`last_download_${table.name}`, '0')),
-    setSetting('last_download_family_deletes', '0'),
-  ]);
+  await Promise.all(
+    SYNC_TABLES.map(table => setSetting(`last_download_${table.name}`, '0'))
+  );
 }
 
 export type SyncDiagnostics = {
@@ -618,8 +640,6 @@ async function syncPendingRecords(reason: SyncWakeReason = 'manual_retry'): Prom
       downloadCount += result.processed;
     }
 
-    // 4. 다른 기기의 삭제 이력 반영 (family_deletes tombstone)
-    await syncFamilyDeletes(db, readiness);
   } catch (err) {
     console.error('[sync] syncPendingRecords batch failed:', err);
     lastErrorMessage = lastErrorMessage ?? `batch_exception:${err instanceof Error ? err.message : String(err)}`;
@@ -797,59 +817,19 @@ async function processPendingDeletes(readiness: SyncReadiness): Promise<void> {
 
     for (const row of rows) {
       const deletedAt = Date.now();
-      const { error } = await supabase.from(row.table_name).delete().eq('id', row.row_id);
+      // 소프트 삭제: Supabase에서 hard delete 대신 deleted_at + updated_at 설정
+      // 다른 기기가 watermark 기반 download 시 이 row를 받아서 로컬에 soft delete 적용
+      const { error } = await supabase
+        .from(row.table_name)
+        .update({ deleted_at: deletedAt, updated_at: deletedAt })
+        .eq('id', row.row_id)
+        .eq('family_id', readiness.familyId);
       if (!error) {
-        // 다른 기기가 이 삭제를 감지할 수 있도록 tombstone 기록
-        await supabase.from('family_deletes').upsert({
-          family_id: readiness.familyId,
-          user_id: readiness.userId,
-          table_name: row.table_name,
-          row_id: row.row_id,
-          deleted_at: deletedAt,
-        }, { onConflict: 'family_id,table_name,row_id' });
         await db.runAsync('DELETE FROM pending_deletes WHERE id = ?', row.id);
       }
     }
   } catch (err) {
     console.error('[sync] processPendingDeletes failed:', err);
-  }
-}
-
-async function syncFamilyDeletes(
-  db: LocalDb,
-  readiness: Extract<SyncReadiness, { status: 'ready' }>
-): Promise<void> {
-  const watermarkKey = 'last_download_family_deletes';
-  const lastDeletedAt = Number(await getSetting(watermarkKey) ?? '0');
-
-  const { data, error } = await supabase
-    .from('family_deletes')
-    .select('*')
-    .eq('family_id', readiness.familyId)
-    .neq('user_id', readiness.userId)
-    .gt('deleted_at', lastDeletedAt)
-    .order('deleted_at', { ascending: true });
-
-  if (error) {
-    console.error('[sync] family_deletes download failed', error);
-    return;
-  }
-
-  const rows = data ?? [];
-  if (rows.length === 0) return;
-
-  let maxDeletedAt = lastDeletedAt;
-  for (const del of rows) {
-    try {
-      await db.runAsync(`DELETE FROM ${del.table_name} WHERE id = ?`, del.row_id);
-      maxDeletedAt = Math.max(maxDeletedAt, Number(del.deleted_at));
-    } catch (err) {
-      console.error('[sync] syncFamilyDeletes local delete failed', del, err);
-    }
-  }
-
-  if (maxDeletedAt > lastDeletedAt) {
-    await setSetting(watermarkKey, String(maxDeletedAt));
   }
 }
 

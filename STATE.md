@@ -6,17 +6,51 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 가족 sync 확장 Phase 3-6 완료 + Supabase records.child_id 수정` (main, 2026-04-26)
+**마지막 커밋**: `feat: family sync 재설계 Phase 1-2 (영구 인증 + family_id RLS)` (main, 2026-04-27)
 
 **현재 브랜치**: main
 
-**미커밋**: 없음
+**DB 현재 버전**: v24 (family_id, created_by, updated_by, deleted_at 추가)
 
-**DB 현재 버전**: v23 (tags 비-UUID id 정리)
+## 다음 할 일 (Supabase 작업 — 콘솔 필요)
+
+1. **Supabase Auth — Apple Sign-In provider 활성화**
+   - 콘솔 → Authentication → Providers → Apple
+   - Apple Developer Console: App ID에 Sign In with Apple 추가, Services ID 생성, Private Key (.p8) 발급
+   - Supabase에 Client ID (Services ID), Team ID, Key ID, Private Key 입력
+
+2. **`family-sync-schema-v2.sql` 실행** (Supabase SQL Editor)
+   - STEP 0: archive 테이블 생성 (기존 데이터 백업)
+   - STEP 1-5: 스키마 재구성
+   - STEP 6: RLS 전면 교체 (`user_family_ids()` 헬퍼 기반)
+   - STEP 7: Storage RLS (audio bucket)
+
+3. **APK 빌드 (versionCode 28)** — Supabase 작업 완료 후
+   ```bash
+   cd android && ./gradlew assembleRelease
+   ```
+
+4. **실기기 검증** — 시나리오 1~5 순서대로
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **Family Sync 재설계 Phase 1-2 (2026-04-27)**:
+  - **설계 문서**: `family-sync-redesign.md` v2 작성 (minimal 모델, over-engineering 제거)
+  - **핵심 변경**: user_id → family_id 기반 RLS, 익명 인증 → 영구 인증(Apple Sign-In)
+  - **AuthContext**: `isAnonymous`, `signInWithApple()` 추가, `expo-apple-authentication` 설치
+  - **app.json**: `usesAppleSignIn: true`, `expo-apple-authentication` 플러그인 추가
+  - **SyncReadiness**: `'anonymous'` 상태 추가 (익명 계정 sync 차단)
+  - **SyncWakeReason**: `'family_promoted'` 추가
+  - **syncService.ts**: `withRemoteContext` — user_id 제거, created_by/updated_by 추가; `syncFamilyDeletes` 삭제; `processPendingDeletes` — hard delete → soft delete(deleted_at 설정); `clearAllDownloadWatermarks` — family_deletes 워터마크 제거; upsertChildrenLocal/upsertRecordsLocal에 deleted_at soft delete 처리 추가
+  - **familyService.ts**: `promoteLocalDataToFamily()` 추가 — 가족방 가입 시 로컬 rows에 family_id/created_by/updated_by 백필
+  - **FamilyShareScreen.tsx**: `authGate()` 추가 — 익명이면 Apple Sign-In 강제; `markAllLocalDirty()` → `promoteLocalDataToFamily()` 로 교체 (family_id 백필 포함)
+  - **database.ts**: DB v24 마이그레이션 — 10개 sync 테이블에 family_id/created_by/updated_by/deleted_at 컬럼 추가
+  - **family-sync-schema-v2.sql**: Supabase 적용용 전체 SQL (archive, 스키마, RLS, Storage)
+  - **타입 체크**: `npx tsc --noEmit` 통과
+
+
 
 - [x] **Sync 진단으로 두 원인 확정 + DB v23 + Supabase 청소**: 진단 인프라가 즉시 두 원인 짚어냄. (1) Supabase children/records에 옛 family_id로 등록된 row 3개가 RLS USING expression 위반 (42501) → Supabase에서 해당 row 삭제로 해결 (옵션 A). (2) tags 테이블에 v21 마이그레이션이 처리 못한 INTEGER id (192, 266, 256 등) 잔존 → 22P02 invalid uuid syntax. DB v23 마이그레이션 추가: 비-UUID 형식 tag id 전부 새 UUID로 교체 + record_tags의 tag_id 동시 매핑 업데이트.
 - [x] **Sync 블랙박스 진단 인프라 (DB v22)**: 추측 기반 디버깅 종료. (1) `sync_attempts` 테이블 — 매 sync 시도마다 readiness_status, user_id, family_id, pending 카운트, upload/fail/skip/download 카운트, last_error_table/row_id/message 영속 저장. (2) 각 sync 테이블에 `sync_error`, `sync_attempted_at` 컬럼 추가 — row-level 실패 사유 보존. (3) Upload 직후 `select(.eq id).maybeSingle()` echo back 검증으로 RLS/네트워크 silent fail 탐지. (4) `getSyncDiagnostics()` API + SettingsScreen "동기화 진단" 패널 — 최근 attempts 5건, dirty count, 실패 row 미리보기, 클립보드 복사 버튼.

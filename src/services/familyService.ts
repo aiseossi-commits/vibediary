@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getDatabase } from '../db/database';
 
 function generateInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -84,6 +85,36 @@ export async function getMyFamilyRoom(): Promise<FamilyRoom | null> {
     .eq('family_id', family.id);
 
   return { id: family.id, invite_code: family.invite_code, member_count: count ?? 1 };
+}
+
+const PROMOTE_TABLES = [
+  'children', 'records', 'tags', 'active_events', 'event_daily_logs',
+  'event_name_presets', 'hidden_default_event_names', 'synthesis_articles',
+  'wiki_pages', 'search_logs',
+];
+
+// 가족방 생성/참여 직후: 로컬 rows에 family_id + created_by/updated_by 백필 후 dirty 마킹
+export async function promoteLocalDataToFamily(familyId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const db = await getDatabase();
+  const now = Date.now();
+  for (const table of PROMOTE_TABLES) {
+    try {
+      await db.runAsync(
+        `UPDATE ${table}
+         SET family_id = ?,
+             created_by = COALESCE(created_by, ?),
+             updated_by = ?,
+             is_synced = 0,
+             updated_at = ?
+         WHERE family_id IS NULL`,
+        familyId, user.id, user.id, now
+      );
+    } catch {
+      // 컬럼이 없는 경우(v24 미적용) 무시
+    }
+  }
 }
 
 export async function leaveFamilyRoom(familyId: string): Promise<void> {
