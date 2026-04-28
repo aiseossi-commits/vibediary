@@ -12,25 +12,19 @@
 
 **DB 현재 버전**: v24 (family_id, created_by, updated_by, deleted_at 추가)
 
-## 다음 할 일 (Supabase 작업 — 콘솔 필요)
+## 다음 할 일
 
-1. **Supabase Auth — Apple Sign-In provider 활성화**
-   - 콘솔 → Authentication → Providers → Apple
-   - Apple Developer Console: App ID에 Sign In with Apple 추가, Services ID 생성, Private Key (.p8) 발급
-   - Supabase에 Client ID (Services ID), Team ID, Key ID, Private Key 입력
+1. **실기기 검증** — APK versionCode 28 (`vibediary04270000.apk`) 설치 후 시나리오 순서대로
+   - 시나리오 1: 기기A — 앱 실행, Apple 로그인 없이 가족방 생성 시도 → iOS에서만 가능 메시지 확인
+   - 시나리오 2: 기기A — Apple 로그인 → 가족방 생성 → 초대코드 확인 → 기록 몇 개 추가
+   - 시나리오 3: 기기B — 앱 설치 → Apple 로그인 → 초대코드로 가족방 참여 → 기기A 기록 sync 확인
+   - 시나리오 4: 기기A에서 기록 삭제 → 기기B에서 해당 기록 사라지는지 (soft delete 전파)
+   - 시나리오 5: 기기 교체 — 새 기기에서 같은 Apple 계정 로그인 → 영구 user_id로 데이터 복구 확인
 
-2. **`family-sync-schema-v2.sql` 실행** (Supabase SQL Editor)
-   - STEP 0: archive 테이블 생성 (기존 데이터 백업)
-   - STEP 1-5: 스키마 재구성
-   - STEP 6: RLS 전면 교체 (`user_family_ids()` 헬퍼 기반)
-   - STEP 7: Storage RLS (audio bucket)
+2. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
+   - `family-sync-schema-v2.sql` STEP 7 주석 참고
 
-3. **APK 빌드 (versionCode 28)** — Supabase 작업 완료 후
-   ```bash
-   cd android && ./gradlew assembleRelease
-   ```
-
-4. **실기기 검증** — 시나리오 1~5 순서대로
+3. **Android Play Store 제출** — 실기기 검증 완료 후
 
 ---
 
