@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: Family Sync Phase 2.5 — Android Google Sign-In 추가` (main, 2026-04-29)
+**마지막 커밋**: `chore: iOS 1.0.4 build 6 + Android versionCode 35 테스터 빌드` (main, 2026-04-29)
 
 **현재 브랜치**: main
 
