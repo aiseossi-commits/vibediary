@@ -33,8 +33,8 @@ export async function createFamilyRoom(): Promise<FamilyRoom> {
 
     if (!error) {
       family = data;
-    } else if (error.code !== '23505') {
-      throw error;
+    } else {
+      if (error.code !== '23505') throw error;
     }
     attempts++;
   }

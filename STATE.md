@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: versionCode 27 → 28 (Family Sync 재설계 빌드) + STATE.md 업데이트` (main, 2026-04-28)
+**마지막 커밋**: `feat: Family Sync Phase 2.5 — Android Google Sign-In 추가` (main, 2026-04-29)
 
 **현재 브랜치**: main
 
@@ -14,22 +14,35 @@
 
 ## 다음 할 일
 
-1. **실기기 검증** — APK versionCode 29 (`vibediary04290000.apk`) 설치 후 시나리오 순서대로
-   - 시나리오 1: Android 기기 — 익명 상태에서 가족방 생성 → Google 로그인 다이얼로그 → 가족방 생성/초대코드 확인
+1. **APK 빌드 + 실기기 검증** — versionCode 34 (`vibediary04290000.apk` 또는 최신)
+   - 시나리오 1: Android 기기 — 익명 상태에서 가족방 생성 → Google 로그인 → 가족방 생성/초대코드 확인
    - 시나리오 2: 다른 Android 기기 — Google 로그인 → 초대코드 참여 → 기기A 기록 sync 확인
    - 시나리오 3: 기기A 기록 삭제 → 기기B 사라지는지 (soft delete 전파)
    - 시나리오 4: 같은 Google 계정으로 앱 재설치 → 영구 user_id로 데이터 복구
-   - 시나리오 5 (iOS 시 추가): Apple Sign-In 동일 시나리오
 
-2. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
+2. **DB v25 마이그레이션** — wiki_pages/synthesis_articles 비-UUID id 처리
+   - `22P02 invalid input syntax for type uuid` 발생 원인
+   - tags 테이블 v23 마이그레이션과 동일한 패턴으로 UUID 교체 필요
+
+3. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
    - `family-sync-schema-v2.sql` STEP 7 주석 참고
 
-3. **Android Play Store 제출** — 실기기 검증 완료 후
+4. **Android Play Store 제출** — 실기기 검증 완료 후
    - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **Family Sync 진단 코드 제거 + RLS/인증 근본 수정 (2026-04-29)**:
+  - **familyService.ts**: JWT 디코드 helpers(decodeJwtPayload/decodeJwtHeader), Alert 진단 다이얼로그, Clipboard import 전부 제거 — createFamilyRoom 정상화
+  - **AuthContext.tsx**: swapToPermanentSession의 console.warn, Alert 진단 다이얼로그 제거
+  - **Supabase families RLS 수정**: INSERT...RETURNING이 SELECT USING도 평가 → `id IN (user_family_ids())` 실패. 수정: `created_by = auth.uid() OR id IN (user_family_ids())`
+  - **Supabase anon key**: 신규 포맷(`sb_publishable_*`)으로 교체 → 기존 HS256 키가 ES256 JWT 서명과 불일치하여 PostgREST 인증 실패 유발
+  - **user_id NOT NULL 제거**: sync 10개 테이블 `ALTER COLUMN user_id DROP NOT NULL` (익명→영구 전환 시 NULL 허용)
+  - **Supabase 기존 row family_id 일괄 업데이트**: 이전 family_id로 등록된 row들을 현재 family_id(`f1b9e040-0b04-4d94-ae96-77fcdf780b50`)로 대량 UPDATE
+  - **Google Sign-In nonce**: Supabase Google provider에서 skip nonce check 활성화 (@react-native-google-signin은 nonce 미제공)
+  - **결과**: 가족방 생성/참여/children sync/records sync 모두 정상 동작 확인
 
 - [x] **Family Sync 재설계 Phase 2.5 — Android Google Sign-In 추가 (2026-04-29)**:
   - **문제**: v2 설계가 Apple Sign-In 단일 영구 인증으로 결정 → Android 사용자가 가족방 영구 사용 불가

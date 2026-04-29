@@ -83,6 +83,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const swapToPermanentSession = async (
+    provider: 'apple' | 'google',
+    token: string,
+  ) => {
+    const { data: before } = await supabase.auth.getSession();
+    const wasAnonymous = before.session?.user?.is_anonymous ?? false;
+
+    if (wasAnonymous) {
+      await supabase.auth.signOut({ scope: 'local' });
+    }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider,
+      token,
+    });
+
+    if (error) {
+      if (wasAnonymous) {
+        const { data: recovered } = await supabase.auth.signInAnonymously();
+        if (recovered.session) setSession(recovered.session);
+      }
+      throw error;
+    }
+
+    if (data.session) setSession(data.session);
+
+    const { data: verified } = await supabase.auth.getUser();
+    if (!verified.user || verified.user.is_anonymous) {
+      throw new Error('영구 세션 전환 실패 — 다시 시도해주세요');
+    }
+  };
+
   const signInWithApple = async () => {
     if (Platform.OS !== 'ios') {
       throw new Error('Apple 로그인은 iOS에서만 지원됩니다');
@@ -99,13 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Apple 인증 토큰을 받지 못했습니다');
     }
 
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'apple',
-      token: credential.identityToken,
-    });
-
-    if (error) throw error;
-    setSession(data.session);
+    await swapToPermanentSession('apple', credential.identityToken);
   };
 
   const signInWithGoogle = async () => {
@@ -124,13 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Google ID 토큰을 받지 못했습니다');
     }
 
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: idToken,
-    });
-
-    if (error) throw error;
-    setSession(data.session);
+    await swapToPermanentSession('google', idToken);
   };
 
   const isAnonymous = session?.user?.is_anonymous ?? true;
