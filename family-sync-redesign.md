@@ -1,8 +1,19 @@
-# Family Sync 재설계 문서 (v2 — minimal)
+# Family Sync 재설계 문서 (v3 — dual provider)
 
-> **상태**: 설계 후보 확정 — Supabase Auth 영구 인증 흐름 검증 후 구현 착수  
-> **작성일**: 2026-04-26 (v2 갱신 2026-04-27)  
+> **상태**: Phase 1-2 구현 완료 (iOS Apple Sign-In) — Android Google Sign-In 추가 진행 중  
+> **작성일**: 2026-04-26 (v2 갱신 2026-04-27, v3 갱신 2026-04-29)  
 > **원칙**: 진짜 문제만 푼다. 부가 기능은 미래로 미룬다.
+
+## v3 변경 요약 (2026-04-29)
+
+v2(Apple-only)의 치명적 누락 — **Android 사용자가 가족방을 영원히 사용 불가**.  
+Android는 Apple Sign-In을 쓸 수 없는데, 익명 계정만으로는 영구 인증 게이트를 통과 못 함.
+
+**해결**: 플랫폼별 영구 OAuth provider 이원화
+- iOS → Apple Sign-In
+- Android → Google Sign-In
+
+핵심 설계(family_id 기반 RLS, soft delete, promoteLocalDataToFamily 등)는 **그대로**. provider만 추가됨 — `auth.uid()`는 provider 무관 UUID라 하위 로직은 무영향.
 
 ---
 
@@ -14,7 +25,10 @@
 
 ### 0.2 진짜 해법 (단 셋)
 
-1. **영구 인증** — 가족방 가입 시 Apple/Google/Email 로그인 필수
+1. **영구 인증 (플랫폼별 OAuth)** — 가족방 가입 시 영구 user_id 강제
+   - iOS → Apple Sign-In
+   - Android → Google Sign-In
+   - 둘 다 `signInWithIdToken`으로 Supabase Auth와 통합. provider 차이는 진입점에서만 노출되고 하위 로직은 무관
 2. **family_id 기반 RLS** — `auth.uid()` 직접 비교 제거, `family_members` 멤버십 게이트
 3. **로컬 family_id 백필** — 가족방 가입 시점의 로컬 데이터를 family_id로 귀속
 
@@ -65,12 +79,23 @@
 
 ## 2. 핵심 설계 결정
 
-### 2.1 인증
+### 2.1 인증 (플랫폼별 영구 OAuth)
 
 - 앱 최초 실행 → 익명 auth로 로컬 전용 사용 (현재 그대로)
-- 가족방 생성 / 참여 → **영구 인증 필수** (Apple / Google / Email 중 택)
-- 핵심 요구사항: **가족방 멤버십에 저장되는 user_id가 재설치/기기교체 후에도 복구 가능한 영구 `auth.uid`여야 한다.**
-- 구현 방법: Supabase Auth의 `linkIdentity` 또는 provider sign-in 흐름 — **둘 중 어느 쪽이 anonymous user.id를 보존하는지 / 새 계정으로 합쳐지는지 / 충돌 처리는 어떻게 되는지를 Phase 0에서 실측 검증 후 결정**.
+- 가족방 생성 / 참여 → **영구 인증 필수**
+  - **iOS**: Apple Sign-In (`expo-apple-authentication` + `signInWithIdToken({ provider: 'apple' })`)
+  - **Android**: Google Sign-In (`@react-native-google-signin/google-signin` + `signInWithIdToken({ provider: 'google' })`)
+- 핵심 요구사항: **가족방 멤버십에 저장되는 user_id가 재설치/기기교체 후에도 복구 가능한 영구 `auth.uid`여야 한다.** Apple/Google 둘 다 같은 OAuth 계정으로 다시 로그인하면 동일 `auth.uid`를 반환하므로 만족.
+- 구현 방법: `signInWithIdToken` (linkIdentity 아님) — 익명 세션은 버리고 새 영구 세션으로 교체. 익명 시점에 누적된 로컬 데이터는 `promoteLocalDataToFamily()`가 새 user_id로 백필.
+
+### 2.1.1 크로스 플랫폼 (한 사람이 iOS + Android 동시 사용)
+
+- iOS 기기 → Apple Sign-In → user_id A
+- Android 기기 → Google Sign-In → user_id B
+- 같은 사람이지만 Supabase 입장에선 **두 명의 멤버**로 인식
+- 가족방에 둘 다 멤버로 들어가면 데이터는 정상 공유 (RLS는 `family_id` 기반)
+- **현 단계**: 그대로 둠. "가족방 멤버 = 사람 단위가 아니라 계정 단위" 모델
+- **미래**: 필요해지면 `linkIdentity`로 양 provider 병합 (별도 Phase)
 
 ### 2.2 가족방 데이터 소유
 
@@ -101,7 +126,7 @@ WITH CHECK (family_id IN (SELECT family_id FROM family_members WHERE user_id = a
 ### 2.5 익명 데이터 클레임
 
 - 신규 기기 → 익명 시작
-- 가족방 화면에서 영구 로그인 (Apple/Google) → 동일 영구 UID 반환
+- 가족방 화면에서 영구 로그인 (iOS=Apple / Android=Google) → 동일 영구 UID 반환
 - `family_members`에 해당 UID 있음 → 기존 가족방 데이터 자동 접근
 - sync 엔진이 서버 → 로컬 다운로드 실행
 
@@ -443,18 +468,27 @@ CREATE TABLE children_archive_20260427 AS
 8. `family_deletes` 테이블 archive 후 DROP
 9. 오염 데이터 archive (Section 8 절차)
 
-### Phase 2 — 클라이언트 코드
+### Phase 2 — 클라이언트 코드 (iOS Apple Sign-In) ✅ 완료
 1. `syncService.ts` — upload payload 변경, `user_id` 필드 제거 (created_by/updated_by로 전환)
 2. 모든 DAO — `WHERE deleted_at IS NULL` 필터 추가
-3. `FamilyShareScreen` — 영구 인증 게이트 추가
-4. `AuthContext` — 익명/영구 계정 구분 상태 추가
+3. `FamilyShareScreen` — 영구 인증 게이트 추가 (iOS만)
+4. `AuthContext` — 익명/영구 계정 구분 상태 + `signInWithApple()`
 5. `promoteLocalDataToFamily()` 함수 구현
 6. `syncFamilyDeletes()` 제거
 7. SQLite DB v24 마이그레이션
 
+### Phase 2.5 — Android Google Sign-In (v3 추가)
+1. `@react-native-google-signin/google-signin` 설치
+2. Google Cloud Console — OAuth 2.0 Client ID 발급 (Android + Web)
+3. Supabase Auth → Google provider 활성화 (Web Client ID/Secret)
+4. `app.json` — Google Sign-In 플러그인 + Android `google-services.json` 설정
+5. `AuthContext.signInWithGoogle()` 추가 — `signInWithIdToken({ provider: 'google' })`
+6. `FamilyShareScreen.authGate()` — Platform 분기 (iOS=Apple, Android=Google)
+7. iOS의 `usesAppleSignIn` 유지, Android는 Google 전용
+
 ### Phase 3 — 빌드 + 검증
-1. versionCode 빌드 시점에 결정 (현재 27 다음 번호)
-2. 시나리오 1~10 실기기 검증
+1. versionCode 28 (Phase 1-2) → 29 (Phase 2.5)
+2. 시나리오 1~10 실기기 검증 (iOS + Android 양쪽)
 3. 통과 후 commit + STATE.md 갱신
 
 ### Phase 4 (미래, 별건)
@@ -462,6 +496,7 @@ CREATE TABLE children_archive_20260427 AS
 - 결제 게이트 도입
 - role 시스템 도입 (필요 시)
 - reactions / comments
+- linkIdentity로 크로스 플랫폼 단일 계정 병합
 
 ---
 
@@ -486,7 +521,8 @@ CREATE TABLE children_archive_20260427 AS
 
 | 항목 | 시점 |
 |------|------|
-| Apple Sign-In / Google Sign-In 우선순위 | Phase 0 검증 후 결정 |
+| ~~Apple Sign-In / Google Sign-In 우선순위~~ | ✅ v3에서 양쪽 모두 도입 결정 |
+| 크로스 플랫폼 단일 계정 (linkIdentity) | 운영 피드백 후 |
 | 결제 게이트 (구독 모델) | 별도 Phase (미정) |
 | Role 시스템 (필요 시) | 별도 Phase (미정) |
 | Reactions / comments | 별도 Phase (미정) |

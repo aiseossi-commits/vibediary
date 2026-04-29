@@ -2,7 +2,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { supabase } from '../lib/supabase';
+
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+
+if (Platform.OS === 'android' && GOOGLE_WEB_CLIENT_ID) {
+  GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: false,
+  });
+}
 
 interface AuthContextValue {
   session: Session | null;
@@ -11,6 +21,7 @@ interface AuthContextValue {
   isLoading: boolean;
   authError: string | null;
   signInWithApple: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -20,6 +31,7 @@ const AuthContext = createContext<AuthContextValue>({
   isLoading: true,
   authError: null,
   signInWithApple: async () => {},
+  signInWithGoogle: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -96,6 +108,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(data.session);
   };
 
+  const signInWithGoogle = async () => {
+    if (Platform.OS !== 'android') {
+      throw new Error('Google 로그인은 Android에서만 지원됩니다');
+    }
+    if (!GOOGLE_WEB_CLIENT_ID) {
+      throw new Error('Google Web Client ID가 설정되지 않았습니다 (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID)');
+    }
+
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const userInfo = await GoogleSignin.signIn();
+    const idToken = userInfo.data?.idToken ?? (userInfo as any).idToken;
+
+    if (!idToken) {
+      throw new Error('Google ID 토큰을 받지 못했습니다');
+    }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    });
+
+    if (error) throw error;
+    setSession(data.session);
+  };
+
   const isAnonymous = session?.user?.is_anonymous ?? true;
 
   return (
@@ -106,11 +143,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       authError,
       signInWithApple,
+      signInWithGoogle,
     }}>
       {children}
     </AuthContext.Provider>
   );
 }
+
+export { statusCodes as GoogleSignInStatusCodes };
 
 export function useAuth() {
   return useContext(AuthContext);

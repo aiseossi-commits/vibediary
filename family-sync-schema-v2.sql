@@ -37,7 +37,7 @@ ALTER TABLE families ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.us
 ALTER TABLE families ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 
 -- owner_id가 있다면 created_by로 백필 후 제거
-UPDATE families SET created_by = owner_id WHERE created_by IS NULL AND owner_id IS NOT NULL;
+-- UPDATE families SET created_by = owner_id WHERE created_by IS NULL AND owner_id IS NOT NULL; -- owner_id 컬럼 없음
 -- ALTER TABLE families DROP COLUMN IF EXISTS owner_id; -- 코드 전환 완료 후 실행
 
 -- =========================================================

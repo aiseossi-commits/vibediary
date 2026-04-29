@@ -19,7 +19,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '
 
 export default function FamilyShareScreen() {
   const { colors } = useTheme();
-  const { userId, isAnonymous, signInWithApple } = useAuth();
+  const { userId, isAnonymous, signInWithApple, signInWithGoogle } = useAuth();
   const { refreshChildren } = useChild();
   const styles = createStyles(colors);
   const navigation = useNavigation<any>();
@@ -45,16 +45,21 @@ export default function FamilyShareScreen() {
 
   const authGate = async (): Promise<boolean> => {
     if (!isAnonymous) return true;
-    if (Platform.OS !== 'ios') {
-      setError('현재 iOS에서만 가족방 기능을 사용할 수 있습니다');
-      return false;
-    }
     try {
-      await signInWithApple();
+      if (Platform.OS === 'ios') {
+        await signInWithApple();
+      } else if (Platform.OS === 'android') {
+        await signInWithGoogle();
+      } else {
+        setError('이 플랫폼은 가족방을 지원하지 않습니다');
+        return false;
+      }
       return true;
     } catch (e: any) {
       if (e?.code === 'ERR_REQUEST_CANCELED') return false;
-      setError('Apple 로그인에 실패했습니다. 다시 시도해주세요.');
+      if (e?.code === 'SIGN_IN_CANCELLED' || e?.code === '-5') return false;
+      const providerName = Platform.OS === 'ios' ? 'Apple' : 'Google';
+      setError(`${providerName} 로그인에 실패했습니다. 다시 시도해주세요.`);
       return false;
     }
   };

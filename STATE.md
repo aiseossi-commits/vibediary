@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: family sync 재설계 Phase 1-2 (영구 인증 + family_id RLS)` (main, 2026-04-27)
+**마지막 커밋**: `chore: versionCode 27 → 28 (Family Sync 재설계 빌드) + STATE.md 업데이트` (main, 2026-04-28)
 
 **현재 브랜치**: main
 
@@ -14,21 +14,35 @@
 
 ## 다음 할 일
 
-1. **실기기 검증** — APK versionCode 28 (`vibediary04270000.apk`) 설치 후 시나리오 순서대로
-   - 시나리오 1: 기기A — 앱 실행, Apple 로그인 없이 가족방 생성 시도 → iOS에서만 가능 메시지 확인
-   - 시나리오 2: 기기A — Apple 로그인 → 가족방 생성 → 초대코드 확인 → 기록 몇 개 추가
-   - 시나리오 3: 기기B — 앱 설치 → Apple 로그인 → 초대코드로 가족방 참여 → 기기A 기록 sync 확인
-   - 시나리오 4: 기기A에서 기록 삭제 → 기기B에서 해당 기록 사라지는지 (soft delete 전파)
-   - 시나리오 5: 기기 교체 — 새 기기에서 같은 Apple 계정 로그인 → 영구 user_id로 데이터 복구 확인
+1. **실기기 검증** — APK versionCode 29 (`vibediary04290000.apk`) 설치 후 시나리오 순서대로
+   - 시나리오 1: Android 기기 — 익명 상태에서 가족방 생성 → Google 로그인 다이얼로그 → 가족방 생성/초대코드 확인
+   - 시나리오 2: 다른 Android 기기 — Google 로그인 → 초대코드 참여 → 기기A 기록 sync 확인
+   - 시나리오 3: 기기A 기록 삭제 → 기기B 사라지는지 (soft delete 전파)
+   - 시나리오 4: 같은 Google 계정으로 앱 재설치 → 영구 user_id로 데이터 복구
+   - 시나리오 5 (iOS 시 추가): Apple Sign-In 동일 시나리오
 
 2. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
    - `family-sync-schema-v2.sql` STEP 7 주석 참고
 
 3. **Android Play Store 제출** — 실기기 검증 완료 후
+   - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **Family Sync 재설계 Phase 2.5 — Android Google Sign-In 추가 (2026-04-29)**:
+  - **문제**: v2 설계가 Apple Sign-In 단일 영구 인증으로 결정 → Android 사용자가 가족방 영구 사용 불가
+  - **해결**: 플랫폼별 OAuth provider 이원화 (iOS=Apple, Android=Google). 핵심 설계는 그대로 유지 — `auth.uid()`는 provider 무관 UUID라 RLS/sync/familyService 무영향
+  - **패키지**: `@react-native-google-signin/google-signin` 설치
+  - **AuthContext**: `signInWithGoogle()` 추가 — `GoogleSignin.signIn()` → `signInWithIdToken({ provider: 'google' })`
+  - **FamilyShareScreen.authGate()**: Platform 분기 — iOS면 Apple, Android면 Google
+  - **.env**: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` 추가
+  - **Google Cloud Console**: OAuth Client ID 2종 발급 — Web (Supabase 토큰 검증용) + Android (네이티브 인증용, 패키지=com.aiseossi.vibediary, SHA-1=23:A8:DE:6F...)
+  - **Supabase Auth**: Google provider 활성화 (Web Client ID/Secret 입력)
+  - **app.json**: `@react-native-google-signin/google-signin` 플러그인 자동 추가
+  - **빌드**: APK versionCode 29 (`vibediary04290000.apk`) 빌드 성공. prebuild가 styles.xml에 추가한 `splashscreen_logo` drawable 참조는 git checkout으로 복원
+  - **기획 문서**: `family-sync-redesign.md` v3로 갱신 (dual provider 섹션 추가)
 
 - [x] **Family Sync 재설계 Phase 1-2 (2026-04-27)**:
   - **설계 문서**: `family-sync-redesign.md` v2 작성 (minimal 모델, over-engineering 제거)

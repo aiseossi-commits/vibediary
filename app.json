@@ -92,7 +92,8 @@
       ],
       "expo-secure-store",
       "expo-image",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {
