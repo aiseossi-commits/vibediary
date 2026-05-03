@@ -11,7 +11,7 @@ export type HomeWidgetKey = typeof HOME_WIDGETS[keyof typeof HOME_WIDGETS];
 export const HOME_WIDGET_DEFAULTS: Record<HomeWidgetKey, boolean> = {
   [HOME_WIDGETS.VOICE_INPUT]:    true,
   [HOME_WIDGETS.TEXT_INPUT]:     true,
-  [HOME_WIDGETS.EVENT_TRACKER]:  true,
+  [HOME_WIDGETS.EVENT_TRACKER]:  false,
   [HOME_WIDGETS.RECENT_RECORDS]: true,
-  [HOME_WIDGETS.AI_INPUT_MODE]:  true,
+  [HOME_WIDGETS.AI_INPUT_MODE]:  false,
 };

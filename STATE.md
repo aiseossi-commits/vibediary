@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 알림 기록 알람 기능 (notification-quick-record)` (main, 2026-05-03)
+**마지막 커밋**: `chore: versionCode 35 반영 + 홈 위젯 기본값 조정` (main, 2026-05-03)
 
 **현재 브랜치**: main
 
