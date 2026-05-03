@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: iOS 1.0.4 build 6 + Android versionCode 35 테스터 빌드` (main, 2026-04-29)
+**마지막 커밋**: `fix: children 삭제 hard delete → soft delete 전환` (main, 2026-04-29)
 
 **현재 브랜치**: main
 
@@ -33,6 +33,13 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **children 삭제 sync 부활 버그 수정 (2026-04-29)**:
+  - **증상**: 바다(child) 삭제 후 새 바다 생성하면 삭제한 것들이 다시 나타남
+  - **근본 원인**: `deleteChild`가 hard delete → `shouldApplyRemote`에서 local row 없으면 항상 true → Supabase에서 다운로드 시 재삽입
+  - **수정**: `deleteChild` soft delete로 전환 (`deleted_at`, `updated_at=now`, `is_synced=0` 설정). local row 남아있어 `shouldApplyRemote`가 `local.updated_at > remote.updated_at` 비교 가능 → 재삽입 방지
+  - **수정**: `getAllChildren()` — `WHERE deleted_at IS NULL` 필터 추가
+  - **업로드 호환**: `selectDirty`가 `is_synced=0` 기준이라 soft-deleted row도 업로드됨. `toRemote`에 `deleted_at` 이미 포함 → Supabase에 올바르게 전파
 
 - [x] **Family Sync 진단 코드 제거 + RLS/인증 근본 수정 (2026-04-29)**:
   - **familyService.ts**: JWT 디코드 helpers(decodeJwtPayload/decodeJwtHeader), Alert 진단 다이얼로그, Clipboard import 전부 제거 — createFamilyRoom 정상화

@@ -1,6 +1,5 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
-import { enqueuePendingDelete } from './pendingDeletesDao';
 import { DEFAULT_TAGS } from './schema';
 import { wakeSync } from '../services/syncService';
 
@@ -32,7 +31,7 @@ export async function createChild(name: string): Promise<Child> {
 export async function getAllChildren(): Promise<Child[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<{ id: string; name: string; created_at: number }>(
-    'SELECT id, name, created_at FROM children ORDER BY created_at ASC'
+    'SELECT id, name, created_at FROM children WHERE deleted_at IS NULL ORDER BY created_at ASC'
   );
   return rows.map(r => ({ id: r.id, name: r.name, createdAt: r.created_at }));
 }
@@ -48,7 +47,10 @@ export async function updateChild(id: string, name: string): Promise<void> {
 
 export async function deleteChild(id: string): Promise<void> {
   const db = await getDatabase();
-  await enqueuePendingDelete('children', id);
-  await db.runAsync('DELETE FROM children WHERE id = ?', id);
+  const now = Date.now();
+  await db.runAsync(
+    'UPDATE children SET deleted_at = ?, updated_at = ?, is_synced = 0 WHERE id = ?',
+    now, now, id
+  );
   void wakeSync('record_changed');
 }
