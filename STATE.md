@@ -6,33 +6,46 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: children 삭제 hard delete → soft delete 전환` (main, 2026-04-29)
+**마지막 커밋**: `feat: 알림 기록 알람 기능 (notification-quick-record)` (main, 2026-05-03)
 
 **현재 브랜치**: main
 
-**DB 현재 버전**: v24 (family_id, created_by, updated_by, deleted_at 추가)
+**DB 현재 버전**: v25 (alarm_presets 테이블 추가)
 
 ## 다음 할 일
 
-1. **APK 빌드 + 실기기 검증** — versionCode 34 (`vibediary04290000.apk` 또는 최신)
-   - 시나리오 1: Android 기기 — 익명 상태에서 가족방 생성 → Google 로그인 → 가족방 생성/초대코드 확인
-   - 시나리오 2: 다른 Android 기기 — Google 로그인 → 초대코드 참여 → 기기A 기록 sync 확인
-   - 시나리오 3: 기기A 기록 삭제 → 기기B 사라지는지 (soft delete 전파)
-   - 시나리오 4: 같은 Google 계정으로 앱 재설치 → 영구 user_id로 데이터 복구
+1. **실기기 검증 — 알림 알람 기능**
+   - 알람 추가 → 지정 시간에 알림 수신 확인
+   - 알림에서 인라인 답장 → `ai_pending` 기록 생성 확인
+   - 앱 포그라운드 진입 시 AI 처리 완료 확인
+   - 알람 토글 끔 → 해당 시간에 알림 미발송 확인
 
-2. **DB v25 마이그레이션** — wiki_pages/synthesis_articles 비-UUID id 처리
+2. **APK/IPA 테스터 빌드** — versionCode 35 / iOS build 6 포함하여 재빌드 필요
+   - Android: `./android/gradlew -p android assembleRelease`
+   - iOS: Xcode Archive 후 Transporter 업로드
+
+3. **DB v26 마이그레이션** — wiki_pages/synthesis_articles 비-UUID id 처리
    - `22P02 invalid input syntax for type uuid` 발생 원인
    - tags 테이블 v23 마이그레이션과 동일한 패턴으로 UUID 교체 필요
 
-3. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
+4. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
    - `family-sync-schema-v2.sql` STEP 7 주석 참고
 
-4. **Android Play Store 제출** — 실기기 검증 완료 후
+5. **Android Play Store 제출** — 실기기 검증 완료 후
    - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **알림 기록 알람 기능 구현 (2026-05-03)** — `notification-quick-record` OpenSpec 변경:
+  - **expo-notifications** 설치 + `app.json` 플러그인 등록 (iOS NSUserNotificationUsageDescription, Android 알림 아이콘/색상)
+  - **DB v25**: `alarm_presets` 테이블 (id/hour/minute/enabled/created_at), `alarmPresetsDao.ts` 생성
+  - **notificationService.ts**: `registerNotificationCategory` (QUICK_RECORD_CATEGORY + 텍스트 입력 액션), `scheduleAlarms` (enabled 알람 매일 반복), `handleNotificationResponse` (백그라운드 텍스트 답장 → `processTextRecord` → aiPending=1 저장)
+  - **ChildContext**: `setActiveChild` 시 `setSetting('last_active_child_id')` 영속화 — 백그라운드 알림 핸들러가 활성 아이 ID 조회 가능
+  - **AppNavigator**: DB 로딩 완료 후 알림 카테고리 등록 + 알람 스케줄링 + 응답 리스너 연결
+  - **SettingsScreen**: "기록 알람" 섹션 — 알람 목록 + Switch + 삭제, "+ 알람 추가" 버튼, DateTimePicker 시간 선택, 퍼미션 요청
+  - **@react-native-community/datetimepicker** 설치, `npx tsc --noEmit` 통과
 
 - [x] **children 삭제 sync 부활 버그 수정 (2026-04-29)**:
   - **증상**: 바다(child) 삭제 후 새 바다 생성하면 삭제한 것들이 다시 나타남

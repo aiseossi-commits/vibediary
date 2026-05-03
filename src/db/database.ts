@@ -539,6 +539,20 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 24');
     }
 
+    if (currentVersion < 25) {
+      // v24 → v25: alarm_presets 테이블 추가
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS alarm_presets (
+          id TEXT PRIMARY KEY,
+          hour INTEGER NOT NULL,
+          minute INTEGER NOT NULL,
+          enabled INTEGER DEFAULT 1,
+          created_at INTEGER NOT NULL
+        )
+      `);
+      await database.execAsync('PRAGMA user_version = 25');
+    }
+
     dbInitialized = true;
   })();
 

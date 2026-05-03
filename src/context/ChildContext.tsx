@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAllChildren, type Child } from '../db/childrenDao';
+import { setSetting } from '../db/appSettingsDao';
 
 const SETTINGS_FILE = (FileSystem.documentDirectory ?? '') + 'app_settings.json';
 
@@ -65,6 +66,7 @@ export function ChildProvider({ children: reactChildren }: { children: React.Rea
         return FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({ ...current, activeChildId: id }));
       })
       .catch(() => FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify({ activeChildId: id })).catch(() => {}));
+    if (id) setSetting('last_active_child_id', id).catch(() => {});
   }, []);
 
   const activeChild = childList.find(c => c.id === activeChildId) ?? null;

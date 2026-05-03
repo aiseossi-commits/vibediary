@@ -18,6 +18,12 @@ import FamilyShareScreen from '../screens/FamilyShareScreen';
 import FamilyFeedScreen from '../screens/FamilyFeedScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
 import { runInitialMigration, wakeSync } from '../services/syncService';
+import * as Notifications from 'expo-notifications';
+import {
+  registerNotificationCategory,
+  scheduleAlarms,
+  handleNotificationResponse,
+} from '../services/notificationService';
 import { warmDeno } from '../services/aiProcessor';
 import { parseBackupFromUri, restoreOverwrite, restoreMerge } from '../services/backupService';
 import Constants from 'expo-constants';
@@ -188,6 +194,15 @@ export default function AppNavigator() {
       pendingFileUrl.current = null;
     }
   }, [isLoaded, handleIncomingFile]);
+
+  // 알림 카테고리 등록 + 알람 스케줄링 + 응답 리스너
+  useEffect(() => {
+    if (!isLoaded) return;
+    void registerNotificationCategory();
+    void scheduleAlarms();
+    const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    return () => sub.remove();
+  }, [isLoaded]);
 
   // 앱 시작 시 Supabase 동기화 (백그라운드) — session 준비 후에만 실행
   useEffect(() => {

@@ -25,6 +25,9 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '
 import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import { getSetting, setSetting } from '../db/appSettingsDao';
+import { getAlarmPresets, addAlarmPreset, deleteAlarmPreset, toggleAlarmPreset, type AlarmPreset } from '../db/alarmPresetsDao';
+import { requestNotificationPermission, scheduleAlarms } from '../services/notificationService';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
@@ -83,6 +86,9 @@ function createStyles(colors: AppColors) {
     },
     themeToggleLabel: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
     sectionDivider: { height: 1, backgroundColor: colors.divider, marginVertical: SPACING.md },
+    alarmRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm },
+    alarmTime: { flex: 1, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    alarmDelete: { padding: SPACING.xs, marginLeft: SPACING.sm },
     toggleTrack: {
       width: 51, height: 31, borderRadius: 16,
       justifyContent: 'center', paddingHorizontal: 2,
@@ -147,6 +153,48 @@ export default function SettingsScreen() {
     const d = await getSyncDiagnostics();
     setDiagnostics(d);
   }, []);
+
+  // 알람 상태
+  const [alarms, setAlarms] = useState<AlarmPreset[]>([]);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pickerTime, setPickerTime] = useState(new Date());
+
+  useEffect(() => {
+    getAlarmPresets().then(setAlarms).catch(() => {});
+  }, []);
+
+  const handleAddAlarm = async () => {
+    const granted = await requestNotificationPermission();
+    if (!granted) {
+      Alert.alert('알림 권한 필요', '설정에서 알림 권한을 허용해주세요.');
+      return;
+    }
+    setPickerTime(new Date());
+    setShowTimePicker(true);
+  };
+
+  const handleTimeConfirm = async (_: DateTimePickerEvent, date?: Date) => {
+    setShowTimePicker(false);
+    if (!date) return;
+    const alarm = await addAlarmPreset(date.getHours(), date.getMinutes());
+    const next = [...alarms, alarm];
+    setAlarms(next);
+    await scheduleAlarms(next);
+  };
+
+  const handleDeleteAlarm = async (id: string) => {
+    await deleteAlarmPreset(id);
+    const next = alarms.filter(a => a.id !== id);
+    setAlarms(next);
+    await scheduleAlarms(next);
+  };
+
+  const handleToggleAlarm = async (id: string, enabled: boolean) => {
+    await toggleAlarmPreset(id, enabled);
+    const next = alarms.map(a => a.id === id ? { ...a, enabled } : a);
+    setAlarms(next);
+    await scheduleAlarms(next);
+  };
 
   // 백업/복원 상태
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -508,6 +556,39 @@ export default function SettingsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>설정</Text>
+        </View>
+
+        {/* 알람 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>기록 알람</Text>
+          <View style={styles.card}>
+            {alarms.map(alarm => (
+              <View key={alarm.id} style={styles.alarmRow}>
+                <Text style={styles.alarmTime}>
+                  {String(alarm.hour).padStart(2, '0')}:{String(alarm.minute).padStart(2, '0')}
+                </Text>
+                <Switch
+                  value={alarm.enabled}
+                  onValueChange={(v) => handleToggleAlarm(alarm.id, v)}
+                  trackColor={{ true: colors.primary }}
+                />
+                <TouchableOpacity onPress={() => handleDeleteAlarm(alarm.id)} style={styles.alarmDelete}>
+                  <Text style={{ color: colors.textSecondary, fontSize: FONT_SIZE.md }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity style={styles.addChildButton} onPress={handleAddAlarm}>
+              <Text style={styles.addChildText}>+ 알람 추가</Text>
+            </TouchableOpacity>
+          </View>
+          {showTimePicker && (
+            <DateTimePicker
+              mode="time"
+              value={pickerTime}
+              is24Hour={true}
+              onChange={handleTimeConfirm}
+            />
+          )}
         </View>
 
         {/* 바다 관리 */}

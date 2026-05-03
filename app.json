@@ -16,6 +16,7 @@
         "NSMicrophoneUsageDescription": "음성 녹음을 위해 마이크 접근이 필요합니다.",
         "NSSpeechRecognitionUsageDescription": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다.",
         "NSPhotoLibraryUsageDescription": "사진을 기록에 첨부하기 위해 갤러리 접근이 필요합니다.",
+        "NSUserNotificationUsageDescription": "기록 리마인더 알림을 보내기 위해 알림 권한이 필요합니다.",
         "LSSupportsOpeningDocumentsInPlace": true,
         "CFBundleDocumentTypes": [
           {
@@ -93,7 +94,16 @@
       "expo-secure-store",
       "expo-image",
       "expo-apple-authentication",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0EA5A0",
+          "sounds": []
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

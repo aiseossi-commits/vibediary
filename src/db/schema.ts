@@ -273,6 +273,16 @@ export const CREATE_SYNC_ATTEMPTS_TABLE = `
 
 export const CREATE_SYNC_ATTEMPTS_INDEX = `CREATE INDEX IF NOT EXISTS idx_sync_attempts_started ON sync_attempts(started_at DESC);`;
 
+export const CREATE_ALARM_PRESETS_TABLE = `
+  CREATE TABLE IF NOT EXISTS alarm_presets (
+    id TEXT PRIMARY KEY,
+    hour INTEGER NOT NULL,
+    minute INTEGER NOT NULL,
+    enabled INTEGER DEFAULT 1,
+    created_at INTEGER NOT NULL
+  );
+`;
+
 // v19 → v20: 빈 structured_data를 null로 정리 (지연 저장 정책)
 export const CLEANUP_EMPTY_STRUCTURED_DATA = `
   UPDATE records SET structured_data = NULL WHERE structured_data = '{}';
