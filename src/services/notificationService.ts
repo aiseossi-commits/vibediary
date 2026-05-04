@@ -23,7 +23,7 @@ export async function registerNotificationCategory(): Promise<void> {
         submitButtonTitle: '저장',
         placeholder: '오늘 있었던 일을 입력하세요',
       },
-      options: { opensAppToForeground: false },
+      options: { opensAppToForeground: true },
     },
   ]);
 }
@@ -61,6 +61,8 @@ export async function handleNotificationResponse(
 
   const childId = await getSetting('last_active_child_id');
   if (!childId) return;
+
+  await Notifications.dismissNotificationAsync(response.notification.request.identifier).catch(() => {});
 
   try {
     await processTextRecord(userText.trim(), childId);
