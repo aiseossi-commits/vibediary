@@ -9,6 +9,7 @@ export interface RecordingResult {
 }
 
 let recording: Audio.Recording | null = null;
+let isStartingRecording = false; // 동시 startRecording 호출 방지 (여러 useRecording 인스턴스 대비)
 let onMeteringUpdate: ((level: number) => void) | null = null;
 
 // metering 콜백 등록 (0~1 범위로 정규화된 음량)
@@ -24,11 +25,18 @@ async function requestAudioPermission(): Promise<boolean> {
 
 // 녹음 시작
 export async function startRecording(): Promise<void> {
+  if (isStartingRecording) throw new Error('녹음을 시작하는 중입니다. 잠시 후 다시 시도해주세요.');
+  isStartingRecording = true;
+
+  try {
   // 이전 녹음 객체가 남아있으면 강제 해제 (연속 녹음 시 충돌 방지)
   if (recording) {
     try { await recording.stopAndUnloadAsync(); } catch {}
     recording = null;
   }
+
+  // 오디오 세션 리셋 후 재설정 (이전 세션이 비정상 종료된 경우 충돌 방지)
+  try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false, staysActiveInBackground: false }); } catch {}
 
   const hasPermission = await requestAudioPermission();
   if (!hasPermission) {
@@ -55,6 +63,9 @@ export async function startRecording(): Promise<void> {
   );
 
   recording = newRecording;
+  } finally {
+    isStartingRecording = false;
+  }
 }
 
 // 녹음 정지 및 파일 저장
