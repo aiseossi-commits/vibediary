@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
-  Animated, ActivityIndicator, Linking, Switch,
+  Animated, ActivityIndicator, Linking, Switch, FlatList,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Application from 'expo-application';
@@ -27,11 +27,13 @@ import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import { getSetting, setSetting } from '../db/appSettingsDao';
 import { getAlarmPresets, addAlarmPreset, deleteAlarmPreset, toggleAlarmPreset, type AlarmPreset } from '../db/alarmPresetsDao';
 import { requestNotificationPermission, scheduleAlarms } from '../services/notificationService';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 const LAST_RETAG_KEY = 'last_retag_at';
+
+const PICKER_ITEM_H = 48;
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -89,6 +91,23 @@ function createStyles(colors: AppColors) {
     alarmRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm },
     alarmTime: { flex: 1, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
     alarmDelete: { padding: SPACING.xs, marginLeft: SPACING.sm },
+    // 시간 휠 피커
+    pickerModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    pickerBox: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, width: 280, overflow: 'hidden' },
+    pickerTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+    pickerColumns: { flexDirection: 'row', height: PICKER_ITEM_H * 5 },
+    pickerColumn: { flex: 1, position: 'relative' as const },
+    pickerColon: { width: 24, alignItems: 'center' as const, justifyContent: 'center' as const },
+    pickerColonText: { fontSize: FONT_SIZE.xl, color: colors.textPrimary, fontWeight: FONT_WEIGHT.bold },
+    pickerHighlight: { position: 'absolute' as const, top: PICKER_ITEM_H * 2, height: PICKER_ITEM_H, left: 0, right: 0, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.primary },
+    pickerItem: { height: PICKER_ITEM_H, alignItems: 'center' as const, justifyContent: 'center' as const },
+    pickerItemText: { fontSize: FONT_SIZE.lg, color: colors.textSecondary },
+    pickerItemTextSelected: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
+    pickerButtons: { flexDirection: 'row' as const, borderTopWidth: 1, borderTopColor: colors.divider },
+    pickerCancel: { flex: 1, paddingVertical: SPACING.md, alignItems: 'center' as const, borderRightWidth: 0.5, borderRightColor: colors.divider },
+    pickerConfirm: { flex: 1, paddingVertical: SPACING.md, alignItems: 'center' as const },
+    pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
+    pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
     toggleTrack: {
       width: 51, height: 31, borderRadius: 16,
       justifyContent: 'center', paddingHorizontal: 2,
@@ -157,11 +176,25 @@ export default function SettingsScreen() {
   // 알람 상태
   const [alarms, setAlarms] = useState<AlarmPreset[]>([]);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [pickerTime, setPickerTime] = useState(new Date());
+  const [pickerHour, setPickerHour] = useState(8);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const hourListRef = useRef<FlatList<number>>(null);
+  const minuteListRef = useRef<FlatList<number>>(null);
 
   useEffect(() => {
     getAlarmPresets().then(setAlarms).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!showTimePicker) return;
+    const t = setTimeout(() => {
+      hourListRef.current?.scrollToOffset({ offset: pickerHour * PICKER_ITEM_H, animated: false });
+      minuteListRef.current?.scrollToOffset({ offset: pickerMinute * PICKER_ITEM_H, animated: false });
+    }, 80);
+    return () => clearTimeout(t);
+  // 열릴 때만 초기 스크롤 — pickerHour/pickerMinute 변화에는 반응하지 않음
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTimePicker]);
 
   const handleAddAlarm = async () => {
     const granted = await requestNotificationPermission();
@@ -169,17 +202,21 @@ export default function SettingsScreen() {
       Alert.alert('알림 권한 필요', '설정에서 알림 권한을 허용해주세요.');
       return;
     }
-    setPickerTime(new Date());
+    setPickerHour(8);
+    setPickerMinute(0);
     setShowTimePicker(true);
   };
 
-  const handleTimeConfirm = async (_: DateTimePickerEvent, date?: Date) => {
+  const handlePickerConfirm = async () => {
     setShowTimePicker(false);
-    if (!date) return;
-    const alarm = await addAlarmPreset(date.getHours(), date.getMinutes());
+    const alarm = await addAlarmPreset(pickerHour, pickerMinute);
     const next = [...alarms, alarm];
     setAlarms(next);
     await scheduleAlarms(next);
+  };
+
+  const handlePickerCancel = () => {
+    setShowTimePicker(false);
   };
 
   const handleDeleteAlarm = async (id: string) => {
@@ -581,14 +618,87 @@ export default function SettingsScreen() {
               <Text style={styles.addChildText}>+ 알람 추가</Text>
             </TouchableOpacity>
           </View>
-          {showTimePicker && (
-            <DateTimePicker
-              mode="time"
-              value={pickerTime}
-              is24Hour={true}
-              onChange={handleTimeConfirm}
-            />
-          )}
+          <Modal visible={showTimePicker} transparent animationType="fade" onRequestClose={handlePickerCancel}>
+            <TouchableOpacity style={styles.pickerModal} activeOpacity={1} onPress={handlePickerCancel}>
+              <View style={styles.pickerBox}>
+                <Text style={styles.pickerTitle}>시간 선택</Text>
+                <View style={styles.pickerColumns}>
+                  {/* 시 */}
+                  <View style={styles.pickerColumn}>
+                    <View style={styles.pickerHighlight} pointerEvents="none" />
+                    <FlatList
+                      ref={hourListRef}
+                      data={HOURS}
+                      keyExtractor={(item) => `h${item}`}
+                      snapToInterval={PICKER_ITEM_H}
+                      decelerationRate="fast"
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{ paddingVertical: PICKER_ITEM_H * 2 }}
+                      getItemLayout={(_, index) => ({ length: PICKER_ITEM_H, offset: PICKER_ITEM_H * index, index })}
+                      extraData={pickerHour}
+                      onMomentumScrollEnd={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
+                        setPickerHour(Math.max(0, Math.min(23, index)));
+                      }}
+                      onScrollEndDrag={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
+                        setPickerHour(Math.max(0, Math.min(23, index)));
+                      }}
+                      renderItem={({ item }) => (
+                        <View style={styles.pickerItem}>
+                          <Text style={item === pickerHour ? styles.pickerItemTextSelected : styles.pickerItemText}>
+                            {String(item).padStart(2, '0')}
+                          </Text>
+                        </View>
+                      )}
+                    />
+                  </View>
+                  {/* 구분 */}
+                  <View style={styles.pickerColon}>
+                    <Text style={styles.pickerColonText}>:</Text>
+                  </View>
+                  {/* 분 */}
+                  <View style={styles.pickerColumn}>
+                    <View style={styles.pickerHighlight} pointerEvents="none" />
+                    <FlatList
+                      ref={minuteListRef}
+                      data={MINUTES}
+                      keyExtractor={(item) => `m${item}`}
+                      snapToInterval={PICKER_ITEM_H}
+                      decelerationRate="fast"
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{ paddingVertical: PICKER_ITEM_H * 2 }}
+                      getItemLayout={(_, index) => ({ length: PICKER_ITEM_H, offset: PICKER_ITEM_H * index, index })}
+                      extraData={pickerMinute}
+                      onMomentumScrollEnd={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
+                        setPickerMinute(Math.max(0, Math.min(59, index)));
+                      }}
+                      onScrollEndDrag={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
+                        setPickerMinute(Math.max(0, Math.min(59, index)));
+                      }}
+                      renderItem={({ item }) => (
+                        <View style={styles.pickerItem}>
+                          <Text style={item === pickerMinute ? styles.pickerItemTextSelected : styles.pickerItemText}>
+                            {String(item).padStart(2, '0')}
+                          </Text>
+                        </View>
+                      )}
+                    />
+                  </View>
+                </View>
+                <View style={styles.pickerButtons}>
+                  <TouchableOpacity style={styles.pickerCancel} onPress={handlePickerCancel}>
+                    <Text style={styles.pickerCancelText}>취소</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.pickerConfirm} onPress={handlePickerConfirm}>
+                    <Text style={styles.pickerConfirmText}>확인</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
 
         {/* 바다 관리 */}
