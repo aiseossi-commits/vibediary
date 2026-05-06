@@ -77,13 +77,13 @@ export async function handleNotificationResponse(
   if (handledNotificationIds.has(notifId)) return;
   handledNotificationIds.add(notifId);
 
+  await Notifications.dismissNotificationAsync(notifId).catch(() => {});
+
   const userText = (response as any).userText as string | undefined;
   if (!userText?.trim()) return;
 
   const childId = await getSetting('last_active_child_id');
   if (!childId) return;
-
-  await Notifications.dismissNotificationAsync(notifId).catch(() => {});
 
   try {
     await processTextRecord(userText.trim(), childId);

@@ -619,8 +619,9 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
           <Modal visible={showTimePicker} transparent animationType="fade" onRequestClose={handlePickerCancel}>
-            <TouchableOpacity style={styles.pickerModal} activeOpacity={1} onPress={handlePickerCancel}>
-              <TouchableOpacity activeOpacity={1} style={styles.pickerBox}>
+            <View style={styles.pickerModal}>
+              <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handlePickerCancel} />
+              <View style={styles.pickerBox}>
                 <Text style={styles.pickerTitle}>시간 선택</Text>
                 <View style={styles.pickerColumns}>
                   {/* 시 */}
@@ -696,8 +697,8 @@ export default function SettingsScreen() {
                     <Text style={styles.pickerConfirmText}>확인</Text>
                   </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            </TouchableOpacity>
+              </View>
+            </View>
           </Modal>
         </View>
 
