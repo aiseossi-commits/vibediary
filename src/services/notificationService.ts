@@ -18,6 +18,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function registerNotificationCategory(): Promise<void> {
+  await Notifications.deleteNotificationCategoryAsync(CATEGORY_ID).catch(() => {});
   await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
     {
       identifier: ACTION_ID,
@@ -26,7 +27,7 @@ export async function registerNotificationCategory(): Promise<void> {
         submitButtonTitle: '저장',
         placeholder: '오늘 있었던 일을 입력하세요',
       },
-      options: { opensAppToForeground: true },
+      options: { opensAppToForeground: false },
     },
   ]);
 }

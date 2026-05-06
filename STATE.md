@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 알람 시간 휠 피커 교체 + 취소 버그 수정` (main, 2026-05-05)
+**마지막 커밋**: `fix: 알람 피커 닫힘 버그 + 알림 답장창 미표시 수정` (main, 2026-05-06)
 
 **현재 브랜치**: main
 
@@ -16,11 +16,11 @@
 
 1. **실기기 검증 — 알림 알람 기능**
    - 알람 추가 → 지정 시간에 알림 수신 확인
-   - 알림에서 인라인 답장 → `ai_pending` 기록 생성 확인
+   - 알림에서 인라인 답장(텍스트 입력창 표시 확인) → `ai_pending` 기록 생성 확인
    - 앱 포그라운드 진입 시 AI 처리 완료 확인
    - 알람 토글 끔 → 해당 시간에 알림 미발송 확인
 
-2. **APK/IPA 테스터 빌드** — versionCode 35 / iOS build 6 포함하여 재빌드 필요
+2. **APK/IPA 테스터 빌드** — versionCode 36 / iOS build 6 포함하여 재빌드 필요
    - Android: `./android/gradlew -p android assembleRelease`
    - iOS: Xcode Archive 후 Transporter 업로드
 
