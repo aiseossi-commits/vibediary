@@ -22,7 +22,6 @@ import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import FamilyShareScreen from '../screens/FamilyShareScreen';
-import FamilyFeedScreen from '../screens/FamilyFeedScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
 import { runInitialMigration, wakeSync } from '../services/syncService';
 import * as Notifications from 'expo-notifications';
@@ -386,16 +385,6 @@ export default function AppNavigator() {
               options={{
                 headerShown: true,
                 title: '가족 공유',
-                headerTintColor: colors.primary,
-                headerStyle: { backgroundColor: colors.surface },
-              }}
-            />
-            <Stack.Screen
-              name="FamilyFeed"
-              component={FamilyFeedScreen}
-              options={{
-                headerShown: true,
-                title: '함께 보기',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.surface },
               }}
