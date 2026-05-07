@@ -33,13 +33,6 @@ export async function registerNotificationCategory(): Promise<void> {
 }
 
 export async function scheduleAlarms(alarms?: AlarmPreset[]): Promise<void> {
-  // 권한 미부여 시 no-op (silent fail 방지)
-  const { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') {
-    console.warn('[notificationService] 알림 권한 없음 — scheduleAlarms 스킵');
-    return;
-  }
-
   const list = alarms ?? await getAlarmPresets();
   const enabled = list.filter(a => a.enabled);
 
