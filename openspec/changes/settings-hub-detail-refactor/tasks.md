@@ -22,18 +22,18 @@
 
 ## 3. 복잡 3종 분리: Alarm / Backup / SyncDiagnostics
 
-- [ ] 3.1 `SettingsAlarmScreen.tsx` 작성 — 알람 추가/삭제/토글/시간 피커 모달/배터리 최적화 안내 이전
-- [ ] 3.2 `SettingsBackupScreen.tsx` 작성 — 내보내기/가져오기/공유 시트 + `isBackingUp`/`isRestoring` state 이전
-- [ ] 3.3 `SettingsSyncDiagnosticsScreen.tsx` 작성 — `getSyncDiagnostics` + 클립보드 복사 이전
-- [ ] 3.4 SettingsStack에 3개 스크린 등록, 헤더 타이틀 설정
-- [ ] 3.5 허브에서 해당 3개 섹션을 `SettingsRow`로 교체 (요약 텍스트 포함: 알람 N개, 동기화 상태)
-- [ ] 3.6 진행 중 작업 보호: 백업 진행 중 뒤로가기 시 confirm 다이얼로그
+- [x] 3.1 `SettingsAlarmScreen.tsx` 작성 — 알람 추가/삭제/토글/시간 피커 모달/배터리 최적화 안내 이전
+- [x] 3.2 `SettingsBackupScreen.tsx` 작성 — 내보내기/가져오기/공유 시트 + `isBackingUp`/`isRestoring` state 이전
+- [x] 3.3 `SettingsSyncDiagnosticsScreen.tsx` 작성 — `getSyncDiagnostics` + 클립보드 복사 이전
+- [x] 3.4 root Stack에 3개 스크린 등록, 헤더 타이틀 설정
+- [x] 3.5 허브에서 해당 3개 섹션을 `SettingsRow`로 교체 (알람 활성 N개 hint 포함)
+- [x] 3.6 진행 중 작업 보호: 백업 진행 중 뒤로가기 시 confirm 다이얼로그 (beforeRemove)
 - [ ] 3.7 회귀 검증 체크리스트:
   - [ ] 알람: 추가/삭제/토글/배터리 최적화 다이얼로그/하단 링크
   - [ ] 백업: 내보내기 성공·실패 alert / 가져오기 picker / 공유 시트
   - [ ] 동기화 진단: 데이터 표시·새로고침·클립보드 복사
 - [ ] 3.8 빌드 + 실기기 검증
-- [ ] 3.9 커밋
+- [x] 3.9 커밋 (다음)
 
 ## 4. 데이터 관리 3종 분리: Children / Family / AiTag
 

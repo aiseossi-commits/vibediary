@@ -10,6 +10,9 @@ import HomeScreen from '../screens/HomeScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SettingsHubScreen from '../screens/SettingsHubScreen';
+import SettingsAlarmScreen from '../screens/SettingsAlarmScreen';
+import SettingsBackupScreen from '../screens/SettingsBackupScreen';
+import SettingsSyncDiagnosticsScreen from '../screens/SettingsSyncDiagnosticsScreen';
 import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
@@ -299,6 +302,36 @@ export default function AppNavigator() {
               options={{
                 headerShown: true,
                 title: '설정',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="SettingsAlarm"
+              component={SettingsAlarmScreen}
+              options={{
+                headerShown: true,
+                title: '알람 설정',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="SettingsBackup"
+              component={SettingsBackupScreen}
+              options={{
+                headerShown: true,
+                title: '백업 / 복원',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="SettingsSyncDiagnostics"
+              component={SettingsSyncDiagnosticsScreen}
+              options={{
+                headerShown: true,
+                title: '동기화 진단',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.surface },
               }}

@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
   ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
-  Animated, ActivityIndicator, Linking, Switch, FlatList,
+  Animated, ActivityIndicator, Linking, Switch,
 } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
 import {
   isDatabaseReady, createChild, updateChild, deleteChild,
@@ -16,25 +16,19 @@ import {
   getAllRecords, setTagsForRecord, getAllTags,
 } from '../db';
 import { getTagsOnly } from '../services/aiProcessor';
-import { wakeSync, clearAllDownloadWatermarks, markAllLocalDirty, getSyncDiagnostics, type SyncDiagnostics } from '../services/syncService';
+import { wakeSync } from '../services/syncService';
 import { DEFAULT_TAGS } from '../db/schema';
-import { exportBackup, pickAndParseBackup, restoreOverwrite, restoreMerge } from '../services/backupService';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import { getSetting, setSetting } from '../db/appSettingsDao';
-import { getAlarmPresets, addAlarmPreset, deleteAlarmPreset, toggleAlarmPreset, type AlarmPreset } from '../db/alarmPresetsDao';
-import { requestNotificationPermission, scheduleAlarms, requestBatteryOptimizationExemption } from '../services/notificationService';
+import { getAlarmPresets, type AlarmPreset } from '../db/alarmPresetsDao';
+import { SettingsRow, SettingsCard } from '../components/settings';
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 const LAST_RETAG_KEY = 'last_retag_at';
-const BATTERY_PROMPT_KEY = 'battery_optimization_prompted';
-
-const PICKER_ITEM_H = 48;
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -73,15 +67,9 @@ function createStyles(colors: AppColors) {
     modalConfirm: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
     modalCancelText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
     modalConfirmText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
-    // 백업/복원
-    backupRow: { flexDirection: 'row', gap: SPACING.sm },
     menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SPACING.sm },
     menuRowText: { fontSize: FONT_SIZE.md, color: colors.textPrimary },
     menuRowArrow: { fontSize: FONT_SIZE.lg, color: colors.textTertiary },
-    backupButton: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
-    backupButtonPrimary: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
-    backupButtonText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
-    backupButtonTextPrimary: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
     // 테마 토글 (카드 내부 row)
     themeToggleInnerRow: {
       flexDirection: 'row', alignItems: 'center',
@@ -89,26 +77,6 @@ function createStyles(colors: AppColors) {
     },
     themeToggleLabel: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
     sectionDivider: { height: 1, backgroundColor: colors.divider, marginVertical: SPACING.md },
-    alarmRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm },
-    alarmTime: { flex: 1, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
-    alarmDelete: { padding: SPACING.xs, marginLeft: SPACING.sm },
-    // 시간 휠 피커
-    pickerModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    pickerBox: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, width: 280, overflow: 'hidden' },
-    pickerTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, textAlign: 'center', paddingVertical: SPACING.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
-    pickerColumns: { flexDirection: 'row', height: PICKER_ITEM_H * 5 },
-    pickerColumn: { flex: 1, position: 'relative' as const },
-    pickerColon: { width: 24, alignItems: 'center' as const, justifyContent: 'center' as const },
-    pickerColonText: { fontSize: FONT_SIZE.xl, color: colors.textPrimary, fontWeight: FONT_WEIGHT.bold },
-    pickerHighlight: { position: 'absolute' as const, top: PICKER_ITEM_H * 2, height: PICKER_ITEM_H, left: 0, right: 0, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.primary },
-    pickerItem: { height: PICKER_ITEM_H, alignItems: 'center' as const, justifyContent: 'center' as const },
-    pickerItemText: { fontSize: FONT_SIZE.lg, color: colors.textSecondary },
-    pickerItemTextSelected: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
-    pickerButtons: { flexDirection: 'row' as const, borderTopWidth: 1, borderTopColor: colors.divider },
-    pickerCancel: { flex: 1, paddingVertical: SPACING.md, alignItems: 'center' as const, borderRightWidth: 0.5, borderRightColor: colors.divider },
-    pickerConfirm: { flex: 1, paddingVertical: SPACING.md, alignItems: 'center' as const },
-    pickerCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
-    pickerConfirmText: { fontSize: FONT_SIZE.md, color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
     toggleTrack: {
       width: 51, height: 31, borderRadius: 16,
       justifyContent: 'center', paddingHorizontal: 2,
@@ -166,96 +134,16 @@ export default function SettingsHubScreen() {
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orphanedCount, setOrphanedCount] = useState(0);
-  const [diagnostics, setDiagnostics] = useState<SyncDiagnostics | null>(null);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
-  const loadDiagnostics = useCallback(async () => {
-    const d = await getSyncDiagnostics();
-    setDiagnostics(d);
-  }, []);
-
-  // 알람 상태
+  // 알람 카운트만 로드 (요약 표시용 — 실제 관리는 SettingsAlarmScreen)
   const [alarms, setAlarms] = useState<AlarmPreset[]>([]);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [pickerHour, setPickerHour] = useState(8);
-  const [pickerMinute, setPickerMinute] = useState(0);
-  const hourListRef = useRef<FlatList<number>>(null);
-  const minuteListRef = useRef<FlatList<number>>(null);
-
   useEffect(() => {
+    const unsub = navigation.addListener('focus', () => {
+      getAlarmPresets().then(setAlarms).catch(() => {});
+    });
     getAlarmPresets().then(setAlarms).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!showTimePicker) return;
-    const t = setTimeout(() => {
-      hourListRef.current?.scrollToOffset({ offset: pickerHour * PICKER_ITEM_H, animated: false });
-      minuteListRef.current?.scrollToOffset({ offset: pickerMinute * PICKER_ITEM_H, animated: false });
-    }, 80);
-    return () => clearTimeout(t);
-  // 열릴 때만 초기 스크롤 — pickerHour/pickerMinute 변화에는 반응하지 않음
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showTimePicker]);
-
-  const handleAddAlarm = async () => {
-    const granted = await requestNotificationPermission();
-    if (!granted) {
-      Alert.alert('알림 권한 필요', '설정에서 알림 권한을 허용해주세요.');
-      return;
-    }
-    setPickerHour(8);
-    setPickerMinute(0);
-    setShowTimePicker(true);
-  };
-
-  const handlePickerConfirm = async () => {
-    setShowTimePicker(false);
-    const wasEmpty = alarms.length === 0;
-    const alarm = await addAlarmPreset(pickerHour, pickerMinute);
-    const next = [...alarms, alarm];
-    setAlarms(next);
-    await scheduleAlarms(next);
-
-    // Android: 첫 알람 등록 시 1회 배터리 최적화 예외 안내
-    if (Platform.OS === 'android' && wasEmpty) {
-      const prompted = await getSetting(BATTERY_PROMPT_KEY);
-      if (!prompted) {
-        Alert.alert(
-          '정시 알림 설정',
-          '배터리 절약 모드 때문에 알림이 늦거나 오지 않을 수 있어요. 정확한 시간에 받으려면 배터리 최적화에서 이 앱을 예외로 설정해주세요.',
-          [
-            { text: '나중에', style: 'cancel', onPress: () => { void setSetting(BATTERY_PROMPT_KEY, '1'); } },
-            { text: '설정 열기', onPress: async () => {
-              await setSetting(BATTERY_PROMPT_KEY, '1');
-              await requestBatteryOptimizationExemption();
-            }},
-          ]
-        );
-      }
-    }
-  };
-
-  const handlePickerCancel = () => {
-    setShowTimePicker(false);
-  };
-
-  const handleDeleteAlarm = async (id: string) => {
-    await deleteAlarmPreset(id);
-    const next = alarms.filter(a => a.id !== id);
-    setAlarms(next);
-    await scheduleAlarms(next);
-  };
-
-  const handleToggleAlarm = async (id: string, enabled: boolean) => {
-    await toggleAlarmPreset(id, enabled);
-    const next = alarms.map(a => a.id === id ? { ...a, enabled } : a);
-    setAlarms(next);
-    await scheduleAlarms(next);
-  };
-
-  // 백업/복원 상태
-  const [isBackingUp, setIsBackingUp] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
+    return unsub;
+  }, [navigation]);
 
   // 태그 재분석 상태
   const [isRetagging, setIsRetagging] = useState(false);
@@ -270,82 +158,6 @@ export default function SettingsHubScreen() {
       }
     });
   }, []);
-
-  const handleExport = useCallback(async () => {
-    setIsBackingUp(true);
-    try {
-      await exportBackup();
-    } catch (e) {
-      Alert.alert('오류', '백업 내보내기 중 문제가 발생했습니다.');
-    } finally {
-      setIsBackingUp(false);
-    }
-  }, []);
-
-  const handleImport = useCallback(async () => {
-    let data;
-    try {
-      data = await pickAndParseBackup();
-    } catch (e: any) {
-      if (e?.message === 'CANCELED') return;
-      Alert.alert('오류', '유효하지 않은 백업 파일입니다.');
-      return;
-    }
-
-    Alert.alert(
-      '복원 방식 선택',
-      '기존 데이터를 어떻게 처리할까요?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '병합 (기존 유지 + 신규 추가)',
-          onPress: async () => {
-            setIsRestoring(true);
-            try {
-              await restoreMerge(data);
-              await refreshChildren();
-              await loadCounts();
-              Alert.alert('완료', '병합 복원이 완료되었습니다.');
-            } catch {
-              Alert.alert('오류', '복원 중 문제가 발생했습니다.');
-            } finally {
-              setIsRestoring(false);
-            }
-          },
-        },
-        {
-          text: '덮어쓰기 (전체 교체)',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              '주의',
-              '기존 데이터가 모두 삭제됩니다. 계속하시겠습니까?',
-              [
-                { text: '취소', style: 'cancel' },
-                {
-                  text: '덮어쓰기',
-                  style: 'destructive',
-                  onPress: async () => {
-                    setIsRestoring(true);
-                    try {
-                      await restoreOverwrite(data);
-                      await refreshChildren();
-                      await loadCounts();
-                      Alert.alert('완료', '덮어쓰기 복원이 완료되었습니다.');
-                    } catch {
-                      Alert.alert('오류', '복원 중 문제가 발생했습니다.');
-                    } finally {
-                      setIsRestoring(false);
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
-  }, [refreshChildren]);
 
   const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
   useEffect(() => {
@@ -615,118 +427,16 @@ export default function SettingsHubScreen() {
           <Text style={styles.title}>설정</Text>
         </View>
 
-        {/* 알람 */}
+        {/* 알람 (디테일 스크린으로 이동) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>기록 알람</Text>
-          <View style={styles.card}>
-            {alarms.map(alarm => (
-              <View key={alarm.id} style={styles.alarmRow}>
-                <Text style={styles.alarmTime}>
-                  {String(alarm.hour).padStart(2, '0')}:{String(alarm.minute).padStart(2, '0')}
-                </Text>
-                <Switch
-                  value={alarm.enabled}
-                  onValueChange={(v) => handleToggleAlarm(alarm.id, v)}
-                  trackColor={{ true: colors.primary }}
-                />
-                <TouchableOpacity onPress={() => handleDeleteAlarm(alarm.id)} style={styles.alarmDelete}>
-                  <Text style={{ color: colors.textSecondary, fontSize: FONT_SIZE.md }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-            <TouchableOpacity style={styles.addChildButton} onPress={handleAddAlarm}>
-              <Text style={styles.addChildText}>+ 알람 추가</Text>
-            </TouchableOpacity>
-          </View>
-          {Platform.OS === 'android' && alarms.length > 0 && (
-            <TouchableOpacity onPress={() => requestBatteryOptimizationExemption()} style={{ marginTop: SPACING.sm, paddingVertical: SPACING.xs }}>
-              <Text style={{ color: colors.textSecondary, fontSize: FONT_SIZE.sm, textAlign: 'center' }}>
-                알림이 늦게 오나요? 배터리 최적화 해제하기 →
-              </Text>
-            </TouchableOpacity>
-          )}
-          <Modal visible={showTimePicker} transparent animationType="fade" onRequestClose={handlePickerCancel}>
-            <View style={styles.pickerModal}>
-              <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handlePickerCancel} />
-              <View style={styles.pickerBox}>
-                <Text style={styles.pickerTitle}>시간 선택</Text>
-                <View style={styles.pickerColumns}>
-                  {/* 시 */}
-                  <View style={styles.pickerColumn}>
-                    <View style={styles.pickerHighlight} pointerEvents="none" />
-                    <FlatList
-                      ref={hourListRef}
-                      data={HOURS}
-                      keyExtractor={(item) => `h${item}`}
-                      snapToInterval={PICKER_ITEM_H}
-                      decelerationRate="fast"
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={{ paddingVertical: PICKER_ITEM_H * 2 }}
-                      getItemLayout={(_, index) => ({ length: PICKER_ITEM_H, offset: PICKER_ITEM_H * index, index })}
-                      extraData={pickerHour}
-                      onMomentumScrollEnd={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
-                        setPickerHour(Math.max(0, Math.min(23, index)));
-                      }}
-                      onScrollEndDrag={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
-                        setPickerHour(Math.max(0, Math.min(23, index)));
-                      }}
-                      renderItem={({ item }) => (
-                        <View style={styles.pickerItem}>
-                          <Text style={item === pickerHour ? styles.pickerItemTextSelected : styles.pickerItemText}>
-                            {String(item).padStart(2, '0')}
-                          </Text>
-                        </View>
-                      )}
-                    />
-                  </View>
-                  {/* 구분 */}
-                  <View style={styles.pickerColon}>
-                    <Text style={styles.pickerColonText}>:</Text>
-                  </View>
-                  {/* 분 */}
-                  <View style={styles.pickerColumn}>
-                    <View style={styles.pickerHighlight} pointerEvents="none" />
-                    <FlatList
-                      ref={minuteListRef}
-                      data={MINUTES}
-                      keyExtractor={(item) => `m${item}`}
-                      snapToInterval={PICKER_ITEM_H}
-                      decelerationRate="fast"
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={{ paddingVertical: PICKER_ITEM_H * 2 }}
-                      getItemLayout={(_, index) => ({ length: PICKER_ITEM_H, offset: PICKER_ITEM_H * index, index })}
-                      extraData={pickerMinute}
-                      onMomentumScrollEnd={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
-                        setPickerMinute(Math.max(0, Math.min(59, index)));
-                      }}
-                      onScrollEndDrag={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.y / PICKER_ITEM_H);
-                        setPickerMinute(Math.max(0, Math.min(59, index)));
-                      }}
-                      renderItem={({ item }) => (
-                        <View style={styles.pickerItem}>
-                          <Text style={item === pickerMinute ? styles.pickerItemTextSelected : styles.pickerItemText}>
-                            {String(item).padStart(2, '0')}
-                          </Text>
-                        </View>
-                      )}
-                    />
-                  </View>
-                </View>
-                <View style={styles.pickerButtons}>
-                  <TouchableOpacity style={styles.pickerCancel} onPress={handlePickerCancel}>
-                    <Text style={styles.pickerCancelText}>취소</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.pickerConfirm} onPress={handlePickerConfirm}>
-                    <Text style={styles.pickerConfirmText}>확인</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
+          <SettingsCard>
+            <SettingsRow
+              label="알람 설정"
+              hint={alarms.length > 0 ? `${alarms.filter(a => a.enabled).length}개 활성` : '없음'}
+              onPress={() => (navigation as any).navigate('SettingsAlarm')}
+            />
+          </SettingsCard>
         </View>
 
         {/* 바다 관리 */}
@@ -750,126 +460,34 @@ export default function SettingsHubScreen() {
         {/* 가족 공유 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>가족 공유</Text>
-          <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.menuRow}
+          <SettingsCard>
+            <SettingsRow
+              label="초대코드로 가족과 공유"
               onPress={() => (navigation as any).navigate('FamilyShare')}
-            >
-              <Text style={styles.menuRowText}>초대코드로 가족과 공유</Text>
-              <Text style={styles.menuRowArrow}>›</Text>
-            </TouchableOpacity>
-            <View style={styles.sectionDivider} />
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={async () => {
-                await markAllLocalDirty();
-                await clearAllDownloadWatermarks();
-                await wakeSync('manual_retry');
-                await refreshChildren();
-                await loadDiagnostics();
-                Alert.alert('', '재동기화가 완료됐습니다');
-              }}
-            >
-              <Text style={styles.menuRowText}>전체 재동기화</Text>
-            </TouchableOpacity>
-            <View style={styles.sectionDivider} />
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={async () => {
-                await loadDiagnostics();
-                setShowDiagnostics(v => !v);
-              }}
-            >
-              <Text style={styles.menuRowText}>동기화 진단 {showDiagnostics ? '▾' : '▸'}</Text>
-            </TouchableOpacity>
-            {showDiagnostics && diagnostics && (
-              <View style={{ paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs }}>
-                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textSecondary }}>
-                  readiness: {diagnostics.currentReadiness.status}
-                  {diagnostics.currentReadiness.status === 'ready' ? `\nuser_id: ${diagnostics.currentReadiness.userId}\nfamily_id: ${diagnostics.currentReadiness.familyId}` : ''}
-                </Text>
-                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textSecondary }}>
-                  last_sync_family_id: {diagnostics.lastSyncFamilyId ?? '(null)'}
-                </Text>
-                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textPrimary, marginTop: 4 }}>
-                  Pending (is_synced=0):
-                </Text>
-                {Object.entries(diagnostics.pendingCounts).map(([t, c]) => (
-                  <Text key={t} style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: c > 0 ? colors.error : colors.textSecondary }}>
-                    {`  ${t}: ${c}`}
-                  </Text>
-                ))}
-                {Object.keys(diagnostics.failedRowsByTable).length > 0 && (
-                  <>
-                    <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.error, marginTop: 4 }}>
-                      Failed rows:
-                    </Text>
-                    {Object.entries(diagnostics.failedRowsByTable).map(([t, rows]) => (
-                      <View key={t}>
-                        <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textPrimary }}>{t}:</Text>
-                        {rows.map(r => (
-                          <Text key={r.id} style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 10, color: colors.error }}>
-                            {`  ${r.id.slice(0, 8)}: ${r.sync_error}`}
-                          </Text>
-                        ))}
-                      </View>
-                    ))}
-                  </>
-                )}
-                <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 11, color: colors.textPrimary, marginTop: 4 }}>
-                  Recent attempts:
-                </Text>
-                {diagnostics.recentAttempts.slice(0, 5).map(a => (
-                  <Text key={a.id} style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 10, color: colors.textSecondary }}>
-                    {`#${a.id} ${a.reason} ${a.readiness_status} up=${a.uploaded_count}/fail=${a.failed_count}/dl=${a.download_count}${a.last_error_message ? '\n     err: ' + a.last_error_message : ''}`}
-                  </Text>
-                ))}
-                <TouchableOpacity
-                  onPress={async () => {
-                    const text = JSON.stringify(diagnostics, null, 2);
-                    await Clipboard.setStringAsync(text);
-                    Alert.alert('', '진단 정보 복사됨');
-                  }}
-                  style={{ marginTop: SPACING.sm, padding: SPACING.xs, backgroundColor: colors.surfaceSecondary, borderRadius: BORDER_RADIUS.sm }}
-                >
-                  <Text style={{ color: colors.textPrimary, textAlign: 'center', fontSize: FONT_SIZE.sm }}>전체 진단 정보 복사</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+            />
+          </SettingsCard>
         </View>
 
-        {/* 데이터 백업/복원 */}
+        {/* 동기화 진단 (디테일 스크린으로 이동) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>동기화</Text>
+          <SettingsCard>
+            <SettingsRow
+              label="동기화 진단 / 재동기화"
+              onPress={() => (navigation as any).navigate('SettingsSyncDiagnostics')}
+            />
+          </SettingsCard>
+        </View>
+
+        {/* 데이터 백업/복원 (디테일 스크린으로 이동) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>데이터 백업/복원</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardDescription}>
-              폰 교체 시: 내보내기 → 카카오톡 "나에게 보내기" 전송{'\n'}
-              새 폰에서: 카카오톡 파일 탭 → "다른 앱으로 열기" → 바다
-            </Text>
-            <View style={[styles.backupRow, { marginTop: SPACING.md }]}>
-              <TouchableOpacity
-                style={styles.backupButtonPrimary}
-                onPress={handleExport}
-                disabled={isBackingUp}
-              >
-                {isBackingUp
-                  ? <ActivityIndicator size="small" color={colors.textOnPrimary} />
-                  : <Text style={styles.backupButtonTextPrimary}>내보내기</Text>
-                }
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.backupButton}
-                onPress={handleImport}
-                disabled={isRestoring}
-              >
-                {isRestoring
-                  ? <ActivityIndicator size="small" color={colors.textSecondary} />
-                  : <Text style={styles.backupButtonText}>가져오기</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
+          <SettingsCard>
+            <SettingsRow
+              label="백업 / 복원"
+              onPress={() => (navigation as any).navigate('SettingsBackup')}
+            />
+          </SettingsCard>
         </View>
 
         {/* 테마 */}
