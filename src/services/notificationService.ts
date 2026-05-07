@@ -33,6 +33,13 @@ export async function registerNotificationCategory(): Promise<void> {
 }
 
 export async function scheduleAlarms(alarms?: AlarmPreset[]): Promise<void> {
+  // 권한 미부여 시 no-op (silent fail 방지)
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') {
+    console.warn('[notificationService] 알림 권한 없음 — scheduleAlarms 스킵');
+    return;
+  }
+
   const list = alarms ?? await getAlarmPresets();
   const enabled = list.filter(a => a.enabled);
 
@@ -40,8 +47,9 @@ export async function scheduleAlarms(alarms?: AlarmPreset[]): Promise<void> {
   const scheduledIds = new Set(scheduled.map(n => n.identifier));
   const enabledIds = new Set(enabled.map(a => `alarm-${a.id}`));
 
-  // 비활성/삭제된 알람만 취소 (앱 오픈 시 곧 울릴 알람을 cancelAll로 날리지 않도록)
+  // 알람 prefix만 대상으로 cancel (다른 scheduled notification 보호)
   for (const notif of scheduled) {
+    if (!notif.identifier.startsWith('alarm-')) continue;
     if (!enabledIds.has(notif.identifier)) {
       await Notifications.cancelScheduledNotificationAsync(notif.identifier);
     }
@@ -85,11 +93,12 @@ export async function handleNotificationResponse(
   const childId = await getSetting('last_active_child_id');
   if (!childId) return;
 
-  try {
-    await processTextRecord(userText.trim(), childId);
-  } catch {
-    // processTextRecord 내부에서 ai_pending=1로 저장되므로 에러 무시
-  }
+  // fire-and-forget: action handler가 즉시 return해야 Android RemoteInput 스피너가 해제됨
+  // AI 호출(5~10초)을 await하면 OS가 스피너를 계속 표시하거나 timeout 처리할 수 있음
+  void processTextRecord(userText.trim(), childId).catch(e => {
+    console.warn('[notificationService] processTextRecord 실패:', e);
+    // processTextRecord 내부에서 ai_pending=1로 저장되므로 사용자 입력 유실 위험은 낮음
+  });
 }
 
 // Android 포그라운드 알림 동작 설정
