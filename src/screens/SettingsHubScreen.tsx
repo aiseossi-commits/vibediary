@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Animated, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
+import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
 import { isDatabaseReady } from '../db';
 import { useTheme } from '../context/ThemeContext';
@@ -19,16 +22,34 @@ function createStyles(colors: AppColors) {
     title: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
     section: { marginTop: SPACING.md, paddingHorizontal: SPACING.md },
     sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.sm },
-    // 오프라인 큐 처리(허브에 남아있는 액션 카드)
     card: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm },
     cardDescription: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 22 },
     processButton: { marginTop: SPACING.md, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.sm, paddingVertical: SPACING.sm, alignItems: 'center' },
+    // 인라인 테마 토글
+    themeRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.xs },
+    themeLabel: { flex: 1, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    toggleTrack: { width: 51, height: 31, borderRadius: 16, justifyContent: 'center', paddingHorizontal: 2 },
+    toggleThumb: {
+      width: 27, height: 27, borderRadius: 14, backgroundColor: '#FFFFFF',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
+    },
+    // 후원
+    donationBanner: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACING.md },
+    accountRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    accountText: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium },
+    copyButton: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, backgroundColor: colors.surfaceSecondary, borderRadius: BORDER_RADIUS.sm },
+    copyButtonText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
+    // 앱 정보
+    appName: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginBottom: SPACING.xs },
+    slogan: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontStyle: 'italic', marginBottom: SPACING.xs },
+    version: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     processButtonText: { color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium, fontSize: FONT_SIZE.sm },
   });
 }
 
 export default function SettingsHubScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, setTheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild } = useChild();
   const navigation = useNavigation();
@@ -44,6 +65,12 @@ export default function SettingsHubScreen() {
     getAlarmPresets().then(setAlarms).catch(() => {});
     return unsub;
   }, [navigation]);
+
+  // 테마 토글 애니메이션
+  const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.spring(toggleAnim, { toValue: isDark ? 1 : 0, useNativeDriver: true, bounciness: 4 }).start();
+  }, [isDark, toggleAnim]);
 
   useEffect(() => { loadCounts(); }, []);
 
@@ -150,16 +177,35 @@ export default function SettingsHubScreen() {
           </SettingsCard>
         </View>
 
-        {/* 화면 모드 (디테일 스크린) */}
+        {/* 화면 모드 (인라인 토글 — 디테일 스크린 불필요) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>화면 모드</Text>
-          <SettingsCard>
-            <SettingsRow
-              label="화면 모드"
-              hint={isDark ? '밤바다' : '바다'}
-              onPress={() => (navigation as any).navigate('SettingsTheme')}
-            />
-          </SettingsCard>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.themeRow}
+              onPress={() => setTheme(isDark ? 'light' : 'dark')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.themeLabel}>{isDark ? '밤바다' : '바다'}</Text>
+              <Animated.View style={[
+                styles.toggleTrack,
+                {
+                  backgroundColor: toggleAnim.interpolate({
+                    inputRange: [0, 1], outputRange: ['#CBD5E1', colors.primary],
+                  }),
+                },
+              ]}>
+                <Animated.View style={[
+                  styles.toggleThumb,
+                  {
+                    transform: [{
+                      translateX: toggleAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }),
+                    }],
+                  },
+                ]} />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 홈화면 구성 (디테일 스크린) */}
@@ -213,15 +259,45 @@ export default function SettingsHubScreen() {
         )}
 
 
-        {/* 후원 + 앱 정보 (디테일 스크린) */}
+        {/* 후원 (인라인) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>후원</Text>
+          <View style={styles.card}>
+            <Text style={styles.donationBanner}>
+              이 앱은 여러분의 후원으로 운영됩니다.{'\n'}
+              한 달에 커피 한 잔 값이면 서버가 유지됩니다.
+            </Text>
+            <View style={styles.accountRow}>
+              <Text style={styles.accountText}>농협 351-0788-9998-53 서현석</Text>
+              <TouchableOpacity
+                style={styles.copyButton}
+                onPress={async () => {
+                  await Clipboard.setStringAsync('농협 351-0788-9998-53 서현석');
+                  Alert.alert('복사됨', '계좌번호가 복사되었습니다.');
+                }}
+              >
+                <Text style={styles.copyButtonText}>복사</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* 앱 정보 (인라인) */}
         <View style={[styles.section, { marginBottom: SPACING.xxl }]}>
           <Text style={styles.sectionTitle}>앱 정보</Text>
-          <SettingsCard>
-            <SettingsRow
-              label="후원 / 앱 정보"
-              onPress={() => (navigation as any).navigate('SettingsAbout')}
-            />
-          </SettingsCard>
+          <View style={styles.card}>
+            <Text style={styles.appName}>바다 vibediary</Text>
+            <Text style={styles.slogan}>기록에 치이지 말고, 그냥 말하세요</Text>
+            <Text style={styles.version}>
+              v{Constants.expoConfig?.version ?? '1.0.0'} (build {Application.nativeBuildVersion ?? '?'})
+            </Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://aiseossi-commits.github.io/vibediary/privacy-policy.html')}
+              style={{ marginTop: SPACING.md }}
+            >
+              <Text style={[styles.version, { color: colors.primary }]}>개인정보 처리방침</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

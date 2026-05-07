@@ -15,10 +15,8 @@ import SettingsBackupScreen from '../screens/SettingsBackupScreen';
 import SettingsSyncDiagnosticsScreen from '../screens/SettingsSyncDiagnosticsScreen';
 import SettingsChildrenScreen from '../screens/SettingsChildrenScreen';
 import SettingsAiTagScreen from '../screens/SettingsAiTagScreen';
-import SettingsThemeScreen from '../screens/SettingsThemeScreen';
 import SettingsHomeWidgetsScreen from '../screens/SettingsHomeWidgetsScreen';
 import SettingsPrivacyScreen from '../screens/SettingsPrivacyScreen';
-import SettingsAboutScreen from '../screens/SettingsAboutScreen';
 import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
@@ -363,16 +361,6 @@ export default function AppNavigator() {
               }}
             />
             <Stack.Screen
-              name="SettingsTheme"
-              component={SettingsThemeScreen}
-              options={{
-                headerShown: true,
-                title: '화면 모드',
-                headerTintColor: colors.primary,
-                headerStyle: { backgroundColor: colors.surface },
-              }}
-            />
-            <Stack.Screen
               name="SettingsHomeWidgets"
               component={SettingsHomeWidgetsScreen}
               options={{
@@ -388,16 +376,6 @@ export default function AppNavigator() {
               options={{
                 headerShown: true,
                 title: '데이터 / 프라이버시',
-                headerTintColor: colors.primary,
-                headerStyle: { backgroundColor: colors.surface },
-              }}
-            />
-            <Stack.Screen
-              name="SettingsAbout"
-              component={SettingsAboutScreen}
-              options={{
-                headerShown: true,
-                title: '앱 정보',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.surface },
               }}
