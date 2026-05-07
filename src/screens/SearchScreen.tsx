@@ -111,6 +111,9 @@ function createStyles(colors: AppColors) {
     assistantBubbleText: { fontSize: FONT_SIZE.md, color: colors.textPrimary, lineHeight: 24 },
     actionRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: SPACING.xs, gap: SPACING.sm },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingHorizontal: SPACING.xs },
+    evidenceToggle: { alignSelf: 'flex-start', paddingVertical: SPACING.xs, paddingHorizontal: SPACING.sm, marginTop: SPACING.xs, backgroundColor: colors.surfaceSecondary, borderRadius: BORDER_RADIUS.sm },
+    evidenceToggleText: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
+    evidenceBox: { marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: colors.divider },
     actionBtnText: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     actionBtnSaved: { color: colors.primary },
     typingRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: SPACING.sm, paddingHorizontal: SPACING.md },
@@ -176,6 +179,16 @@ function buildChatMarkdownStyles(colors: AppColors) {
   };
 }
 
+// 답변을 결론(두괄)과 근거(접힘) 두 부분으로 분리. '## 근거' 헤더 기준.
+function splitAnswerByEvidence(text: string): { conclusion: string; evidence: string | null } {
+  const re = /\n##\s*근거\s*\n/;
+  const m = text.match(re);
+  if (!m || m.index === undefined) return { conclusion: text.trim(), evidence: null };
+  const conclusion = text.slice(0, m.index).trim();
+  const evidence = text.slice(m.index + m[0].length).trim();
+  return { conclusion, evidence: evidence.length > 0 ? evidence : null };
+}
+
 function stripMarkdown(text: string): string {
   return text
     .replace(/^#{1,6}\s+/gm, '')
@@ -219,7 +232,9 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
   colors: AppColors;
 }) {
   const [saved, setSaved] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const chatMarkdownStyles = useMemo(() => buildChatMarkdownStyles(colors), [colors]);
+  const { conclusion, evidence } = useMemo(() => splitAnswerByEvidence(message.text), [message.text]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -240,7 +255,25 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
   return (
     <Animated.View entering={FadeInDown} style={styles.assistantBubbleRow}>
       <View style={styles.assistantBubble}>
-        <Markdown style={chatMarkdownStyles}>{message.text}</Markdown>
+        <Markdown style={chatMarkdownStyles}>{conclusion}</Markdown>
+        {evidence && (
+          <>
+            <TouchableOpacity
+              onPress={() => setEvidenceOpen(v => !v)}
+              style={styles.evidenceToggle}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.evidenceToggleText}>
+                {evidenceOpen ? '근거 닫기 −' : '근거 보기 +'}
+              </Text>
+            </TouchableOpacity>
+            {evidenceOpen && (
+              <View style={styles.evidenceBox}>
+                <Markdown style={chatMarkdownStyles}>{evidence}</Markdown>
+              </View>
+            )}
+          </>
+        )}
         {message.photoUrls && message.photoUrls.length > 0 && (
           <PhotoGallery urls={message.photoUrls} thumbnailSize={72} />
         )}
