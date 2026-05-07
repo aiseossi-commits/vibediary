@@ -3,8 +3,16 @@ import { getNetworkState } from '../utils/network';
 import { DEFAULT_TAGS } from '../db/schema';
 
 function buildSystemPrompt(extraTags: string[]): string {
+  // 커스텀 태그 부여 규칙 명시 (모호한 "관련되면" 표현 제거, 보수적 부여 유도)
   const customTagSection = extraTags.length > 0
-    ? `\n커스텀 태그 (사용자 정의, 기본 태그와 함께 추가 적용 가능):\n${extraTags.map(t => `- ${t}: 기록 내용이 이 태그 이름과 명확히 관련되면 추가로 부여. 기본 태그를 대체하지 않음`).join('\n')}\n`
+    ? `\n커스텀 태그 (사용자 정의):
+- 기본 태그를 대체하지 않고 추가만 적용.
+- **부여 기준**: 태그 이름이 기록에 **직접 언급되거나 명백한 의미적 연결**이 있을 때만.
+- **의심스러우면 부여하지 않음** (오부여 < 미부여). 한 기록당 최대 2개.
+- 인물/장소/이벤트 이름 형식이 많으므로, 단순 키워드 매칭이 아니라 문맥상 그 대상이 실제 등장하는지 확인.
+
+사용 가능한 커스텀 태그:
+${extraTags.map(t => `- ${t}`).join('\n')}\n`
     : '';
   // SSOT: schema.ts의 DEFAULT_TAGS에서 동적 생성 (수동 유지 시 누락 위험 차단)
   const allowedTagsLine = DEFAULT_TAGS.join(', ');
@@ -294,19 +302,25 @@ function parseAIResponse(content: string): AIProcessingResult {
 // 태그만 추출 (재태깅 전용 — 경량 프롬프트)
 function buildTagsOnlyPrompt(extraTags: string[]): string {
   const customTagSection = extraTags.length > 0
-    ? `\n커스텀 태그 (사용자 정의):\n${extraTags.map(t => `- ${t}`).join('\n')}\n`
+    ? `\n[커스텀 태그] (사용자 정의 — 보수적 부여, 최대 2개)\n${extraTags.map(t => `- ${t}`).join('\n')}\n부여 기준: 태그 이름이 기록에 직접 언급되거나 명백한 의미적 연결이 있을 때만. 의심스러우면 부여 안 함.\n`
     : '';
+  const allowedTagsLine = DEFAULT_TAGS.join(', ');
 
   return `발달장애인 돌봄 기록에서 해당하는 태그만 골라 JSON 배열로 반환하세요.
 태그가 없으면 빈 배열 반환. 다른 텍스트 없이 JSON만 응답.
 
-※ 상위+하위 태그 항상 함께: 예) 물리치료 → ["#치료","#물리치료"]
+허용 태그(이외 절대 금지): ${allowedTagsLine}
 
-[치료] #치료 / #언어치료 #작업치료 #감각통합치료 #ABA치료 #놀이치료 #물리치료 #뇌파치료 #한의학
-[투약] #투약 / #처방약 #보충제 #동종요법 #패치
-[신체] #의료 #배변 #수면 #감각 #각성 #건강
-[행동] #행동 / #기분 #상동행동 #자해 #공격행동
-[기타] #발달 #검사 #상담 #교육기관 #식단 #일상
+※ 상위+하위 태그 항상 함께: 예) 물리치료 → ["#치료","#물리치료"]
+※ 하위 부여 시 상위 자동 포함:
+   #언어치료/#작업치료/#감각통합치료/#ABA치료/#놀이치료/#물리치료/#뇌파치료/#한의학 → #치료
+   #처방약/#보충제/#동종요법/#패치 → #투약
+   #자해/#공격행동/#상동행동/#기분 → #행동
+
+경계 규칙:
+- #식단: 치료적 식이요법/제한식/특수 프로토콜만(GFCF·GAPS·저포드맵 등). 일반 식사·메뉴는 #일상.
+- #의료: 의료인(의사/간호사) 직접 개입 시만. 가정 내 처치/단독 투약은 #건강 또는 #투약.
+- #건강: 의료인 개입 없는 신체/질병 (감기, 가정 내 상처/멍, 일반 식사 후 신체 반응 등).
 ${customTagSection}
 응답 형식: {"tags": ["#태그1", "#태그2"]}`;
 }
