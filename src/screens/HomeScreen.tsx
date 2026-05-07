@@ -44,6 +44,7 @@ import { createEvent } from '../db/eventDao';
 import RecordCard from '../components/RecordCard';
 import EventTrackerModal from '../components/EventTrackerModal';
 import PhotoActionModal from '../components/PhotoActionModal';
+import BriefingChip from '../components/BriefingChip';
 import { takePhoto, pickPhotoFromLibrary } from '../services/photoService';
 import * as FileSystem from 'expo-file-system';
 
@@ -727,9 +728,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         )}
 
         {widgetSettings[HOME_WIDGETS.VOICE_INPUT] && (
-          <View style={styles.pearlCenter}>
-            {PearlButton}
-          </View>
+          <>
+            <BriefingChip childId={activeChild?.id} />
+            <View style={styles.pearlCenter}>
+              {PearlButton}
+            </View>
+          </>
         )}
 
         {widgetSettings[HOME_WIDGETS.RECENT_RECORDS] && (

@@ -576,6 +576,23 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 27');
     }
 
+    if (currentVersion < 28) {
+      // v27 → v28: home_briefing 테이블 (오늘의 이슈 캐시, KST 자정 기준 1일 1회)
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS home_briefing (
+          id TEXT PRIMARY KEY,
+          child_id TEXT,
+          generated_date TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          dismissed_until TEXT,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_home_briefing_child_date
+          ON home_briefing(child_id, generated_date);
+      `);
+      await database.execAsync('PRAGMA user_version = 28');
+    }
+
     dbInitialized = true;
   })();
 
