@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor: 설정 분리 1차 — Alarm/Backup/SyncDiagnostics 디테일 스크린` (main, 2026-05-07)
+**마지막 커밋**: `refactor: 설정 분리 2차 — Children/AiTag 디테일 스크린` (main, 2026-05-07)
 
 **현재 브랜치**: main
 

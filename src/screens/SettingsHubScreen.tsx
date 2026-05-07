@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
-  ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform,
-  Animated, ActivityIndicator, Linking, Switch,
+  ScrollView, TextInput,
+  Animated, Linking, Switch,
 } from 'react-native';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
@@ -10,14 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
-import {
-  isDatabaseReady, createChild, updateChild, deleteChild,
-  getOrphanedRecordsCount, reassignOrphanedRecords, reassignChildRecords,
-  getAllRecords, setTagsForRecord, getAllTags,
-} from '../db';
-import { getTagsOnly } from '../services/aiProcessor';
-import { wakeSync } from '../services/syncService';
-import { DEFAULT_TAGS } from '../db/schema';
+import { isDatabaseReady } from '../db';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
@@ -28,7 +21,6 @@ import { getAlarmPresets, type AlarmPreset } from '../db/alarmPresetsDao';
 import { SettingsRow, SettingsCard } from '../components/settings';
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
-const LAST_RETAG_KEY = 'last_retag_at';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -123,7 +115,7 @@ function createStyles(colors: AppColors) {
 export default function SettingsHubScreen() {
   const { colors, isDark, setTheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();
+  const { children: childList, activeChild } = useChild();
   const { settings: widgetSettings, toggle: toggleWidget } = useHomeWidgetSettings();
   const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
 
@@ -133,7 +125,6 @@ export default function SettingsHubScreen() {
   const navigation = useNavigation();
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [orphanedCount, setOrphanedCount] = useState(0);
 
   // 알람 카운트만 로드 (요약 표시용 — 실제 관리는 SettingsAlarmScreen)
   const [alarms, setAlarms] = useState<AlarmPreset[]>([]);
@@ -145,20 +136,6 @@ export default function SettingsHubScreen() {
     return unsub;
   }, [navigation]);
 
-  // 태그 재분석 상태
-  const [isRetagging, setIsRetagging] = useState(false);
-  const [retagProgress, setRetagProgress] = useState<{ current: number; total: number } | null>(null);
-  const [retagDoneToday, setRetagDoneToday] = useState(false);
-
-  useEffect(() => {
-    getSetting(LAST_RETAG_KEY).then(val => {
-      if (val) {
-        const today = new Date().toISOString().slice(0, 10);
-        setRetagDoneToday(val === today);
-      }
-    });
-  }, []);
-
   const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
   useEffect(() => {
     Animated.spring(toggleAnim, {
@@ -168,72 +145,17 @@ export default function SettingsHubScreen() {
     }).start();
   }, [isDark, toggleAnim]);
 
-  // 이름 입력 모달 상태
-  const [nameModalVisible, setNameModalVisible] = useState(false);
-  const [nameModalTitle, setNameModalTitle] = useState('');
-  const [nameInputValue, setNameInputValue] = useState('');
-  const [nameModalOnConfirm, setNameModalOnConfirm] = useState<(name: string) => void>(() => () => {});
-
-  // 삭제 모달 상태
-  const [deleteModalChild, setDeleteModalChild] = useState<{ id: string; name: string } | null>(null);
-  const [deleteModalOthers, setDeleteModalOthers] = useState<{ id: string; name: string }[]>([]);
-
   useEffect(() => { loadCounts(); }, []);
 
   const loadCounts = async () => {
     if (!isDatabaseReady()) return;
     try {
-      const [pending, orphaned] = await Promise.all([
-        getPendingQueueCount(),
-        getOrphanedRecordsCount(),
-      ]);
+      const pending = await getPendingQueueCount();
       setPendingCount(pending);
-      setOrphanedCount(orphaned);
     } catch {
       // 카운트 조회 실패 — UI에 0 표시 유지
     }
   };
-
-  const openNameModal = (title: string, initialValue: string, onConfirm: (name: string) => void) => {
-    setNameModalTitle(title);
-    setNameInputValue(initialValue);
-    setNameModalOnConfirm(() => onConfirm);
-    setNameModalVisible(true);
-  };
-
-  const handleAddChild = () => {
-    openNameModal('바다 등록', '', async (name) => {
-      const child = await createChild(name);
-      await refreshChildren();
-      setActiveChild(child.id);
-    });
-  };
-
-  const handleChildPress = (child: { id: string; name: string }) => {
-    Alert.alert(child.name, '선택하세요', [
-      {
-        text: '이 바다로 전환',
-        onPress: () => setActiveChild(child.id),
-      },
-      {
-        text: '이름 수정',
-        onPress: () => openNameModal('이름 수정', child.name, async (name) => {
-          await updateChild(child.id, name);
-          await refreshChildren();
-        }),
-      },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: () => {
-          setDeleteModalChild(child);
-          setDeleteModalOthers(childList.filter(c => c.id !== child.id));
-        },
-      },
-      { text: '취소', style: 'cancel' },
-    ]);
-  };
-
 
   const handleProcessQueue = async () => {
     setIsProcessing(true);
@@ -264,164 +186,8 @@ export default function SettingsHubScreen() {
     setIsProcessing(false);
   };
 
-  const handleRetagAll = useCallback(() => {
-    if (!activeChild) {
-      Alert.alert('바다 선택 필요', '먼저 바다를 선택해주세요.');
-      return;
-    }
-    if (retagDoneToday) {
-      Alert.alert('오늘 이미 실행했습니다', '태그 재분석은 하루 1회만 가능합니다.');
-      return;
-    }
-    Alert.alert(
-      '기존 기록 태그 재분석',
-      `"${activeChild.name}"의 모든 기록을 AI로 다시 태깅합니다.\n기록 수만큼 AI 호출이 발생하며, 시간이 걸릴 수 있습니다.\n계속하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '재분석 시작',
-          onPress: async () => {
-            setIsRetagging(true);
-            setRetagProgress(null);
-            try {
-              const records = await getAllRecords(10000, 0, activeChild.id);
-              const withText = records.filter(r => r.rawText && r.rawText.trim().length > 0);
-              if (withText.length === 0) {
-                Alert.alert('완료', '재분석할 기록이 없습니다.');
-                return;
-              }
-              const customTags = await getAllTags(activeChild.id).then(
-                tags => tags.map(t => t.name).filter(n => !DEFAULT_TAGS.includes(n))
-              );
-              const allowedTags = new Set([...DEFAULT_TAGS, ...customTags]);
-              let successCount = 0;
-              for (let i = 0; i < withText.length; i++) {
-                setRetagProgress({ current: i + 1, total: withText.length });
-                const record = withText[i];
-                try {
-                  const tags = (await getTagsOnly(record.rawText!, customTags))
-                    .filter(t => allowedTags.has(t));
-                  if (tags.length > 0) {
-                    await setTagsForRecord(record.id, tags, activeChild.id);
-                    successCount++;
-                  }
-                } catch {
-                  // 개별 실패는 건너뜀
-                }
-                // API 과부하 방지 딜레이
-                await new Promise(res => setTimeout(res, 200));
-              }
-              const today = new Date().toISOString().slice(0, 10);
-              await setSetting(LAST_RETAG_KEY, today);
-              setRetagDoneToday(true);
-              void wakeSync('record_changed');
-              Alert.alert('완료', `${successCount}/${withText.length}건의 기록 태그가 업데이트되었습니다.`);
-            } catch (e: any) {
-              if (e?.message === 'OFFLINE') {
-                Alert.alert('오프라인', '인터넷에 연결되지 않았어요.');
-              } else {
-                Alert.alert('오류', '태그 재분석 중 문제가 발생했습니다.');
-              }
-            } finally {
-              setIsRetagging(false);
-              setRetagProgress(null);
-            }
-          },
-        },
-      ]
-    );
-  }, [activeChild, retagDoneToday]);
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* 이름 입력 모달 */}
-      <Modal visible={nameModalVisible} transparent animationType="fade" onRequestClose={() => setNameModalVisible(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{nameModalTitle}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={nameInputValue}
-              onChangeText={setNameInputValue}
-              placeholder="이름 입력"
-              placeholderTextColor={colors.textTertiary}
-              autoFocus
-              returnKeyType="done"
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setNameModalVisible(false)}>
-                <Text style={styles.modalCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalConfirm}
-                onPress={async () => {
-                  const name = nameInputValue.trim();
-                  if (!name) return;
-                  setNameModalVisible(false);
-                  await nameModalOnConfirm(name);
-                }}
-              >
-                <Text style={styles.modalConfirmText}>확인</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* 바다 삭제 모달 */}
-      <Modal
-        visible={deleteModalChild !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDeleteModalChild(null)}
-      >
-        <View style={styles.deleteModalOverlay}>
-          <View style={styles.deleteModalBox}>
-            <Text style={styles.deleteModalTitle}>{deleteModalChild?.name} 삭제</Text>
-            <Text style={styles.deleteModalDesc}>
-              {deleteModalOthers.length > 0
-                ? '기록을 다른 바다로 이동하거나, 기록을 포함하여 삭제할 수 있습니다.'
-                : '기존 기록은 앱에서 더 이상 볼 수 없게 됩니다.'}
-            </Text>
-            {deleteModalOthers.map(target => (
-              <TouchableOpacity
-                key={target.id}
-                style={styles.deleteModalBtn}
-                onPress={async () => {
-                  if (!deleteModalChild) return;
-                  setDeleteModalChild(null);
-                  await reassignChildRecords(deleteModalChild.id, target.id);
-                  await deleteChild(deleteModalChild.id);
-                  if (activeChild?.id === deleteModalChild.id) setActiveChild(target.id);
-                  await refreshChildren();
-                  await loadCounts();
-                  navigation.goBack();
-                }}
-              >
-                <Text style={styles.deleteModalBtnText}>"{target.name}"으로 기록 이동 후 삭제</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={styles.deleteModalBtnDestructive}
-              onPress={async () => {
-                if (!deleteModalChild) return;
-                setDeleteModalChild(null);
-                await deleteChild(deleteModalChild.id);
-                if (activeChild?.id === deleteModalChild.id) setActiveChild(deleteModalOthers[0]?.id ?? null);
-                await refreshChildren();
-                await loadCounts();
-                navigation.goBack();
-              }}
-            >
-              <Text style={styles.deleteModalBtnTextDestructive}>기록 포함 삭제</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteModalBtnCancel} onPress={() => setDeleteModalChild(null)}>
-              <Text style={styles.deleteModalBtnTextCancel}>취소</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>설정</Text>
@@ -439,22 +205,16 @@ export default function SettingsHubScreen() {
           </SettingsCard>
         </View>
 
-        {/* 바다 관리 */}
+        {/* 바다 관리 (디테일 스크린으로 이동) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>나의 바다</Text>
-          <View style={styles.card}>
-            {childList.map(child => (
-              <TouchableOpacity key={child.id} style={styles.childRow} onPress={() => handleChildPress(child)}>
-                {activeChild?.id === child.id && (
-                  <Text style={styles.childActive}>✓ </Text>
-                )}
-                <Text style={styles.childName}>{child.name}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={styles.addChildButton} onPress={handleAddChild}>
-              <Text style={styles.addChildText}>+ 바다 추가</Text>
-            </TouchableOpacity>
-          </View>
+          <SettingsCard>
+            <SettingsRow
+              label="바다 관리"
+              hint={activeChild ? activeChild.name : `${childList.length}개`}
+              onPress={() => (navigation as any).navigate('SettingsChildren')}
+            />
+          </SettingsCard>
         </View>
 
         {/* 가족 공유 */}
@@ -563,33 +323,15 @@ export default function SettingsHubScreen() {
           </View>
         </View>
 
-        {/* 태그 재분석 */}
+        {/* AI 태그 (디테일 스크린으로 이동) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>AI 태그 관리</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>기존 기록 태그 재분석</Text>
-            <Text style={styles.cardDescription}>
-              앱 업데이트로 태그 분류가 세분화되었습니다.{'\n'}
-              이전에 저장된 기록도 새 태그 기준으로 다시 분석합니다.
-            </Text>
-            <TouchableOpacity
-              style={[styles.processButton, (isRetagging || retagDoneToday) && { opacity: 0.4 }]}
-              onPress={handleRetagAll}
-              disabled={isRetagging || retagDoneToday}
-            >
-              {isRetagging && retagProgress ? (
-                <Text style={styles.processButtonText}>
-                  분석 중... ({retagProgress.current}/{retagProgress.total})
-                </Text>
-              ) : isRetagging ? (
-                <ActivityIndicator size="small" color={colors.textOnPrimary} />
-              ) : retagDoneToday ? (
-                <Text style={styles.processButtonText}>오늘 이미 실행했습니다</Text>
-              ) : (
-                <Text style={styles.processButtonText}>태그 재분석 시작</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <SettingsCard>
+            <SettingsRow
+              label="기존 기록 태그 재분석"
+              onPress={() => (navigation as any).navigate('SettingsAiTag')}
+            />
+          </SettingsCard>
         </View>
 
         {/* AI 데이터 투명성 */}
@@ -614,43 +356,7 @@ export default function SettingsHubScreen() {
           </View>
         </View>
 
-        {/* 미분류 기록 */}
-        {orphanedCount > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>미분류 기록</Text>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>바다 없는 기록 {orphanedCount}개</Text>
-              <Text style={styles.cardDescription}>
-                삭제된 바다에 속해 있던 기록입니다.{'\n'}
-                아래 버튼을 눌러 현재 바다로 불러올 수 있어요.
-              </Text>
-              {activeChild && (
-                <TouchableOpacity
-                  style={styles.processButton}
-                  onPress={() => {
-                    Alert.alert(
-                      '기록 불러오기',
-                      `${orphanedCount}개의 기록을 "${activeChild.name}"의 바다로 이동할까요?`,
-                      [
-                        { text: '취소', style: 'cancel' },
-                        {
-                          text: '이동',
-                          onPress: async () => {
-                            await reassignOrphanedRecords(activeChild.id);
-                            await loadCounts();
-                            Alert.alert('완료', `${orphanedCount}개의 기록을 "${activeChild.name}"로 이동했습니다.`);
-                          },
-                        },
-                      ]
-                    );
-                  }}
-                >
-                  <Text style={styles.processButtonText}>"{activeChild.name}"으로 불러오기</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
+        {/* 미분류 기록은 SettingsChildrenScreen으로 이동됨 */}
 
         {/* 오프라인 큐 */}
         {pendingCount > 0 && (

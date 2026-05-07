@@ -13,6 +13,8 @@ import SettingsHubScreen from '../screens/SettingsHubScreen';
 import SettingsAlarmScreen from '../screens/SettingsAlarmScreen';
 import SettingsBackupScreen from '../screens/SettingsBackupScreen';
 import SettingsSyncDiagnosticsScreen from '../screens/SettingsSyncDiagnosticsScreen';
+import SettingsChildrenScreen from '../screens/SettingsChildrenScreen';
+import SettingsAiTagScreen from '../screens/SettingsAiTagScreen';
 import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
@@ -332,6 +334,26 @@ export default function AppNavigator() {
               options={{
                 headerShown: true,
                 title: '동기화 진단',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="SettingsChildren"
+              component={SettingsChildrenScreen}
+              options={{
+                headerShown: true,
+                title: '바다 관리',
+                headerTintColor: colors.primary,
+                headerStyle: { backgroundColor: colors.surface },
+              }}
+            />
+            <Stack.Screen
+              name="SettingsAiTag"
+              component={SettingsAiTagScreen}
+              options={{
+                headerShown: true,
+                title: 'AI 태그 관리',
                 headerTintColor: colors.primary,
                 headerStyle: { backgroundColor: colors.surface },
               }}

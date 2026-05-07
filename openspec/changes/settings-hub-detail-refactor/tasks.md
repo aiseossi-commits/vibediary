@@ -35,19 +35,19 @@
 - [ ] 3.8 빌드 + 실기기 검증
 - [x] 3.9 커밋 (다음)
 
-## 4. 데이터 관리 3종 분리: Children / Family / AiTag
+## 4. 데이터 관리 분리: Children / AiTag (Family는 직접 nav)
 
-- [ ] 4.1 `SettingsChildrenScreen.tsx` 작성 — 바다 추가/이름변경/삭제/활성 전환 + nameModal 이전
-- [ ] 4.2 `SettingsFamilyScreen.tsx` 작성 — 가족방 만들기/참여/공유 진입
-- [ ] 4.3 `SettingsAiTagScreen.tsx` 작성 — 태그 재분석/일일 제한/`retagProgress` state 이전
-- [ ] 4.4 SettingsStack에 3개 스크린 등록
-- [ ] 4.5 허브에서 해당 3개 섹션을 `SettingsRow`로 교체 (요약: 바다 N개, 가족방 활성/비활성, 마지막 재분석 날짜)
+- [x] 4.1 `SettingsChildrenScreen.tsx` 작성 — 바다 추가/이름변경/삭제/활성 전환 + nameModal/deleteModal 이전 + 미분류 기록 처리
+- [x] 4.2 ~~SettingsFamilyScreen~~ → 보류 (기존 FamilyShareScreen 직접 navigation)
+- [x] 4.3 `SettingsAiTagScreen.tsx` 작성 — 태그 재분석/진행률/일일 제한 + 진행 중 뒤로가기 보호
+- [x] 4.4 root Stack에 SettingsChildren/SettingsAiTag 등록
+- [x] 4.5 허브에서 해당 섹션을 `SettingsRow`로 교체 (활성 바다 이름 hint)
 - [ ] 4.6 회귀 검증 체크리스트:
   - [ ] 바다 관리: 추가/롱프레스 편집/삭제/활성 전환 + ChildContext 동기화
   - [ ] 가족 공유: 만들기/참여/공유 화면 진입
   - [ ] AI 태그: 재분석 진행률/일일 제한/완료 후 상태
 - [ ] 4.7 빌드 + 실기기 검증
-- [ ] 4.8 커밋
+- [x] 4.8 커밋 (다음)
 
 ## 5. 단순 5종 분리: Theme / HomeWidgets / Privacy / Support / About
 
