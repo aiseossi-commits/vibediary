@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: DB v27 마이그레이션 정적 import으로 변경 (Metro bundler 호환성)` (main, 2026-05-07)
+**마지막 커밋**: `feat: 설정 화면 공통 컴포넌트 추출 (SettingsRow/Section/Card)` (main, 2026-05-07)
 
 **현재 브랜치**: main
 
