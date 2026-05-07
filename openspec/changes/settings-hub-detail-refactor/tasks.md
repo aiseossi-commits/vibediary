@@ -8,14 +8,17 @@
 - [x] 1.6 `npx tsc --noEmit` 통과 확인
 - [x] 1.7 단독 커밋
 
-## 2. SettingsStackNavigator + 허브 skeleton
+## 2. 허브 skeleton (실제 구조에 맞춰 보정)
 
-- [ ] 2.1 `src/navigation/SettingsStackNavigator.tsx` 신설 (현재 `SettingsScreen`을 root로)
-- [ ] 2.2 `AppNavigator.tsx`에서 BottomTab의 "설정" 탭이 `SettingsStackNavigator`를 가리키도록 수정
-- [ ] 2.3 기존 `SettingsScreen.tsx`를 `SettingsHubScreen.tsx`로 파일명 변경 (당장 내부는 그대로)
-- [ ] 2.4 import 경로 일괄 갱신
-- [ ] 2.5 빌드 + 실기기: 설정 탭 진입/뒤로가기 정상 확인 (디테일 스크린은 아직 없음)
-- [ ] 2.6 커밋
+설계 보정: BottomTab에 Settings 탭이 없음. Settings는 root Stack의 한 screen.
+별도 SettingsStackNavigator 불필요 — 디테일 스크린을 root Stack에 추가.
+
+- [x] 2.1 ~~SettingsStackNavigator 신설~~ → 보류 (root Stack에 직접 등록 방식으로 변경)
+- [x] 2.2 ~~BottomTab 설정 탭 변경~~ → 보류 (해당 탭 없음)
+- [x] 2.3 기존 `SettingsScreen.tsx`를 `SettingsHubScreen.tsx`로 파일명 변경
+- [x] 2.4 `AppNavigator.tsx` import 경로 갱신
+- [x] 2.5 빌드 + 타입 체크 통과
+- [x] 2.6 커밋
 
 ## 3. 복잡 3종 분리: Alarm / Backup / SyncDiagnostics
 

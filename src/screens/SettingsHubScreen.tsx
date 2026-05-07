@@ -152,7 +152,7 @@ function createStyles(colors: AppColors) {
   });
 }
 
-export default function SettingsScreen() {
+export default function SettingsHubScreen() {
   const { colors, isDark, setTheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild, setActiveChild, refreshChildren } = useChild();

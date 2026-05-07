@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 설정 화면 공통 컴포넌트 추출 (SettingsRow/Section/Card)` (main, 2026-05-07)
+**마지막 커밋**: `refactor: SettingsScreen → SettingsHubScreen 파일명 변경` (main, 2026-05-07)
 
 **현재 브랜치**: main
 

@@ -9,7 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import SearchScreen from '../screens/SearchScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import SettingsHubScreen from '../screens/SettingsHubScreen';
 import RecordingScreen from '../screens/RecordingScreen';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import TagsScreen from '../screens/TagsScreen';
@@ -295,7 +295,7 @@ export default function AppNavigator() {
             />
             <Stack.Screen
               name="Settings"
-              component={SettingsScreen}
+              component={SettingsHubScreen}
               options={{
                 headerShown: true,
                 title: '설정',
