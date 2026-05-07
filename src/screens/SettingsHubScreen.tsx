@@ -1,26 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Alert,
-  ScrollView, TextInput,
-  Animated, Linking, Switch,
+  View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView,
 } from 'react-native';
-import * as Application from 'expo-application';
-import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import * as Clipboard from 'expo-clipboard';
 import { getPendingQueueCount, processOfflineQueue } from '../services/offlineQueue';
 import { isDatabaseReady } from '../db';
 import { useTheme } from '../context/ThemeContext';
 import { useChild } from '../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
-import { HOME_WIDGETS } from '../constants/homeWidgets';
-import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
-import { getSetting, setSetting } from '../db/appSettingsDao';
 import { getAlarmPresets, type AlarmPreset } from '../db/alarmPresetsDao';
 import { SettingsRow, SettingsCard } from '../components/settings';
-const HOME_SUBTITLE_KEY = 'home_subtitle';
-const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -29,99 +19,18 @@ function createStyles(colors: AppColors) {
     title: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
     section: { marginTop: SPACING.md, paddingHorizontal: SPACING.md },
     sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.sm },
+    // 오프라인 큐 처리(허브에 남아있는 액션 카드)
     card: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm },
-    cardTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.xs },
     cardDescription: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 22 },
     processButton: { marginTop: SPACING.md, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.sm, paddingVertical: SPACING.sm, alignItems: 'center' },
     processButtonText: { color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium, fontSize: FONT_SIZE.sm },
-    appName: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginBottom: SPACING.xs },
-    slogan: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontStyle: 'italic', marginBottom: SPACING.xs },
-    version: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
-    // 후원
-    donationBanner: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACING.md },
-    accountRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-    accountText: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary, fontWeight: FONT_WEIGHT.medium },
-    copyButton: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, backgroundColor: colors.surfaceSecondary, borderRadius: BORDER_RADIUS.sm },
-    copyButtonText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontWeight: FONT_WEIGHT.medium },
-    // 아이 관리
-    childRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
-    childName: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary },
-    childActive: { fontSize: FONT_SIZE.sm, color: colors.primary, fontWeight: FONT_WEIGHT.medium, marginRight: SPACING.sm },
-    addChildButton: { marginTop: SPACING.sm, paddingVertical: SPACING.sm, alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.sm, borderStyle: 'dashed' },
-    addChildText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
-    // 이름 입력 모달
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    modalBox: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.lg, width: '80%' },
-    modalTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.md },
-    modalInput: { borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.sm, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, fontSize: FONT_SIZE.md, color: colors.textPrimary, marginBottom: SPACING.md },
-    modalButtons: { flexDirection: 'row', gap: SPACING.sm },
-    modalCancel: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.surfaceSecondary },
-    modalConfirm: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: BORDER_RADIUS.sm, backgroundColor: colors.primary },
-    modalCancelText: { fontSize: FONT_SIZE.sm, color: colors.textSecondary },
-    modalConfirmText: { fontSize: FONT_SIZE.sm, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
-    menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SPACING.sm },
-    menuRowText: { fontSize: FONT_SIZE.md, color: colors.textPrimary },
-    menuRowArrow: { fontSize: FONT_SIZE.lg, color: colors.textTertiary },
-    // 테마 토글 (카드 내부 row)
-    themeToggleInnerRow: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingVertical: SPACING.xs,
-    },
-    themeToggleLabel: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
-    sectionDivider: { height: 1, backgroundColor: colors.divider, marginVertical: SPACING.md },
-    toggleTrack: {
-      width: 51, height: 31, borderRadius: 16,
-      justifyContent: 'center', paddingHorizontal: 2,
-    },
-    toggleThumb: {
-      width: 27, height: 27, borderRadius: 14,
-      backgroundColor: '#FFFFFF',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2, shadowRadius: 3, elevation: 3,
-    },
-    // 삭제 모달
-    deleteModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    deleteModalBox: { backgroundColor: colors.surface, borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl, padding: SPACING.lg, paddingBottom: SPACING.xxl },
-    deleteModalTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary, marginBottom: SPACING.xs },
-    deleteModalDesc: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.lg, lineHeight: 20 },
-    deleteModalBtn: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginBottom: SPACING.sm, backgroundColor: colors.surfaceSecondary },
-    deleteModalBtnDestructive: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginBottom: SPACING.sm, backgroundColor: colors.error + '18' },
-    deleteModalBtnCancel: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, alignItems: 'center', marginTop: SPACING.xs, backgroundColor: colors.surfaceSecondary },
-    deleteModalBtnText: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
-    deleteModalBtnTextDestructive: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.error },
-    deleteModalBtnTextCancel: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
-    // 팔레트 선택
-    // 홈화면 위젯 토글
-    widgetRow: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingVertical: SPACING.sm,
-      borderBottomWidth: 1, borderBottomColor: colors.divider,
-    },
-    widgetRowLast: {
-      flexDirection: 'row', alignItems: 'center',
-      paddingVertical: SPACING.sm,
-    },
-    widgetLabel: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary },
-    subtitleRow: { paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: colors.divider },
-    subtitleLabel: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, marginBottom: SPACING.xs },
-    subtitleInput: {
-      fontSize: FONT_SIZE.md, color: colors.textPrimary,
-      borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.sm,
-      paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs,
-    },
   });
 }
 
 export default function SettingsHubScreen() {
-  const { colors, isDark, setTheme } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { children: childList, activeChild } = useChild();
-  const { settings: widgetSettings, toggle: toggleWidget } = useHomeWidgetSettings();
-  const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
-
-  useEffect(() => {
-    getSetting(HOME_SUBTITLE_KEY).then(val => setSubtitle(val ?? HOME_SUBTITLE_DEFAULT));
-  }, []);
   const navigation = useNavigation();
   const [pendingCount, setPendingCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -135,15 +44,6 @@ export default function SettingsHubScreen() {
     getAlarmPresets().then(setAlarms).catch(() => {});
     return unsub;
   }, [navigation]);
-
-  const toggleAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
-  useEffect(() => {
-    Animated.spring(toggleAnim, {
-      toValue: isDark ? 1 : 0,
-      useNativeDriver: true,
-      bounciness: 4,
-    }).start();
-  }, [isDark, toggleAnim]);
 
   useEffect(() => { loadCounts(); }, []);
 
@@ -250,77 +150,27 @@ export default function SettingsHubScreen() {
           </SettingsCard>
         </View>
 
-        {/* 테마 */}
+        {/* 화면 모드 (디테일 스크린) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>화면 모드</Text>
-          <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.themeToggleInnerRow}
-              onPress={() => setTheme(isDark ? 'light' : 'dark')}
-              activeOpacity={0.7}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.themeToggleLabel}>{isDark ? '밤바다' : '바다'}</Text>
-              </View>
-              <Animated.View style={[
-                styles.toggleTrack,
-                {
-                  backgroundColor: toggleAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['#CBD5E1', colors.primary],
-                  }),
-                },
-              ]}>
-                <Animated.View style={[
-                  styles.toggleThumb,
-                  {
-                    transform: [{
-                      translateX: toggleAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 20],
-                      }),
-                    }],
-                  },
-                ]} />
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
+          <SettingsCard>
+            <SettingsRow
+              label="화면 모드"
+              hint={isDark ? '밤바다' : '바다'}
+              onPress={() => (navigation as any).navigate('SettingsTheme')}
+            />
+          </SettingsCard>
         </View>
 
-        {/* 홈화면 구성 */}
+        {/* 홈화면 구성 (디테일 스크린) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>홈화면 구성</Text>
-          <View style={styles.card}>
-            <View style={styles.subtitleRow}>
-              <Text style={styles.subtitleLabel}>홈 문구</Text>
-              <TextInput
-                style={styles.subtitleInput}
-                value={subtitle}
-                onChangeText={setSubtitle}
-                onBlur={() => setSetting(HOME_SUBTITLE_KEY, subtitle.trim() || HOME_SUBTITLE_DEFAULT)}
-                placeholder={HOME_SUBTITLE_DEFAULT}
-                placeholderTextColor={colors.textTertiary}
-                returnKeyType="done"
-              />
-            </View>
-            {[
-              { key: HOME_WIDGETS.VOICE_INPUT,    label: '음성 입력' },
-              { key: HOME_WIDGETS.TEXT_INPUT,     label: '텍스트 입력' },
-              { key: HOME_WIDGETS.EVENT_TRACKER,  label: '증상 추적' },
-              { key: HOME_WIDGETS.RECENT_RECORDS, label: '오늘 기록' },
-              { key: HOME_WIDGETS.AI_INPUT_MODE,  label: 'AI 입력 모드 (길게 눌러 말하기)' },
-            ].map(({ key, label }, index, arr) => (
-              <View key={key} style={index === arr.length - 1 ? styles.widgetRowLast : styles.widgetRow}>
-                <Text style={styles.widgetLabel}>{label}</Text>
-                <Switch
-                  value={widgetSettings[key]}
-                  onValueChange={() => toggleWidget(key)}
-                  trackColor={{ false: colors.divider, true: colors.primary }}
-                  thumbColor="#FFFFFF"
-                />
-              </View>
-            ))}
-          </View>
+          <SettingsCard>
+            <SettingsRow
+              label="홈 문구 / 위젯 토글"
+              onPress={() => (navigation as any).navigate('SettingsHomeWidgets')}
+            />
+          </SettingsCard>
         </View>
 
         {/* AI 태그 (디테일 스크린으로 이동) */}
@@ -334,26 +184,15 @@ export default function SettingsHubScreen() {
           </SettingsCard>
         </View>
 
-        {/* AI 데이터 투명성 */}
+        {/* 데이터 / 프라이버시 (디테일 스크린) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>데이터 및 프라이버시</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>AI에 전송되는 데이터</Text>
-            <Text style={styles.cardDescription}>
-              • 음성 파일은 기기에만 저장되며 서버로 전송되지 않습니다{'\n'}
-              • STT 변환된 텍스트만 AI(Google Gemini)에 전송됩니다{'\n'}
-              • AI 서버에 데이터가 저장되지 않습니다{'\n'}
-              • 모든 기록은 기기 내 로컬 DB에 보관됩니다
-            </Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>데이터 저장 위치</Text>
-            <Text style={styles.cardDescription}>
-              • 음성 파일: 기기 로컬 전용{'\n'}
-              • 기록 데이터: 기기 내 SQLite DB{'\n'}
-              • 클라우드 백업: 비활성화 (설정에서 활성화 가능)
-            </Text>
-          </View>
+          <Text style={styles.sectionTitle}>데이터 / 프라이버시</Text>
+          <SettingsCard>
+            <SettingsRow
+              label="데이터 / 프라이버시"
+              onPress={() => (navigation as any).navigate('SettingsPrivacy')}
+            />
+          </SettingsCard>
         </View>
 
         {/* 미분류 기록은 SettingsChildrenScreen으로 이동됨 */}
@@ -374,45 +213,15 @@ export default function SettingsHubScreen() {
         )}
 
 
-        {/* 후원 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>후원</Text>
-          <View style={styles.card}>
-            <Text style={styles.donationBanner}>
-              이 앱은 여러분의 후원으로 운영됩니다.{'\n'}
-              한 달에 커피 한 잔 값이면 서버가 유지됩니다.
-            </Text>
-            <View style={styles.accountRow}>
-              <Text style={styles.accountText}>농협 351-0788-9998-53 서현석</Text>
-              <TouchableOpacity
-                style={styles.copyButton}
-                onPress={async () => {
-                  await Clipboard.setStringAsync('농협 351-0788-9998-53 서현석');
-                  Alert.alert('복사됨', '계좌번호가 복사되었습니다.');
-                }}
-              >
-                <Text style={styles.copyButtonText}>복사</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* 앱 정보 */}
+        {/* 후원 + 앱 정보 (디테일 스크린) */}
         <View style={[styles.section, { marginBottom: SPACING.xxl }]}>
           <Text style={styles.sectionTitle}>앱 정보</Text>
-          <View style={styles.card}>
-            <Text style={styles.appName}>바다 vibediary</Text>
-            <Text style={styles.slogan}>기록에 치이지 말고, 그냥 말하세요</Text>
-            <Text style={styles.version}>
-              v{Constants.expoConfig?.version ?? '1.0.0'} (build {Application.nativeBuildVersion ?? '?'})
-            </Text>
-            <TouchableOpacity
-              onPress={() => Linking.openURL('https://aiseossi-commits.github.io/vibediary/privacy-policy.html')}
-              style={{ marginTop: SPACING.md }}
-            >
-              <Text style={[styles.version, { color: colors.primary }]}>개인정보 처리방침</Text>
-            </TouchableOpacity>
-          </View>
+          <SettingsCard>
+            <SettingsRow
+              label="후원 / 앱 정보"
+              onPress={() => (navigation as any).navigate('SettingsAbout')}
+            />
+          </SettingsCard>
         </View>
       </ScrollView>
     </SafeAreaView>

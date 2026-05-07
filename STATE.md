@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor: 설정 분리 2차 — Children/AiTag 디테일 스크린` (main, 2026-05-07)
+**마지막 커밋**: `refactor: 설정 분리 3차 + 정리 — Theme/Widgets/Privacy/About + 죽은 코드 제거` (main, 2026-05-07)
 
 **현재 브랜치**: main
 

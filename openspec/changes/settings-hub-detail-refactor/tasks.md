@@ -49,35 +49,33 @@
 - [ ] 4.7 빌드 + 실기기 검증
 - [x] 4.8 커밋 (다음)
 
-## 5. 단순 5종 분리: Theme / HomeWidgets / Privacy / Support / About
+## 5. 단순 분리: Theme / HomeWidgets / Privacy / About(=Support+About 통합)
 
-- [ ] 5.1 `SettingsThemeScreen.tsx` 작성 — 다크모드 토글
-- [ ] 5.2 `SettingsHomeWidgetsScreen.tsx` 작성 — 홈 위젯 토글 (음성/텍스트/증상/오늘기록)
-- [ ] 5.3 `SettingsPrivacyScreen.tsx` 작성 — 데이터/프라이버시 안내 텍스트
-- [ ] 5.4 후원/앱 정보 라인 수 확인
-  - [ ] 5.4.1 합산 50라인 미만이면 `SettingsAboutScreen.tsx` 한 화면으로 통합
-  - [ ] 5.4.2 50라인 이상이면 `SettingsSupportScreen.tsx`/`SettingsAboutScreen.tsx` 분리
-- [ ] 5.5 SettingsStack에 4~5개 스크린 등록
-- [ ] 5.6 허브에서 해당 섹션을 `SettingsRow`로 교체
+- [x] 5.1 `SettingsThemeScreen.tsx` 작성 — 다크모드 토글 + Animated 트랙
+- [x] 5.2 `SettingsHomeWidgetsScreen.tsx` 작성 — 홈 문구 + 5개 위젯 토글
+- [x] 5.3 `SettingsPrivacyScreen.tsx` 작성 — AI 데이터 / 저장 위치 안내
+- [x] 5.4 후원/앱 정보 통합 → `SettingsAboutScreen.tsx` 한 화면 (각 < 50라인)
+- [x] 5.5 root Stack에 4개 스크린 등록
+- [x] 5.6 허브에서 해당 섹션을 `SettingsRow`로 교체
 - [ ] 5.7 회귀 검증 체크리스트:
   - [ ] 화면 모드: 다크모드 토글 시 모든 화면 즉시 반영
-  - [ ] 홈 위젯: 토글 시 홈 화면에 즉시 반영
-  - [ ] 프라이버시: 외부 링크 동작
-  - [ ] 후원/앱 정보: 정적 텍스트 표시 + 라이선스 모달
+  - [ ] 홈 위젯: 토글 시 홈 화면에 즉시 반영, 홈 문구 저장
+  - [ ] 프라이버시: 정보 표시
+  - [ ] 후원/앱 정보: 계좌 복사 / 개인정보 처리방침 외부 링크
 - [ ] 5.8 빌드 + 실기기 검증
-- [ ] 5.9 커밋
+- [x] 5.9 커밋 (다음)
 
 ## 6. 정리 및 마감
 
-- [ ] 6.1 기존 `SettingsHubScreen` (구 SettingsScreen)에서 이전된 섹션의 죽은 코드(state/모달/스타일/import) 일괄 삭제
-- [ ] 6.2 사용하지 않는 import/util 제거 (`knip` 또는 수동 확인)
-- [ ] 6.3 `npx tsc --noEmit` 통과
+- [x] 6.1 SettingsHubScreen 죽은 코드(state/모달/스타일/import) 일괄 삭제 — 1096 → 229 라인 (79% 감소)
+- [x] 6.2 사용하지 않는 import/util 제거 (수동 확인 — 타입 체크로 검증)
+- [x] 6.3 `npx tsc --noEmit` 통과
 - [ ] 6.4 종합 회귀 검증:
-  - [ ] 11개 디테일 스크린 모두 진입/뒤로가기
+  - [ ] 11개(실제 9개 + FamilyShare 재사용) 디테일 스크린 모두 진입/뒤로가기
   - [ ] 허브 스크롤 위치 보존
   - [ ] iOS 스와이프 백 / Android 시스템 백
-  - [ ] 다크모드/팔레트 변경 시 모든 화면 일관성
+  - [ ] 다크모드 변경 시 모든 화면 일관성
 - [ ] 6.5 빌드 + 최종 실기기 검증
-- [ ] 6.6 OpenSpec verify 실행 (`/openspec-verify-change settings-hub-detail-refactor`)
-- [ ] 6.7 커밋
-- [ ] 6.8 OpenSpec archive (`/openspec-archive-change settings-hub-detail-refactor`)
+- [ ] 6.6 OpenSpec verify 실행
+- [x] 6.7 커밋 (다음)
+- [ ] 6.8 OpenSpec archive
