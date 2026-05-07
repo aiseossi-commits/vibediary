@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: AI 태그 일관성 2차 (계층 자동 보정 + offlineQueue childId 전달)` (main, 2026-05-06)
+**마지막 커밋**: `refactor: AI 태그 SSOT 통일 + check-ontology 보강` (main, 2026-05-06)
 
 **현재 브랜치**: main
 

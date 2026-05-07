@@ -1,10 +1,13 @@
 import type { AIProcessingResult } from '../types/record';
 import { getNetworkState } from '../utils/network';
+import { DEFAULT_TAGS } from '../db/schema';
 
 function buildSystemPrompt(extraTags: string[]): string {
   const customTagSection = extraTags.length > 0
     ? `\n커스텀 태그 (사용자 정의, 기본 태그와 함께 추가 적용 가능):\n${extraTags.map(t => `- ${t}: 기록 내용이 이 태그 이름과 명확히 관련되면 추가로 부여. 기본 태그를 대체하지 않음`).join('\n')}\n`
     : '';
+  // SSOT: schema.ts의 DEFAULT_TAGS에서 동적 생성 (수동 유지 시 누락 위험 차단)
+  const allowedTagsLine = DEFAULT_TAGS.join(', ');
 
   return `당신은 발달장애인 돌봄 가족의 음성 기록을 정제하는 AI 비서입니다.
 사용자가 음성으로 남긴 기록을 분석하여 아래 JSON 형식으로 응답하세요.
@@ -16,7 +19,7 @@ function buildSystemPrompt(extraTags: string[]): string {
 
 규칙:
 0. 태그 선택: **기본 태그 리스트에만 있는 태그만 부여**. 아래에 없는 태그(예: #분노, #감정, #약물, #언어, #처치) 절대 금지.
-   허용되는 태그: #치료, #언어치료, #작업치료, #감각통합치료, #ABA치료, #놀이치료, #물리치료, #뇌파치료, #한의학, #투약, #처방약, #보충제, #동종요법, #패치, #의료, #배변, #수면, #감각, #각성, #건강, #행동, #기분, #상동행동, #자해, #공격행동, #발달, #검사, #상담, #교육기관, #식단, #일상
+   허용되는 태그: ${allowedTagsLine}
    커스텀 태그는 기본 태그를 대체하지 않고 추가만 적용.
 
 1. summary: 발화 내용을 정제한 문장. 아래 지침을 반드시 따르세요:
