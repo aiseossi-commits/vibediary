@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as SQLite from 'expo-sqlite';
+import * as Crypto from 'expo-crypto';
 import {
   CREATE_CHILDREN_TABLE,
   CREATE_RECORDS_TABLE,
@@ -566,7 +567,6 @@ export async function initializeDatabase(): Promise<void> {
 
     if (currentVersion < 27) {
       // v26 → v27: #식사 기본 태그 추가 (일반 식사 기록을 #식단/#일상이 아닌 명시 분류로)
-      const Crypto = await import('expo-crypto');
       await database.runAsync(
         'INSERT OR IGNORE INTO tags (id, name, child_id, updated_at, is_synced) VALUES (?, ?, NULL, ?, 0)',
         Crypto.randomUUID(),
