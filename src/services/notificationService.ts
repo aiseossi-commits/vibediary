@@ -1,4 +1,6 @@
 import * as Notifications from 'expo-notifications';
+import * as IntentLauncher from 'expo-intent-launcher';
+import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import { getSetting } from '../db/appSettingsDao';
 import { getAlarmPresets, type AlarmPreset } from '../db/alarmPresetsDao';
@@ -15,6 +17,28 @@ export async function requestNotificationPermission(): Promise<boolean> {
   if (existing === 'granted') return true;
   const { status } = await Notifications.requestPermissionsAsync();
   return status === 'granted';
+}
+
+// Android 배터리 최적화 예외 요청 (Doze 모드로 인한 알람 지연 방지)
+export async function requestBatteryOptimizationExemption(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    const pkg = Application.applicationId;
+    if (!pkg) return;
+    // 시스템 다이얼로그 직접 호출: "이 앱이 배터리 최적화를 무시하도록 허용?"
+    await IntentLauncher.startActivityAsync(
+      'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+      { data: `package:${pkg}` }
+    );
+  } catch (e) {
+    console.warn('[notificationService] 배터리 최적화 예외 요청 실패:', e);
+    // fallback: 배터리 최적화 설정 목록 화면으로 이동
+    try {
+      await IntentLauncher.startActivityAsync(
+        'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS'
+      );
+    } catch {}
+  }
 }
 
 export async function registerNotificationCategory(): Promise<void> {

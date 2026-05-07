@@ -26,10 +26,11 @@ import { HOME_WIDGETS } from '../constants/homeWidgets';
 import { useHomeWidgetSettings } from '../hooks/useHomeWidgetSettings';
 import { getSetting, setSetting } from '../db/appSettingsDao';
 import { getAlarmPresets, addAlarmPreset, deleteAlarmPreset, toggleAlarmPreset, type AlarmPreset } from '../db/alarmPresetsDao';
-import { requestNotificationPermission, scheduleAlarms } from '../services/notificationService';
+import { requestNotificationPermission, scheduleAlarms, requestBatteryOptimizationExemption } from '../services/notificationService';
 const HOME_SUBTITLE_KEY = 'home_subtitle';
 const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 const LAST_RETAG_KEY = 'last_retag_at';
+const BATTERY_PROMPT_KEY = 'battery_optimization_prompted';
 
 const PICKER_ITEM_H = 48;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -209,10 +210,29 @@ export default function SettingsScreen() {
 
   const handlePickerConfirm = async () => {
     setShowTimePicker(false);
+    const wasEmpty = alarms.length === 0;
     const alarm = await addAlarmPreset(pickerHour, pickerMinute);
     const next = [...alarms, alarm];
     setAlarms(next);
     await scheduleAlarms(next);
+
+    // Android: 첫 알람 등록 시 1회 배터리 최적화 예외 안내
+    if (Platform.OS === 'android' && wasEmpty) {
+      const prompted = await getSetting(BATTERY_PROMPT_KEY);
+      if (!prompted) {
+        Alert.alert(
+          '정시 알림 설정',
+          '배터리 절약 모드 때문에 알림이 늦거나 오지 않을 수 있어요. 정확한 시간에 받으려면 배터리 최적화에서 이 앱을 예외로 설정해주세요.',
+          [
+            { text: '나중에', style: 'cancel', onPress: () => { void setSetting(BATTERY_PROMPT_KEY, '1'); } },
+            { text: '설정 열기', onPress: async () => {
+              await setSetting(BATTERY_PROMPT_KEY, '1');
+              await requestBatteryOptimizationExemption();
+            }},
+          ]
+        );
+      }
+    }
   };
 
   const handlePickerCancel = () => {
@@ -618,6 +638,13 @@ export default function SettingsScreen() {
               <Text style={styles.addChildText}>+ 알람 추가</Text>
             </TouchableOpacity>
           </View>
+          {Platform.OS === 'android' && alarms.length > 0 && (
+            <TouchableOpacity onPress={() => requestBatteryOptimizationExemption()} style={{ marginTop: SPACING.sm, paddingVertical: SPACING.xs }}>
+              <Text style={{ color: colors.textSecondary, fontSize: FONT_SIZE.sm, textAlign: 'center' }}>
+                알림이 늦게 오나요? 배터리 최적화 해제하기 →
+              </Text>
+            </TouchableOpacity>
+          )}
           <Modal visible={showTimePicker} transparent animationType="fade" onRequestClose={handlePickerCancel}>
             <View style={styles.pickerModal}>
               <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={handlePickerCancel} />
