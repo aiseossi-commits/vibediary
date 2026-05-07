@@ -17,7 +17,19 @@ async function getCustomTagNames(childId?: string): Promise<string[]> {
   }
 }
 
-// 후처리 검증: AI 응답 정제 (consequence 정제, tags 정규화, #행동 배치)
+// 하위 태그 → 부모 태그 자동 매핑 (온톨로지 계층 강제)
+const PARENT_TAG_MAP: Record<string, string> = {
+  // 치료 계열
+  '#언어치료': '#치료', '#작업치료': '#치료', '#감각통합치료': '#치료',
+  '#ABA치료': '#치료', '#놀이치료': '#치료', '#물리치료': '#치료',
+  '#뇌파치료': '#치료', '#한의학': '#치료',
+  // 투약 계열
+  '#처방약': '#투약', '#보충제': '#투약', '#동종요법': '#투약', '#패치': '#투약',
+  // 행동/정서 계열
+  '#기분': '#행동', '#상동행동': '#행동', '#자해': '#행동', '#공격행동': '#행동',
+};
+
+// 후처리 검증: AI 응답 정제 (consequence 정제, tags 정규화, 부모 태그 자동 보정, #행동 배치)
 export function validateAndCleanStructuredData(result: AIProcessingResult, customTagNames: string[]): AIProcessingResult {
   const allowedTags = new Set([...DEFAULT_TAGS, ...customTagNames]);
 
@@ -49,14 +61,20 @@ export function validateAndCleanStructuredData(result: AIProcessingResult, custo
     ];
   }
 
-  // 3. behavioral_incident이면 #행동 반드시 맨 앞에
+  // 3. 하위 태그 → 부모 태그 자동 보정 (모델이 부모를 빠뜨려도 강제 추가)
+  const tagSet = new Set(result.tags);
+  for (const tag of result.tags) {
+    const parent = PARENT_TAG_MAP[tag];
+    if (parent && !tagSet.has(parent)) {
+      tagSet.add(parent);
+    }
+  }
+  result.tags = Array.from(tagSet);
+
+  // 4. behavioral_incident이면 #행동 반드시 맨 앞에
   if (result.structuredData?.event_type === 'behavioral_incident') {
     result.tags = result.tags.filter(t => t !== '#행동');
-    if (!result.tags.includes('#행동')) {
-      result.tags.unshift('#행동');
-    } else {
-      result.tags.unshift('#행동');
-    }
+    result.tags.unshift('#행동');
   }
 
   return result;

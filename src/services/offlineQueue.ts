@@ -100,8 +100,8 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
           continue;
         }
 
-        // AI 처리 (커스텀 태그 포함)
-        const allTagNames = (await getAllTags().catch(() => [])).map((t) => t.name);
+        // AI 처리 (해당 record의 child 기준 커스텀 태그만)
+        const allTagNames = (await getAllTags(record.childId ?? undefined).catch(() => [])).map((t) => t.name);
         const customTags = allTagNames.filter((n) => !DEFAULT_TAGS.includes(n));
         let result;
         try {

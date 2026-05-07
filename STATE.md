@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: AI 태그 일관성 1차 (temperature 0.1 + 경계 규칙 강화)` (main, 2026-05-06)
+**마지막 커밋**: `fix: AI 태그 일관성 2차 (계층 자동 보정 + offlineQueue childId 전달)` (main, 2026-05-06)
 
 **현재 브랜치**: main
 
