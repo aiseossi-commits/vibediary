@@ -237,11 +237,13 @@ function AssistantBubble({ message, query, onSave, styles, colors }: {
   const { conclusion, evidence } = useMemo(() => splitAnswerByEvidence(message.text), [message.text]);
 
   const handleShare = useCallback(async () => {
+    // 외부 공유(카톡/메모 등)는 마크다운 미렌더링이라 plain text로 변환
+    const plain = stripMarkdown(message.text);
     try {
-      const result = await Share.share({ message: message.text });
+      const result = await Share.share({ message: plain });
       if (result.action === Share.dismissedAction) return;
     } catch {
-      await Clipboard.setStringAsync(message.text);
+      await Clipboard.setStringAsync(plain);
       Alert.alert('복사됨', '클립보드에 복사했어요.');
     }
   }, [message.text]);
@@ -372,7 +374,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
   }, []);
 
   const handleShareLog = useCallback(async (log: SearchLog) => {
-    const text = `Q. ${log.query}\n\n${log.answer}`;
+    const text = `Q. ${log.query}\n\n${stripMarkdown(log.answer)}`;
     try {
       await Share.share({ message: text });
     } catch {
@@ -390,7 +392,7 @@ function CollectionFeed({ childId, colors, styles, isAbsorbing }: {
   }, [handleShareLog, handleDeleteLog]);
 
   const handleLongPressPage = useCallback((page: WikiPage) => {
-    const shareText = `${page.title}\n\n${page.body}`;
+    const shareText = `${page.title}\n\n${stripMarkdown(page.body)}`;
     Alert.alert(page.title.length > 30 ? page.title.slice(0, 30) + '…' : page.title, undefined, [
       { text: '공유', onPress: async () => {
         try {
