@@ -28,6 +28,23 @@ export async function getPendingQueueCount(): Promise<number> {
   return result?.count ?? 0;
 }
 
+// AI 처리에 N회 실패한 항목 수 (사용자 안내용)
+export async function getFailedQueueCount(): Promise<number> {
+  const db = await getDatabase();
+  const result = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) as count FROM offline_queue WHERE status = 'failed'"
+  );
+  return result?.count ?? 0;
+}
+
+// 실패 항목을 다시 pending으로 되돌림 (사용자 수동 재시도)
+export async function retryFailedQueue(): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    "UPDATE offline_queue SET status = 'pending', retry_count = 0 WHERE status = 'failed'"
+  );
+}
+
 let isProcessingQueue = false;
 let apiErrorCooldownUntil = 0;
 const API_ERROR_COOLDOWN_MS = 5 * 60 * 1000; // 429 등 API 오류 시 5분 대기
@@ -82,7 +99,8 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
       id: number;
       record_id: string;
       raw_text: string;
-    }>("SELECT id, record_id, raw_text FROM offline_queue WHERE status = 'pending' ORDER BY created_at ASC");
+      retry_count: number;
+    }>("SELECT id, record_id, raw_text, COALESCE(retry_count, 0) as retry_count FROM offline_queue WHERE status = 'pending' ORDER BY created_at ASC");
 
     if (pendingItems.length === 0) return { status: 'empty' };
 
@@ -110,14 +128,27 @@ export async function processOfflineQueue(force = false): Promise<QueueProcessRe
           result = validateAndCleanStructuredData(result, customTags);
         } catch (aiError) {
           console.warn(`오프라인 큐 AI 처리 실패 (record: ${item.record_id}):`, aiError);
-          // AI 재처리 실패 → structuredData 업데이트 안 함, aiPending 유지
-          // 다음 재시도 때 다시 시도하도록 함
           const errMsg = aiError instanceof Error ? aiError.message : '';
           if (errMsg.includes('429')) {
             apiErrorCooldownUntil = Date.now() + API_ERROR_COOLDOWN_MS;
             break;
           }
-          hasPendingLeft = true;
+          // 재시도 횟수 증가. 5회 누적되면 'failed'로 종결 (영구 pending 방지)
+          const newRetryCount = item.retry_count + 1;
+          const MAX_RETRY = 5;
+          if (newRetryCount >= MAX_RETRY) {
+            await db.runAsync(
+              "UPDATE offline_queue SET status = 'failed', retry_count = ? WHERE id = ?",
+              newRetryCount, item.id
+            );
+            console.warn(`오프라인 큐 항목 ${MAX_RETRY}회 실패 → failed 종결 (record: ${item.record_id})`);
+          } else {
+            await db.runAsync(
+              "UPDATE offline_queue SET retry_count = ? WHERE id = ?",
+              newRetryCount, item.id
+            );
+            hasPendingLeft = true;
+          }
           continue;
         }
 

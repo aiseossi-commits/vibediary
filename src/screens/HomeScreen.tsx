@@ -35,7 +35,7 @@ const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 import type { RecordWithTags } from '../types/record';
 import { getRecordsByDate, isDatabaseReady, getActiveEvents, getPendingRecordsCount, type ActiveEvent } from '../db';
 import { processTextRecord, runSTTOnly, processFromText } from '../services/recordPipeline';
-import { processOfflineQueue } from '../services/offlineQueue';
+import { processOfflineQueue, getFailedQueueCount, retryFailedQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
 import { formatEventDurationShort } from '../constants/events';
 import { useRecording } from '../hooks/useRecording';
@@ -204,6 +204,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [subtitle, setSubtitle] = useState(HOME_SUBTITLE_DEFAULT);
   const [photoModal, setPhotoModal] = useState<{ uri: string; base64?: string } | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
 
   const pulseAnims = useRef(
     Array.from({ length: PULSE_COUNT }, () => ({
@@ -256,10 +257,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   }, [activeChild?.id]);
 
   const loadPendingCount = useCallback(async () => {
-    if (!activeChild?.id) { setPendingCount(0); return; }
+    if (!activeChild?.id) { setPendingCount(0); setFailedCount(0); return; }
     try {
-      const count = await getPendingRecordsCount(activeChild.id);
-      setPendingCount(count);
+      const [pCount, fCount] = await Promise.all([
+        getPendingRecordsCount(activeChild.id),
+        getFailedQueueCount(),
+      ]);
+      setPendingCount(pCount);
+      setFailedCount(fCount);
     } catch (e) {
       console.error('[Home] loadPendingCount error:', e);
     }
@@ -283,6 +288,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       setIsRefreshing(false);
     }
   }, []);
+
+  const handleRetryFailed = useCallback(async () => {
+    await retryFailedQueue();
+    void processOfflineQueue(true).then(() => { loadRecords(); loadPendingCount(); });
+  }, [loadRecords, loadPendingCount]);
 
   useFocusEffect(
     useCallback(() => {
@@ -679,6 +689,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             </Text>
             <Text style={[styles.pendingBannerText, { marginTop: 4 }]}>네트워크 복구 시 자동으로 완료됩니다</Text>
           </View>
+        )}
+
+        {failedCount > 0 && (
+          <TouchableOpacity onPress={handleRetryFailed} style={[styles.pendingBanner, { backgroundColor: colors.surfaceSecondary }]}>
+            <Text style={styles.pendingBannerText}>
+              ⚠️ <Text style={styles.pendingBannerCount}>{failedCount}개 기록</Text>의 AI 분석이 반복 실패했어요
+            </Text>
+            <Text style={[styles.pendingBannerText, { marginTop: 4, color: colors.primary }]}>탭하여 다시 시도하기</Text>
+          </TouchableOpacity>
         )}
 
         {widgetSettings[HOME_WIDGETS.EVENT_TRACKER] && (

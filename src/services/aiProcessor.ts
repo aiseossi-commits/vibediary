@@ -260,15 +260,18 @@ function parseAIResponse(content: string): AIProcessingResult {
 
     const rawStructured = parsed.structured_data || {};
     const validEventTypes = ['behavioral_incident', 'medical', 'developmental', 'daily'];
-    // 빈 문자열·null·undefined 제거, 중첩 객체는 flat하게 전개, 유효하지 않은 event_type 제거
+    // 빈 문자열·null·undefined 제거, 1단계 중첩만 flat 전개 (깊은 중첩은 임의 키 생성 방지 위해 무시)
     const structuredData: Record<string, string | number | boolean> = {};
-    function flattenInto(obj: Record<string, unknown>, prefix = '') {
+    function flattenInto(obj: Record<string, unknown>, prefix = '', depth = 0) {
+      // 최대 1단계까지만 재귀 (예: {ATEC: {total: 100}} → ATEC_total: 100)
+      // 더 깊은 중첩(예: scores_ATEC_total)은 의도치 않은 키이므로 차단
+      if (depth > 1) return;
       for (const [k, v] of Object.entries(obj)) {
         if (v === '' || v === null || v === undefined) continue;
         const key = prefix ? `${prefix}_${k}` : k;
         if (k === 'event_type' && !prefix && !validEventTypes.includes(String(v))) continue;
         if (typeof v === 'object' && !Array.isArray(v)) {
-          flattenInto(v as Record<string, unknown>, key);
+          flattenInto(v as Record<string, unknown>, key, depth + 1);
         } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
           structuredData[key] = v;
         } else if (Array.isArray(v)) {

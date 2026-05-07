@@ -553,6 +553,17 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 25');
     }
 
+    if (currentVersion < 26) {
+      // v25 → v26: offline_queue.retry_count 컬럼 추가 (N회 실패 후 종결 정책 지원)
+      const cols = await database.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(offline_queue)"
+      );
+      if (!cols.some(c => c.name === 'retry_count')) {
+        await database.execAsync('ALTER TABLE offline_queue ADD COLUMN retry_count INTEGER DEFAULT 0');
+      }
+      await database.execAsync('PRAGMA user_version = 26');
+    }
+
     dbInitialized = true;
   })();
 

@@ -33,18 +33,29 @@ const PARENT_TAG_MAP: Record<string, string> = {
 export function validateAndCleanStructuredData(result: AIProcessingResult, customTagNames: string[]): AIProcessingResult {
   const allowedTags = new Set([...DEFAULT_TAGS, ...customTagNames]);
 
-  // 1. consequence 정제: 의료 데이터 제거
+  // 1. consequence 정제: 의료/신체손상 정보 제거 (consequence는 보호자 대응만 포함)
   if (result.structuredData && 'consequence' in result.structuredData && typeof result.structuredData.consequence === 'string') {
-    const medicalPatterns = [
-      '상처', '피', '병원', '응급실', '의원', '응급', '처치',
-      '밴드', '연고', '붕대', '발작', '수술', '검사', '멍',
+    const consequence = result.structuredData.consequence!;
+    // 의료인 개입 키워드 (병원/처치 명확)
+    const medicalKeywords = [
+      '병원', '응급실', '의원', '응급', '수술', '발작',
+      '처방', '진료', '입원', '외래',
     ];
-    const hasmedicalKeyword = medicalPatterns.some(pattern =>
-      result.structuredData.consequence!.includes(pattern)
-    );
-    if (hasmedicalKeyword) {
+    // 신체 손상 키워드 (상처/멍/출혈)
+    const injuryKeywords = [
+      '상처', '멍', '출혈', '붓기', '부음', '찢어',
+      '밴드', '연고', '붕대', '소독',
+    ];
+    // '피'는 단독 매칭 시 오탐(피규어/피곤 등) 우려 — 출혈 표현은 '출혈'/'피남'/'피가' 등으로 매칭
+    const bleedingPatterns = ['피남', '피가', '피난', '피흘'];
+    const hasMatch =
+      medicalKeywords.some(p => consequence.includes(p)) ||
+      injuryKeywords.some(p => consequence.includes(p)) ||
+      bleedingPatterns.some(p => consequence.includes(p));
+    if (hasMatch) {
       (result.structuredData as any).consequence = '';
     }
+    // 주의: '검사'는 발달검사(ATEC/CARS) 문맥과 겹쳐 의도치 않은 정제 우려로 제외
   }
 
   // 2. tags 정규화: 콜론 제거, 정의되지 않은 태그 필터링, 중복 제거

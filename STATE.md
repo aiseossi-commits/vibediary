@@ -6,11 +6,11 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor: AI 태그 SSOT 통일 + check-ontology 보강` (main, 2026-05-06)
+**마지막 커밋**: `fix: AI 태그 일관성 2차 마무리 (medicalPatterns 정밀화 + flatten 깊이 제한 + 큐 실패 종결)` (main, 2026-05-06)
 
 **현재 브랜치**: main
 
-**DB 현재 버전**: v25 (alarm_presets 테이블 추가)
+**DB 현재 버전**: v26 (offline_queue.retry_count 컬럼 추가)
 
 ## 다음 할 일
 
