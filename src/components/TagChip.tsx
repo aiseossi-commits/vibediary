@@ -24,15 +24,31 @@ interface TagChipProps {
   style?: ViewStyle;
 }
 
+// 카테고리별 도트 색상 (모든 32개 기본 태그 커버)
+const TAG_CATEGORY: Record<string, 'medical' | 'medication' | 'behavior' | 'therapy' | 'daily'> = {
+  // 치료 계열
+  '#치료': 'therapy', '#언어치료': 'therapy', '#작업치료': 'therapy', '#감각통합치료': 'therapy',
+  '#ABA치료': 'therapy', '#놀이치료': 'therapy', '#물리치료': 'therapy', '#뇌파치료': 'therapy', '#한의학': 'therapy',
+  // 투약 계열
+  '#투약': 'medication', '#처방약': 'medication', '#보충제': 'medication', '#동종요법': 'medication', '#패치': 'medication',
+  // 의료/신체
+  '#의료': 'medical', '#건강': 'medical', '#배변': 'medical', '#수면': 'medical', '#감각': 'medical', '#각성': 'medical',
+  // 행동/정서
+  '#행동': 'behavior', '#기분': 'behavior', '#상동행동': 'behavior', '#자해': 'behavior', '#공격행동': 'behavior',
+  // 일상/기타
+  '#일상': 'daily', '#식사': 'daily', '#식단': 'daily', '#발달': 'daily', '#검사': 'daily', '#상담': 'daily', '#교육기관': 'daily',
+};
+
 function getTagColor(name: string, colors: ReturnType<typeof useTheme>['colors']): string {
-  const map: Record<string, string> = {
-    '#의료': colors.tagMedical,
-    '#투약': colors.tagMedication,
-    '#행동': colors.tagBehavior,
-    '#일상': colors.tagDaily,
-    '#치료': colors.tagTherapy,
-  };
-  return map[name] ?? colors.textSecondary;
+  const cat = TAG_CATEGORY[name];
+  switch (cat) {
+    case 'medical': return colors.tagMedical;
+    case 'medication': return colors.tagMedication;
+    case 'behavior': return colors.tagBehavior;
+    case 'therapy': return colors.tagTherapy;
+    case 'daily': return colors.tagDaily;
+    default: return colors.textTertiary; // 커스텀 태그
+  }
 }
 
 export default function TagChip({
@@ -54,7 +70,8 @@ export default function TagChip({
       style={[
         styles.chip,
         isSmall ? styles.chipSmall : styles.chipMedium,
-        { backgroundColor: selected ? tagColor : `${tagColor}18` },
+        // 선택 시만 컬러 배경, 비선택은 투명 (가독성 우선)
+        selected ? { backgroundColor: tagColor } : null,
         style,
       ]}
     >
@@ -68,7 +85,8 @@ export default function TagChip({
         style={[
           styles.label,
           isSmall ? styles.labelSmall : styles.labelMedium,
-          { color: selected ? colors.textOnPrimary : tagColor },
+          // 비선택 상태에선 텍스트는 연한 회색(textSecondary), 카테고리 색은 도트로만 표현
+          { color: selected ? colors.textOnPrimary : colors.textSecondary },
         ]}
         numberOfLines={1}
       >
@@ -83,7 +101,7 @@ export default function TagChip({
           <Text
             style={[
               styles.removeIcon,
-              { color: selected ? colors.textOnPrimary : tagColor },
+              { color: selected ? colors.textOnPrimary : colors.textTertiary },
             ]}
           >
             x
