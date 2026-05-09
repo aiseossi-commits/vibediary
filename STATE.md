@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor(settings): 홈화면 구성 기본/확장 기능 분리` (main, 2026-05-09)
+**마지막 커밋**: `chore: versionCode 47 (실기기 테스트 빌드)` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -14,9 +14,12 @@
 
 ## 다음 할 일
 
-1. **APK/IPA 테스터 빌드** — 다음 빌드는 versionCode 47부터 (46까지 알람 디버그 빌드 반복 사용)
-   - Android: `./android/gradlew -p android assembleRelease`
-   - iOS: Xcode Archive 후 Transporter 업로드
+1. **실기기 테스트 (versionCode 47 APK 빌드 완료, 2026-05-09)** — 검증 시나리오:
+   - 설정탭 가독성 개편 (3개 그룹 카드 / 섹션제목 제거 결과 확인)
+   - 홈화면 구성 기본/확장 기능 분리 화면 확인
+   - STT 성공 후 audio 파일 폐기 (저장공간 누적 정지)
+   - DB v29 마이그레이션 자동 수행 (콘솔 에러 없음 + sync 22P02 사라짐)
+   - APK 위치: `android/app/build/outputs/apk/release/app-release.apk` (104MB)
 
 2. **Android Play Store 제출** — 실기기 검증 완료 후
    - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
