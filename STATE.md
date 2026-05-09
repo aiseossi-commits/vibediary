@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: versionCode 48 (실기기 테스트 빌드)` (main, 2026-05-09)
+**마지막 커밋**: `docs: versionCode 48 실기기 테스트 검증 완료 반영` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -14,19 +14,17 @@
 
 ## 다음 할 일
 
-1. **실기기 테스트 (versionCode 47 APK 빌드 완료, 2026-05-09)** — 검증 시나리오:
-   - 설정탭 가독성 개편 (3개 그룹 카드 / 섹션제목 제거 결과 확인)
-   - 홈화면 구성 기본/확장 기능 분리 화면 확인
-   - STT 성공 후 audio 파일 폐기 (저장공간 누적 정지)
-   - DB v29 마이그레이션 자동 수행 (콘솔 에러 없음 + sync 22P02 사라짐)
+1. **Android Play Store 제출** — versionCode 48 APK로 진행 가능
+   - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
    - APK 위치: `android/app/build/outputs/apk/release/app-release.apk` (104MB)
 
-2. **Android Play Store 제출** — 실기기 검증 완료 후
-   - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
+2. **iOS TestFlight 빌드 6** — 동일 변경사항(설정탭 개편·홈화면 구성 분리·audio 폐기·DB v29·BriefingChip dismiss 제거) 포함하여 Xcode Archive → Transporter 업로드
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **versionCode 48 실기기 테스트 검증 완료 (2026-05-09)** — 설정탭 그룹화·홈화면 구성 기본/확장 분리·STT 후 audio 폐기·DB v29 마이그레이션·BriefingChip dismiss 제거 모두 정상 동작 확인. Android Play Store 제출 가능 상태.
 
 - [x] **BriefingChip dismiss 버튼 제거 (2026-05-09)**: 오늘의 이슈 ON/OFF는 설정탭 토글(`widget_today_issue`)로 일원화. 홈화면의 `×` dismiss 버튼이 정책과 충돌해 제거. `hidden` state, `handleDismiss` callback, `dismissBriefing` import + 관련 styles 정리. `dismissBriefing` 함수 자체와 `dismissed_until` 컬럼은 schema 변경 비용 회피로 유지(향후 cleanup).
 
