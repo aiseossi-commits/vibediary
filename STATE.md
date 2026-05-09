@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 홈 화면 오늘의 이슈 브리핑 (BriefingChip + 더보기 모달)` (main, 2026-05-08)
+**마지막 커밋**: `feat: 오늘의 이슈 위젯 토글 분리 (BriefingChip 독립)` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -14,29 +14,27 @@
 
 ## 다음 할 일
 
-1. **실기기 검증 — 알림 알람 기능**
-   - 알람 추가 → 지정 시간에 알림 수신 확인
-   - 알림에서 인라인 답장(텍스트 입력창 표시 확인) → `ai_pending` 기록 생성 확인
-   - 앱 포그라운드 진입 시 AI 처리 완료 확인
-   - 알람 토글 끔 → 해당 시간에 알림 미발송 확인
-
-2. **APK/IPA 테스터 빌드** — versionCode 36 / iOS build 6 포함하여 재빌드 필요
+1. **APK/IPA 테스터 빌드** — versionCode 정합성 확인 후 재빌드 (현재 build.gradle에 46으로 점프된 미커밋 변경 존재 — 출처 확인 필요)
    - Android: `./android/gradlew -p android assembleRelease`
    - iOS: Xcode Archive 후 Transporter 업로드
 
-3. **DB v26 마이그레이션** — wiki_pages/synthesis_articles 비-UUID id 처리
+2. **DB v26 마이그레이션** — wiki_pages/synthesis_articles 비-UUID id 처리
    - `22P02 invalid input syntax for type uuid` 발생 원인
    - tags 테이블 v23 마이그레이션과 동일한 패턴으로 UUID 교체 필요
 
-4. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
+3. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
    - `family-sync-schema-v2.sql` STEP 7 주석 참고
 
-5. **Android Play Store 제출** — 실기기 검증 완료 후
+4. **Android Play Store 제출** — 실기기 검증 완료 후
    - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **오늘의 이슈 위젯 토글 분리 (코덱스, 2026-05-09)**: BriefingChip을 `widget_voice_input` 위젯에 묶여 있던 구조에서 `widget_today_issue` 독립 토글로 분리. `HOME_WIDGETS.TODAY_ISSUE` 키 추가(기본값 ON), SettingsHomeWidgetsScreen에 "오늘의 이슈" 항목 추가, HomeScreen 분기 단순화.
+
+- [x] **알림 알람 기능 실기기 검증 완료 (2026-05-09)**: 알람 추가/수신/인라인 답장/aiPending 기록 생성/포그라운드 AI 처리/토글 OFF 미발송 시나리오 모두 정상 확인.
 
 - [x] **알림 기록 알람 기능 구현 (2026-05-03)** — `notification-quick-record` OpenSpec 변경:
   - **expo-notifications** 설치 + `app.json` 플러그인 등록 (iOS NSUserNotificationUsageDescription, Android 알림 아이콘/색상)

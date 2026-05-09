@@ -727,13 +727,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </View>
         )}
 
+        {widgetSettings[HOME_WIDGETS.TODAY_ISSUE] && (
+          <BriefingChip childId={activeChild?.id} />
+        )}
+
         {widgetSettings[HOME_WIDGETS.VOICE_INPUT] && (
-          <>
-            <BriefingChip childId={activeChild?.id} />
-            <View style={styles.pearlCenter}>
-              {PearlButton}
-            </View>
-          </>
+          <View style={styles.pearlCenter}>
+            {PearlButton}
+          </View>
         )}
 
         {widgetSettings[HOME_WIDGETS.RECENT_RECORDS] && (

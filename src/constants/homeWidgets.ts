@@ -3,6 +3,7 @@ export const HOME_WIDGETS = {
   TEXT_INPUT:     'widget_text_input',
   EVENT_TRACKER:  'widget_event_tracker',
   RECENT_RECORDS: 'widget_recent_records',
+  TODAY_ISSUE:    'widget_today_issue',
   AI_INPUT_MODE:  'widget_ai_input_mode',
 } as const;
 
@@ -13,5 +14,6 @@ export const HOME_WIDGET_DEFAULTS: Record<HomeWidgetKey, boolean> = {
   [HOME_WIDGETS.TEXT_INPUT]:     true,
   [HOME_WIDGETS.EVENT_TRACKER]:  false,
   [HOME_WIDGETS.RECENT_RECORDS]: true,
+  [HOME_WIDGETS.TODAY_ISSUE]:    true,
   [HOME_WIDGETS.AI_INPUT_MODE]:  false,
 };

@@ -28,6 +28,7 @@ export default function SettingsHomeWidgetsScreen() {
     { key: HOME_WIDGETS.TEXT_INPUT,     label: '텍스트 입력' },
     { key: HOME_WIDGETS.EVENT_TRACKER,  label: '증상 추적' },
     { key: HOME_WIDGETS.RECENT_RECORDS, label: '오늘 기록' },
+    { key: HOME_WIDGETS.TODAY_ISSUE,    label: '오늘의 이슈' },
     { key: HOME_WIDGETS.AI_INPUT_MODE,  label: 'AI 입력 모드 (길게 눌러 말하기)' },
   ];
 
