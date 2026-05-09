@@ -5,7 +5,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
-import { dismissBriefing, type BriefingPayload } from '../db/briefingDao';
+import type { BriefingPayload } from '../db/briefingDao';
 import { getOrCreateBriefing } from '../services/briefingService';
 
 interface Props {
@@ -18,11 +18,9 @@ export default function BriefingChip({ childId }: Props) {
   const navigation = useNavigation<any>();
 
   const [payload, setPayload] = useState<BriefingPayload | null>(null);
-  const [hidden, setHidden] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
 
   const load = useCallback(async () => {
-    setHidden(false);
     try {
       const p = await getOrCreateBriefing(childId);
       setPayload(p);
@@ -33,18 +31,13 @@ export default function BriefingChip({ childId }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDismiss = useCallback(async () => {
-    setHidden(true);
-    await dismissBriefing(childId ?? null).catch(() => {});
-  }, [childId]);
-
   const handleTagNavigate = useCallback((tag: string) => {
     setDetailOpen(false);
     // TagsScreen으로 이동 (해당 태그 필터)
     navigation.navigate('Tags', { tag });
   }, [navigation]);
 
-  if (hidden || !payload || !payload.primary) return null;
+  if (!payload || !payload.primary) return null;
 
   return (
     <>
@@ -58,9 +51,6 @@ export default function BriefingChip({ childId }: Props) {
           {payload.issues.length > 1 && (
             <Text style={styles.chipMore}>더보기 ›</Text>
           )}
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleDismiss} style={styles.dismissBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.dismissText}>×</Text>
         </TouchableOpacity>
       </View>
 
@@ -105,14 +95,10 @@ export default function BriefingChip({ childId }: Props) {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     chipRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
       marginHorizontal: SPACING.md,
       marginBottom: SPACING.sm,
-      gap: SPACING.xs,
     },
     chip: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.surface,
@@ -131,16 +117,6 @@ function createStyles(colors: AppColors) {
       fontSize: FONT_SIZE.xs,
       color: colors.primary,
       fontWeight: FONT_WEIGHT.medium,
-    },
-    dismissBtn: {
-      width: 28, height: 28,
-      alignItems: 'center', justifyContent: 'center',
-      borderRadius: 14,
-    },
-    dismissText: {
-      fontSize: FONT_SIZE.lg,
-      color: colors.textTertiary,
-      lineHeight: FONT_SIZE.lg + 2,
     },
     modalOverlay: {
       flex: 1,

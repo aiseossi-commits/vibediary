@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `chore: versionCode 47 (실기기 테스트 빌드)` (main, 2026-05-09)
+**마지막 커밋**: `fix: BriefingChip dismiss 버튼 제거 (설정탭 토글로 일원화)` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -27,6 +27,8 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **BriefingChip dismiss 버튼 제거 (2026-05-09)**: 오늘의 이슈 ON/OFF는 설정탭 토글(`widget_today_issue`)로 일원화. 홈화면의 `×` dismiss 버튼이 정책과 충돌해 제거. `hidden` state, `handleDismiss` callback, `dismissBriefing` import + 관련 styles 정리. `dismissBriefing` 함수 자체와 `dismissed_until` 컬럼은 schema 변경 비용 회피로 유지(향후 cleanup).
 
 - [x] **홈화면 구성 화면 — 기본/확장 기능 분리 (2026-05-09)**: `SettingsHomeWidgetsScreen`을 두 카드로 분할. **기본 기능**(홈 문구·음성 입력·텍스트 입력·오늘 기록): 매일 쓰는 핵심 기능. **확장 기능**(증상 추적·AI 입력 모드·오늘의 이슈): 선택적 부가 기능. `renderWidgetRow` helper로 중복 제거.
 
