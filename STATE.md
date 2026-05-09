@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: STT 성공 직후 audio 파일 즉시 폐기` (main, 2026-05-09)
+**마지막 커밋**: `refactor(settings): 섹션제목 제거 + 의미 그룹 카드 묶기` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -24,6 +24,8 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **설정탭 가독성 개편 (2026-05-09)**: 섹션제목 9개와 행 라벨이 거의 동의어인 중복 정보 정리(특히 "데이터/프라이버시" 완전 동일 텍스트 제거). iOS 설정 앱 스타일로 의미 그룹 3개 카드(기록/데이터/화면)에 통합 — `SettingsCard` 자동 divider 활용. 라벨 단순화: "알람 설정"→"알람", "기존 기록 태그 재분석"→"AI 태그 재분석", "초대코드로 가족과 공유"→"가족 공유" 등. 화면 모드 토글을 홈화면 구성과 같은 카드에 묶고 패딩/높이를 SettingsRow와 정렬. 후원/앱 정보 섹션제목도 제거(카드 본문이 자체 헤더 역할).
 
 - [x] **STT 성공 직후 audio 파일 즉시 폐기 (2026-05-09)**: 사용자가 녹음 재생 기능을 사용 안 하는데 폰 저장공간만 누적되던 문제 해결. `processFromText`의 audioPath를 null로 저장하고, AppNavigator·HomeScreen의 finally 블록에서 `deleteAudioFile(uri)` 호출(STT 성공/실패/NO_SPEECH 모두 처리). `processFromText` 시그니처에서 audioUri 인자 제거(불필요해짐). CalendarScreen 라벨 로직은 `(audioPath || source==='voice')`로 옛 기록 호환. audio sync 기능 자체를 만들지 않기로 결정 → STATE.md/HQ.md에서 audio Storage RLS 항목 제거.
 

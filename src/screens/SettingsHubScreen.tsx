@@ -21,13 +21,18 @@ function createStyles(colors: AppColors) {
     header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
     title: { fontSize: FONT_SIZE.xl, fontWeight: FONT_WEIGHT.bold, color: colors.textPrimary },
     section: { marginTop: SPACING.md, paddingHorizontal: SPACING.md },
-    sectionTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, marginBottom: SPACING.sm },
     card: { backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm },
     cardDescription: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 22 },
     processButton: { marginTop: SPACING.md, backgroundColor: colors.primary, borderRadius: BORDER_RADIUS.sm, paddingVertical: SPACING.sm, alignItems: 'center' },
-    // 인라인 테마 토글
-    themeRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.xs },
-    themeLabel: { flex: 1, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.medium, color: colors.textPrimary },
+    // 인라인 테마 토글 — SettingsRow와 같은 패딩/최소 높이 맞춤
+    themeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: SPACING.sm + 2,
+      paddingHorizontal: SPACING.md,
+      minHeight: 48,
+    },
+    themeLabel: { flex: 1, fontSize: FONT_SIZE.md, color: colors.textPrimary },
     toggleTrack: { width: 51, height: 31, borderRadius: 16, justifyContent: 'center', paddingHorizontal: 2 },
     toggleThumb: {
       width: 27, height: 27, borderRadius: 14, backgroundColor: '#FFFFFF',
@@ -120,133 +125,87 @@ export default function SettingsHubScreen() {
           <Text style={styles.title}>설정</Text>
         </View>
 
-        {/* 알람 (디테일 스크린으로 이동) */}
+        {/* 그룹 1 — 기록 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>기록 알람</Text>
           <SettingsCard>
             <SettingsRow
-              label="알람 설정"
+              label="알람"
               hint={alarms.length > 0 ? `${alarms.filter(a => a.enabled).length}개 활성` : '없음'}
               onPress={() => (navigation as any).navigate('SettingsAlarm')}
             />
-          </SettingsCard>
-        </View>
-
-        {/* 바다 관리 (디테일 스크린으로 이동) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>나의 바다</Text>
-          <SettingsCard>
             <SettingsRow
               label="바다 관리"
-              hint={activeChild ? activeChild.name : `${childList.length}개`}
+              hint={activeChild ? `${activeChild.name} · ${childList.length}명` : `${childList.length}명`}
               onPress={() => (navigation as any).navigate('SettingsChildren')}
             />
-          </SettingsCard>
-        </View>
-
-        {/* 가족 공유 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>가족 공유</Text>
-          <SettingsCard>
             <SettingsRow
-              label="초대코드로 가족과 공유"
+              label="가족 공유"
               onPress={() => (navigation as any).navigate('FamilyShare')}
             />
           </SettingsCard>
         </View>
 
-        {/* 동기화 진단 (디테일 스크린으로 이동) */}
+        {/* 그룹 2 — 데이터 / 동기화 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>동기화</Text>
           <SettingsCard>
             <SettingsRow
-              label="동기화 진단 / 재동기화"
+              label="동기화 진단"
               onPress={() => (navigation as any).navigate('SettingsSyncDiagnostics')}
             />
-          </SettingsCard>
-        </View>
-
-        {/* 데이터 백업/복원 (디테일 스크린으로 이동) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>데이터 백업/복원</Text>
-          <SettingsCard>
             <SettingsRow
               label="백업 / 복원"
               onPress={() => (navigation as any).navigate('SettingsBackup')}
             />
-          </SettingsCard>
-        </View>
-
-        {/* 화면 모드 (인라인 토글 — 디테일 스크린 불필요) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>화면 모드</Text>
-          <View style={styles.card}>
-            <TouchableOpacity
-              style={styles.themeRow}
-              onPress={() => setTheme(isDark ? 'light' : 'dark')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.themeLabel}>{isDark ? '밤바다' : '바다'}</Text>
-              <Animated.View style={[
-                styles.toggleTrack,
-                {
-                  backgroundColor: toggleAnim.interpolate({
-                    inputRange: [0, 1], outputRange: ['#CBD5E1', colors.primary],
-                  }),
-                },
-              ]}>
-                <Animated.View style={[
-                  styles.toggleThumb,
-                  {
-                    transform: [{
-                      translateX: toggleAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }),
-                    }],
-                  },
-                ]} />
-              </Animated.View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 홈화면 구성 (디테일 스크린) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>홈화면 구성</Text>
-          <SettingsCard>
             <SettingsRow
-              label="홈 문구 / 위젯 토글"
-              onPress={() => (navigation as any).navigate('SettingsHomeWidgets')}
-            />
-          </SettingsCard>
-        </View>
-
-        {/* AI 태그 (디테일 스크린으로 이동) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>AI 태그 관리</Text>
-          <SettingsCard>
-            <SettingsRow
-              label="기존 기록 태그 재분석"
+              label="AI 태그 재분석"
               onPress={() => (navigation as any).navigate('SettingsAiTag')}
             />
-          </SettingsCard>
-        </View>
-
-        {/* 데이터 / 프라이버시 (디테일 스크린) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>데이터 / 프라이버시</Text>
-          <SettingsCard>
             <SettingsRow
-              label="데이터 / 프라이버시"
+              label="프라이버시"
               onPress={() => (navigation as any).navigate('SettingsPrivacy')}
             />
           </SettingsCard>
         </View>
 
-        {/* 미분류 기록은 SettingsChildrenScreen으로 이동됨 */}
+        {/* 그룹 3 — 화면 */}
+        <View style={styles.section}>
+          <SettingsCard>
+            <View>
+              <TouchableOpacity
+                style={styles.themeRow}
+                onPress={() => setTheme(isDark ? 'light' : 'dark')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.themeLabel}>{isDark ? '밤바다' : '바다'}</Text>
+                <Animated.View style={[
+                  styles.toggleTrack,
+                  {
+                    backgroundColor: toggleAnim.interpolate({
+                      inputRange: [0, 1], outputRange: ['#CBD5E1', colors.primary],
+                    }),
+                  },
+                ]}>
+                  <Animated.View style={[
+                    styles.toggleThumb,
+                    {
+                      transform: [{
+                        translateX: toggleAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }),
+                      }],
+                    },
+                  ]} />
+                </Animated.View>
+              </TouchableOpacity>
+            </View>
+            <SettingsRow
+              label="홈화면 구성"
+              onPress={() => (navigation as any).navigate('SettingsHomeWidgets')}
+            />
+          </SettingsCard>
+        </View>
 
-        {/* 오프라인 큐 */}
+        {/* 오프라인 큐 (조건부 인라인 카드) */}
         {pendingCount > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>대기 중인 AI 처리</Text>
             <View style={styles.card}>
               <Text style={styles.cardDescription}>
                 오프라인에서 저장된 {pendingCount}건의 기록이 AI 처리를 기다리고 있습니다.
@@ -261,7 +220,6 @@ export default function SettingsHubScreen() {
 
         {/* 후원 (인라인) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>후원</Text>
           <View style={styles.card}>
             <Text style={styles.donationBanner}>
               이 앱은 여러분의 후원으로 운영됩니다.{'\n'}
@@ -284,7 +242,6 @@ export default function SettingsHubScreen() {
 
         {/* 앱 정보 (인라인) */}
         <View style={[styles.section, { marginBottom: SPACING.xxl }]}>
-          <Text style={styles.sectionTitle}>앱 정보</Text>
           <View style={styles.card}>
             <Text style={styles.appName}>바다 vibediary</Text>
             <Text style={styles.slogan}>기록에 치이지 말고, 그냥 말하세요</Text>
