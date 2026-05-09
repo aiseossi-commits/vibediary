@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: BriefingChip dismiss 버튼 제거 (설정탭 토글로 일원화)` (main, 2026-05-09)
+**마지막 커밋**: `chore: versionCode 48 (실기기 테스트 빌드)` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
