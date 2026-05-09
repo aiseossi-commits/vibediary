@@ -23,19 +23,34 @@ export default function SettingsHomeWidgetsScreen() {
     getSetting(HOME_SUBTITLE_KEY).then(val => setSubtitle(val ?? HOME_SUBTITLE_DEFAULT));
   }, []);
 
-  const widgets: { key: HomeWidgetKey; label: string }[] = [
+  const basicWidgets: { key: HomeWidgetKey; label: string }[] = [
     { key: HOME_WIDGETS.VOICE_INPUT,    label: '음성 입력' },
     { key: HOME_WIDGETS.TEXT_INPUT,     label: '텍스트 입력' },
-    { key: HOME_WIDGETS.EVENT_TRACKER,  label: '증상 추적' },
     { key: HOME_WIDGETS.RECENT_RECORDS, label: '오늘 기록' },
-    { key: HOME_WIDGETS.TODAY_ISSUE,    label: '오늘의 이슈' },
-    { key: HOME_WIDGETS.AI_INPUT_MODE,  label: 'AI 입력 모드 (길게 눌러 말하기)' },
   ];
+
+  const extendedWidgets: { key: HomeWidgetKey; label: string }[] = [
+    { key: HOME_WIDGETS.EVENT_TRACKER,  label: '증상 추적' },
+    { key: HOME_WIDGETS.AI_INPUT_MODE,  label: 'AI 입력 모드 (길게 눌러 말하기)' },
+    { key: HOME_WIDGETS.TODAY_ISSUE,    label: '오늘의 이슈' },
+  ];
+
+  const renderWidgetRow = (key: HomeWidgetKey, label: string, isLast: boolean) => (
+    <View key={key} style={isLast ? styles.widgetRowLast : styles.widgetRow}>
+      <Text style={styles.widgetLabel}>{label}</Text>
+      <Switch
+        value={widgetSettings[key]}
+        onValueChange={() => toggleWidget(key)}
+        trackColor={{ false: colors.divider, true: colors.primary }}
+        thumbColor="#FFFFFF"
+      />
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: SPACING.xl }}>
-        <SettingsSection title="홈화면 구성">
+        <SettingsSection title="기본 기능">
           <View style={styles.card}>
             <View style={styles.subtitleRow}>
               <Text style={styles.subtitleLabel}>홈 문구</Text>
@@ -49,17 +64,17 @@ export default function SettingsHomeWidgetsScreen() {
                 returnKeyType="done"
               />
             </View>
-            {widgets.map(({ key, label }, index, arr) => (
-              <View key={key} style={index === arr.length - 1 ? styles.widgetRowLast : styles.widgetRow}>
-                <Text style={styles.widgetLabel}>{label}</Text>
-                <Switch
-                  value={widgetSettings[key]}
-                  onValueChange={() => toggleWidget(key)}
-                  trackColor={{ false: colors.divider, true: colors.primary }}
-                  thumbColor="#FFFFFF"
-                />
-              </View>
-            ))}
+            {basicWidgets.map(({ key, label }, index, arr) =>
+              renderWidgetRow(key, label, index === arr.length - 1)
+            )}
+          </View>
+        </SettingsSection>
+
+        <SettingsSection title="확장 기능">
+          <View style={styles.card}>
+            {extendedWidgets.map(({ key, label }, index, arr) =>
+              renderWidgetRow(key, label, index === arr.length - 1)
+            )}
           </View>
         </SettingsSection>
       </ScrollView>
