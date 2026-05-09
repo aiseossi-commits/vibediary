@@ -102,7 +102,7 @@ export async function runSTTOnly(audioUri: string, subjectName?: string): Promis
 }
 
 // 텍스트 받아서 AI 처리 + DB 저장
-export async function processFromText(audioUri: string, text: string, createdAt?: number, childId?: string, photoUrl?: string | null): Promise<string> {
+export async function processFromText(text: string, createdAt?: number, childId?: string, photoUrl?: string | null): Promise<string> {
   let aiResult;
   let aiPending = false;
 
@@ -125,7 +125,7 @@ export async function processFromText(audioUri: string, text: string, createdAt?
   let recordId!: string;
   await db.withTransactionAsync(async () => {
     recordId = await createRecord({
-      audioPath: audioUri,
+      audioPath: null,
       rawText: text,
       summary: aiResult.summary,
       structuredData: aiPending ? null : aiResult.structuredData,

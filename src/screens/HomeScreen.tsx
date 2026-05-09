@@ -35,6 +35,7 @@ const HOME_SUBTITLE_DEFAULT = '말하는 순간, 기억이 됩니다.';
 import type { RecordWithTags } from '../types/record';
 import { getRecordsByDate, isDatabaseReady, getActiveEvents, getPendingRecordsCount, type ActiveEvent } from '../db';
 import { processTextRecord, runSTTOnly, processFromText } from '../services/recordPipeline';
+import { deleteAudioFile } from '../services/audioRecorder';
 import { processOfflineQueue, getFailedQueueCount, retryFailedQueue } from '../services/offlineQueue';
 import { warmDeno } from '../services/aiProcessor';
 import { formatEventDurationShort } from '../constants/events';
@@ -362,7 +363,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       for (const entry of entries) {
         const createdAt = new Date(entry.date + 'T' + (entry.time ?? '23:59') + ':00').getTime();
         const targetChildId = resolveChildId(entry.childName);
-        await processFromText(uri, entry.text, createdAt, targetChildId);
+        await processFromText(entry.text, createdAt, targetChildId);
 
         // 이벤트 자동 등록 (중복 방지)
         if (entry.eventHint && targetChildId) {
@@ -399,6 +400,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         Alert.alert('오류', '기록 저장에 실패했습니다.');
       }
     } finally {
+      await deleteAudioFile(uri).catch(() => {});
       setInlineProcessing(false);
     }
   }, [activeChild?.id, activeChild?.name, childList, resolveChildId, loadRecords, loadActiveEvents]);

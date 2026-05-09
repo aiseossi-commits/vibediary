@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix(db): v29 wiki_pages/synthesis_articles 비-UUID id 정리` (main, 2026-05-09)
+**마지막 커밋**: `feat: STT 성공 직후 audio 파일 즉시 폐기` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -18,15 +18,14 @@
    - Android: `./android/gradlew -p android assembleRelease`
    - iOS: Xcode Archive 후 Transporter 업로드
 
-2. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
-   - `family-sync-schema-v2.sql` STEP 7 주석 참고
-
-3. **Android Play Store 제출** — 실기기 검증 완료 후
+2. **Android Play Store 제출** — 실기기 검증 완료 후
    - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **STT 성공 직후 audio 파일 즉시 폐기 (2026-05-09)**: 사용자가 녹음 재생 기능을 사용 안 하는데 폰 저장공간만 누적되던 문제 해결. `processFromText`의 audioPath를 null로 저장하고, AppNavigator·HomeScreen의 finally 블록에서 `deleteAudioFile(uri)` 호출(STT 성공/실패/NO_SPEECH 모두 처리). `processFromText` 시그니처에서 audioUri 인자 제거(불필요해짐). CalendarScreen 라벨 로직은 `(audioPath || source==='voice')`로 옛 기록 호환. audio sync 기능 자체를 만들지 않기로 결정 → STATE.md/HQ.md에서 audio Storage RLS 항목 제거.
 
 - [x] **DB v29 마이그레이션 — wiki_pages/synthesis_articles 비-UUID id 정리 (2026-05-09)**: v21 마이그레이션 이후에도 INTEGER id가 잔존하던 두 테이블의 비-UUID id를 새 UUID로 교체. v23 tags 패턴 차용 + BEGIN/COMMIT 트랜잭션으로 다중 테이블 원자성 보강. `is_synced=0` + `updated_at=now()` 마킹으로 다음 sync에서 새 UUID로 Supabase 재업로드. 외부 FK 참조 없어 record_tags 같은 매핑 불필요. Supabase `22P02 invalid input syntax for type uuid` 근본 해결.
 

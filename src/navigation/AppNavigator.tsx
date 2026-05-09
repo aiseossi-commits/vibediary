@@ -23,6 +23,7 @@ import TagsScreen from '../screens/TagsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import FamilyShareScreen from '../screens/FamilyShareScreen';
 import { runSTTOnly, processFromText } from '../services/recordPipeline';
+import { deleteAudioFile } from '../services/audioRecorder';
 import { runInitialMigration, wakeSync } from '../services/syncService';
 import * as Notifications from 'expo-notifications';
 import {
@@ -415,7 +416,7 @@ function RecordingScreenWrapper({ navigation, route }: any) {
       const dateStr: string | undefined = route.params?.date;
       const photoUrl: string | undefined = route.params?.photoUrl;
       const createdAt = dateStr ? new Date(dateStr + 'T12:00:00').getTime() : undefined;
-      await processFromText(uri, text, createdAt, activeChild?.id, photoUrl);
+      await processFromText(text, createdAt, activeChild?.id, photoUrl);
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
       if (msg === 'NO_SPEECH') {
@@ -425,6 +426,7 @@ function RecordingScreenWrapper({ navigation, route }: any) {
         Alert.alert('오류', '기록 저장에 실패했습니다. 다시 시도해 주세요.');
       }
     } finally {
+      await deleteAudioFile(uri).catch(() => {});
       const returnTab = route.params?.date ? 'Calendar' : 'Home';
       navigation.navigate('Main', { screen: returnTab });
     }

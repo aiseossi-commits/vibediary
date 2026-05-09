@@ -698,7 +698,7 @@ setDayRecords(records);
                     record={item}
                     onPress={() => handleRecordPress(item.id)}
                     showAgeOverlay={false}
-                    customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${item.audioPath ? '음성 기록' : '직접 입력'}`}
+                    customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${(item.audioPath || item.source === 'voice') ? '음성 기록' : '직접 입력'}`}
                     timeOnly={true}
                   />
                 ))}
