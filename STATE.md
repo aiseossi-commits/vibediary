@@ -14,7 +14,7 @@
 
 ## 다음 할 일
 
-1. **APK/IPA 테스터 빌드** — versionCode 정합성 확인 후 재빌드 (현재 build.gradle에 46으로 점프된 미커밋 변경 존재 — 출처 확인 필요)
+1. **APK/IPA 테스터 빌드** — 다음 빌드는 versionCode 47부터 (46까지 알람 디버그 빌드 반복 사용)
    - Android: `./android/gradlew -p android assembleRelease`
    - iOS: Xcode Archive 후 Transporter 업로드
 
