@@ -2,6 +2,7 @@ import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import { enqueuePendingDelete } from './pendingDeletesDao';
 import { wakeSync } from '../services/syncService';
+import { parseJsonOrNull } from '../utils/parseJson';
 import type { WikiPage, WikiPageType } from '../types/record';
 
 function mapRow(row: any): WikiPage {
@@ -12,8 +13,8 @@ function mapRow(row: any): WikiPage {
     title: row.title,
     type: row.type as WikiPageType,
     body: row.body,
-    sourceRecordIds: row.source_record_ids ? (() => { try { return JSON.parse(row.source_record_ids); } catch { return null; } })() : null,
-    crossRefs: row.cross_refs ? (() => { try { return JSON.parse(row.cross_refs); } catch { return null; } })() : null,
+    sourceRecordIds: parseJsonOrNull<string[]>(row.source_record_ids),
+    crossRefs: parseJsonOrNull<string[]>(row.cross_refs),
     visualData: row.visual_data ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

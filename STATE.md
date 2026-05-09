@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `feat: 오늘의 이슈 위젯 토글 분리 (BriefingChip 독립)` (main, 2026-05-09)
+**마지막 커밋**: `refactor: gpt기술부채 4-pass (helper/mapper/진단 통합)` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
@@ -31,6 +31,14 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **gpt기술부채 4-pass 정리 (2026-05-09)** — `gpt기술부채.md` 보고서 항목을 3원칙(안전성>친화성>효율성) 기준으로 재판정 후 안전한 통합만 진행:
+  - **Round 1 (D)**: `package.json` scripts에 `typecheck`, `test` 등록
+  - **Round 2 (B-light)**: `parseJsonOrNull<T>()` helper 신규(`src/utils/parseJson.ts`) → JSON.parse + try/catch 인라인 7군데 통합 (absorbService 3, queries 1, recordsDao 1, wikiDao 2). mutate→immutable 전환은 호출부 모두 재할당 패턴이라 변경 명분 없어 보류.
+  - **Round 3 (A-light)**: `mapRowToRecordWithTags()` 단일 mapper 신규(`src/db/recordMapper.ts`) → 매퍼 분산 3곳 통합. **부수 효과**: queries.ts에서 누락됐던 `source/childId`, absorbService에서 누락됐던 `photoUrl` 자동 복원 (필드 누락 위험 제거). JOIN/batch 최적화는 측정 없는 추측 최적화라 보류.
+  - **Round 4 (E-min)**: `supabase.ts`에 `lastAuthError` module 상태 + `setLastAuthError()`/`getLastAuthError()` export. AuthContext가 useEffect로 `authError` state 변경을 module 상태에 동기화. syncService의 `not_ready:${status}` 메시지에 실제 auth 에러 메시지 합류 → `sync_attempts.last_error_message` 진단 정보 강화.
+  - **보류**: F(punycode 제거 — metro.config.js polyfill alias 확인됨), B-full immutable, A-full JOIN, C 큰 화면 분해(별도 OpenSpec).
+  - **검증**: `npm run typecheck` 통과, `npm test` 9건 모두 통과.
 
 - [x] **오늘의 이슈 위젯 토글 분리 (코덱스, 2026-05-09)**: BriefingChip을 `widget_voice_input` 위젯에 묶여 있던 구조에서 `widget_today_issue` 독립 토글로 분리. `HOME_WIDGETS.TODAY_ISSUE` 키 추가(기본값 ON), SettingsHomeWidgetsScreen에 "오늘의 이슈" 항목 추가, HomeScreen 분기 단순화.
 

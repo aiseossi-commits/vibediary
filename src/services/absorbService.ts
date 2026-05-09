@@ -6,6 +6,7 @@ import {
   insertAbsorbLog,
 } from '../db/wikiDao';
 import { getNetworkState } from '../utils/network';
+import { mapRowToRecordWithTags } from '../db/recordMapper';
 import type { RecordWithTags, AbsorbResult, WikiPageType } from '../types/record';
 
 const ABSORB_THRESHOLD = 10;
@@ -76,19 +77,7 @@ async function getRecordsSinceLastAbsorb(childId: string, since: number | null):
         'SELECT * FROM records WHERE child_id = ? ORDER BY created_at ASC',
         childId
       );
-  return rows.map((row: any) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    audioPath: row.audio_path,
-    rawText: row.raw_text,
-    summary: row.summary,
-    structuredData: (() => { try { return row.structured_data ? JSON.parse(row.structured_data) : null; } catch { return null; } })(),
-    isSynced: row.is_synced === 1,
-    aiPending: row.ai_pending === 1,
-    source: row.source ?? undefined,
-    childId: row.child_id ?? null,
-    tags: [],
-  }));
+  return rows.map((row: any) => mapRowToRecordWithTags(row));
 }
 
 async function getMilestoneRecords(childId: string): Promise<RecordWithTags[]> {
@@ -97,19 +86,7 @@ async function getMilestoneRecords(childId: string): Promise<RecordWithTags[]> {
     `SELECT * FROM records WHERE child_id = ? AND structured_data LIKE '%"is_milestone":true%' ORDER BY created_at ASC`,
     childId
   );
-  return rows.map((row: any) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    audioPath: row.audio_path,
-    rawText: row.raw_text,
-    summary: row.summary,
-    structuredData: (() => { try { return row.structured_data ? JSON.parse(row.structured_data) : null; } catch { return null; } })(),
-    isSynced: row.is_synced === 1,
-    aiPending: row.ai_pending === 1,
-    source: row.source ?? undefined,
-    childId: row.child_id ?? null,
-    tags: [],
-  }));
+  return rows.map((row: any) => mapRowToRecordWithTags(row));
 }
 
 // ─── 포맷 헬퍼 ───────────────────────────────────────────────────────────────
@@ -457,19 +434,7 @@ async function getRecordsForPeriod(childId: string, days: number): Promise<Recor
     'SELECT * FROM records WHERE child_id = ? AND created_at >= ? ORDER BY created_at ASC',
     childId, since
   );
-  return rows.map((row: any) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    audioPath: row.audio_path,
-    rawText: row.raw_text,
-    summary: row.summary,
-    structuredData: (() => { try { return row.structured_data ? JSON.parse(row.structured_data) : null; } catch { return null; } })(),
-    isSynced: row.is_synced === 1,
-    aiPending: row.ai_pending === 1,
-    source: row.source ?? undefined,
-    childId: row.child_id ?? null,
-    tags: [],
-  }));
+  return rows.map((row: any) => mapRowToRecordWithTags(row));
 }
 
 function buildVoyagePrompt(type: VoyageReportType, records: RecordWithTags[]): { prompt: string; title: string } {

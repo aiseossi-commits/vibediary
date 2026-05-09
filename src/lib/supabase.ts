@@ -18,3 +18,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+let lastAuthError: string | null = null;
+
+export function setLastAuthError(message: string | null): void {
+  lastAuthError = message;
+}
+
+export function getLastAuthError(): string | null {
+  return lastAuthError;
+}

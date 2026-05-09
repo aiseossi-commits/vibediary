@@ -1,5 +1,5 @@
 import * as Crypto from 'expo-crypto';
-import { supabase } from '../lib/supabase';
+import { supabase, getLastAuthError } from '../lib/supabase';
 import { getDatabase } from '../db/database';
 import { getSetting, setSetting } from '../db/appSettingsDao';
 
@@ -593,7 +593,9 @@ async function syncPendingRecords(reason: SyncWakeReason = 'manual_retry'): Prom
   // readiness가 'ready'가 아니면 업로드하지 않음
   if (readiness.status !== 'ready') {
     console.warn('[sync] syncPendingRecords: not ready', readiness.status);
-    await finishAttempt({ last_error_message: `not_ready:${readiness.status}` });
+    const authErr = getLastAuthError();
+    const errMsg = authErr ? `not_ready:${readiness.status} (${authErr})` : `not_ready:${readiness.status}`;
+    await finishAttempt({ last_error_message: errMsg });
     return { processed: 0, failed: 0, skipped: 0 };
   }
 

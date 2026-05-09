@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import { enqueuePendingDelete } from './pendingDeletesDao';
+import { mapRowToRecordWithTags } from './recordMapper';
 import type { DiaryRecord, RecordWithTags, StructuredData, Tag } from '../types/record';
 
 // 새 기록 생성
@@ -204,23 +205,3 @@ async function getTagsForRecord(recordId: string): Promise<Tag[]> {
   );
 }
 
-// Row → RecordWithTags 변환
-function mapRowToRecordWithTags(row: any, tags: Tag[]): RecordWithTags {
-  return {
-    id: row.id,
-    createdAt: row.created_at,
-    audioPath: row.audio_path,
-    rawText: row.raw_text,
-    summary: row.summary,
-    structuredData: (() => {
-      try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
-      catch { return null; }
-    })(),
-    isSynced: row.is_synced === 1,
-    aiPending: row.ai_pending === 1,
-    source: row.source ?? undefined,
-    childId: row.child_id ?? null,
-    photoUrl: row.photo_url ?? null,
-    tags,
-  };
-}

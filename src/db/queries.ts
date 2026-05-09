@@ -1,4 +1,5 @@
 import { getDatabase } from './database';
+import { mapRowToRecordWithTags } from './recordMapper';
 import type { RecordWithTags, Tag, DailyRecordSummary } from '../types/record';
 
 // 날짜 범위 기반 기록 조회
@@ -29,7 +30,7 @@ export async function getRecordsByDateRange(
        WHERE rt.record_id = ?`,
       row.id
     );
-    results.push(mapRow(row, tags));
+    results.push(mapRowToRecordWithTags(row, tags));
   }
   return results;
 }
@@ -136,7 +137,7 @@ export async function getRecordsByTags(
        WHERE rt.record_id = ?`,
       row.id
     );
-    results.push(mapRow(row, tags));
+    results.push(mapRowToRecordWithTags(row, tags));
   }
   return results;
 }
@@ -162,26 +163,8 @@ export async function getAllRecordsForSearch(childId?: string, limit = 2000): Pr
        WHERE rt.record_id = ?`,
       row.id
     );
-    results.push(mapRow(row, tags));
+    results.push(mapRowToRecordWithTags(row, tags));
   }
   return results;
 }
 
-// Row → RecordWithTags 변환 유틸
-function mapRow(row: any, tags: Tag[]): RecordWithTags {
-  return {
-    id: row.id,
-    createdAt: row.created_at,
-    audioPath: row.audio_path,
-    rawText: row.raw_text,
-    summary: row.summary,
-    structuredData: (() => {
-      try { return row.structured_data ? JSON.parse(row.structured_data) : null; }
-      catch { return null; }
-    })(),
-    isSynced: row.is_synced === 1,
-    aiPending: row.ai_pending === 1,
-    photoUrl: row.photo_url ?? null,
-    tags,
-  };
-}

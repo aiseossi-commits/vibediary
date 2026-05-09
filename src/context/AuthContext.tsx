@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { supabase } from '../lib/supabase';
+import { supabase, setLastAuthError } from '../lib/supabase';
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 
@@ -38,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastAuthError(authError);
+  }, [authError]);
 
   useEffect(() => {
     (async () => {
