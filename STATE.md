@@ -6,11 +6,11 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `refactor: gpt기술부채 4-pass (helper/mapper/진단 통합)` (main, 2026-05-09)
+**마지막 커밋**: `fix(db): v29 wiki_pages/synthesis_articles 비-UUID id 정리` (main, 2026-05-09)
 
 **현재 브랜치**: main
 
-**DB 현재 버전**: v28 (home_briefing 테이블 추가)
+**DB 현재 버전**: v29 (wiki_pages/synthesis_articles 비-UUID id 정리)
 
 ## 다음 할 일
 
@@ -18,19 +18,17 @@
    - Android: `./android/gradlew -p android assembleRelease`
    - iOS: Xcode Archive 후 Transporter 업로드
 
-2. **DB v26 마이그레이션** — wiki_pages/synthesis_articles 비-UUID id 처리
-   - `22P02 invalid input syntax for type uuid` 발생 원인
-   - tags 테이블 v23 마이그레이션과 동일한 패턴으로 UUID 교체 필요
-
-3. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
+2. **Storage RLS (audio bucket)** — Supabase Storage 탭에서 수동 설정
    - `family-sync-schema-v2.sql` STEP 7 주석 참고
 
-4. **Android Play Store 제출** — 실기기 검증 완료 후
+3. **Android Play Store 제출** — 실기기 검증 완료 후
    - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
 
 ---
 
 ## 최근 완료된 작업
+
+- [x] **DB v29 마이그레이션 — wiki_pages/synthesis_articles 비-UUID id 정리 (2026-05-09)**: v21 마이그레이션 이후에도 INTEGER id가 잔존하던 두 테이블의 비-UUID id를 새 UUID로 교체. v23 tags 패턴 차용 + BEGIN/COMMIT 트랜잭션으로 다중 테이블 원자성 보강. `is_synced=0` + `updated_at=now()` 마킹으로 다음 sync에서 새 UUID로 Supabase 재업로드. 외부 FK 참조 없어 record_tags 같은 매핑 불필요. Supabase `22P02 invalid input syntax for type uuid` 근본 해결.
 
 - [x] **gpt기술부채 4-pass 정리 (2026-05-09)** — `gpt기술부채.md` 보고서 항목을 3원칙(안전성>친화성>효율성) 기준으로 재판정 후 안전한 통합만 진행:
   - **Round 1 (D)**: `package.json` scripts에 `typecheck`, `test` 등록

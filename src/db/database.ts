@@ -593,6 +593,35 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 28');
     }
 
+    if (currentVersion < 29) {
+      // v28 → v29: wiki_pages / synthesis_articles의 비-UUID id 정리
+      // (v21 마이그레이션 이후에도 INTEGER id가 남아있는 케이스 → Supabase 22P02 invalid uuid)
+      await database.execAsync('PRAGMA foreign_keys = OFF');
+      await database.execAsync('BEGIN');
+      try {
+        const uuid = `lower(substr(hex(randomblob(4)),1,8)||'-'||substr(hex(randomblob(2)),1,4)||'-4'||substr(hex(randomblob(2)),1,3)||'-'||substr('89ab',abs(random())%4+1,1)||substr(hex(randomblob(2)),1,3)||'-'||substr(hex(randomblob(6)),1,12))`;
+        for (const table of ['wiki_pages', 'synthesis_articles']) {
+          const bad = await database.getAllAsync<{ id: string }>(
+            `SELECT id FROM ${table} WHERE length(id) <> 36 OR id NOT LIKE '________-____-____-____-____________'`
+          );
+          for (const row of bad) {
+            const r = await database.getFirstAsync<{ new_id: string }>(`SELECT ${uuid} as new_id`);
+            if (!r?.new_id) continue;
+            await database.runAsync(
+              `UPDATE ${table} SET id = ?, is_synced = 0, updated_at = ? WHERE id = ?`,
+              r.new_id, Date.now(), row.id
+            );
+          }
+        }
+        await database.execAsync('COMMIT');
+      } catch (e) {
+        await database.execAsync('ROLLBACK');
+        throw e;
+      }
+      await database.execAsync('PRAGMA foreign_keys = ON');
+      await database.execAsync('PRAGMA user_version = 29');
+    }
+
     dbInitialized = true;
   })();
 
