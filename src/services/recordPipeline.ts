@@ -2,10 +2,10 @@ import { processSTT } from './stt';
 import { processWithAI } from './aiProcessor';
 import { createRecord } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
-import { addToOfflineQueue } from './offlineQueue';
+import { addToOfflineQueue } from './sync';
 import { getDatabase } from '../db/database';
 import { DEFAULT_TAGS } from '../db/schema';
-import { markRecordDirty, wakeSync } from './syncService';
+import { markRecordDirty, wakeSync } from './sync';
 import { validateAndCleanStructuredData } from './recordValidation';
 
 async function getCustomTagNames(childId?: string): Promise<string[]> {

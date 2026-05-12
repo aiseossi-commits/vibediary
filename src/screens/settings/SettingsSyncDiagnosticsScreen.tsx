@@ -10,7 +10,7 @@ import { SPACING, BORDER_RADIUS, type AppColors } from '../../constants/theme';
 import {
   wakeSync, clearAllDownloadWatermarks, markAllLocalDirty,
   getSyncDiagnostics, type SyncDiagnostics,
-} from '../../services/syncService';
+} from '../../services/sync';
 import { SettingsSection, SettingsRow, SettingsCard } from '../../components/settings';
 
 export default function SettingsSyncDiagnosticsScreen() {

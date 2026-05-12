@@ -6,7 +6,7 @@ import { getDatabase } from '../db/database';
 import { getAllChildren } from '../db/childrenDao';
 import { getAllRecordTags } from '../db/tagsDao';
 import { getAllRecordsForBackup } from '../db/recordsDao';
-import { wakeSync } from './syncService';
+import { wakeSync } from './sync';
 
 const BACKUP_VERSION = 2;
 

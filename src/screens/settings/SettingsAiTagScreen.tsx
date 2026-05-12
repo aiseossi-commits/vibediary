@@ -10,7 +10,7 @@ import { useChild } from '../../context/ChildContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../../constants/theme';
 import { getAllRecords, setTagsForRecord, getAllTags } from '../../db';
 import { getTagsOnly } from '../../services/aiProcessor';
-import { wakeSync } from '../../services/syncService';
+import { wakeSync } from '../../services/sync';
 import { DEFAULT_TAGS } from '../../db/schema';
 import { getSetting, setSetting } from '../../db/appSettingsDao';
 import { SettingsSection } from '../../components/settings';

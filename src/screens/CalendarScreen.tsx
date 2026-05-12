@@ -24,7 +24,7 @@ import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady, getEventsBy
 import { Ionicons } from '@expo/vector-icons';
 import { formatEventDuration } from '../constants/events';
 import { processTextRecord } from '../services/recordPipeline';
-import { processOfflineQueue } from '../services/offlineQueue';
+import { processOfflineQueue } from '../services/sync';
 import { takePhoto, pickPhotoFromLibrary } from '../services/photoService';
 import PhotoActionModal from '../components/PhotoActionModal';
 import { useTheme } from '../context/ThemeContext';

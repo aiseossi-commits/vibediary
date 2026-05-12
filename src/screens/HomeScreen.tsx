@@ -36,7 +36,7 @@ import type { RecordWithTags } from '../types/record';
 import { getRecordsByDate, isDatabaseReady, getActiveEvents, getPendingRecordsCount, type ActiveEvent } from '../db';
 import { processTextRecord, runSTTOnly, processFromText } from '../services/recordPipeline';
 import { deleteAudioFile } from '../services/audioRecorder';
-import { processOfflineQueue, getFailedQueueCount, retryFailedQueue } from '../services/offlineQueue';
+import { processOfflineQueue, getFailedQueueCount, retryFailedQueue } from '../services/sync';
 import { warmDeno } from '../services/aiProcessor';
 import { formatEventDurationShort } from '../constants/events';
 import { useRecording } from '../hooks/useRecording';

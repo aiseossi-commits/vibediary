@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import { enqueuePendingDelete } from './pendingDeletesDao';
-import { wakeSync } from '../services/syncService';
+import { wakeSync } from '../services/sync';
 import type { SearchLog } from '../types/record';
 
 export async function createSearchLog(

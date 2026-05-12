@@ -30,7 +30,8 @@
     - moderate: `react-native-markdown-display`(직접, fix 없음), `expo`, `brace-expansion` 등
     - `npm audit fix --force` 금지 (expo 다운그레이드 등 예측 불가 부작용). 출시 후 expo 메이저 업그레이드 시 함께 해결.
 - [x] **Phase D 완료**: Settings 화면 8개 → `screens/settings/` 서브폴더. AppNavigator + 내부 import 경로 수정
-- [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase C(services/sync 서브폴더)
+- [x] **Phase C 완료**: syncService + offlineQueue → `services/sync/` + `index.ts` re-export. 17개 파일 import 경로 수정. 계약 테스트 4개 통과
+- [ ] **사후**: `/pre-release` 최종 검증
 
 ## 다음 할 일
 

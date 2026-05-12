@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { uploadPhoto, savePhotoRecord } from '../services/photoService';
 import { processTextRecord } from '../services/recordPipeline';
 import { updateRecordPhoto } from '../db/recordsDao';
-import { markRecordDirty, wakeSync } from '../services/syncService';
+import { markRecordDirty, wakeSync } from '../services/sync';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 
 interface Props {

@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
-import { getPendingQueueCount, processOfflineQueue } from '../../services/offlineQueue';
+import { getPendingQueueCount, processOfflineQueue } from '../../services/sync';
 import { isDatabaseReady } from '../../db';
 import { useTheme } from '../../context/ThemeContext';
 import { useChild } from '../../context/ChildContext';

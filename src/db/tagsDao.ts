@@ -2,7 +2,7 @@ import * as Crypto from 'expo-crypto';
 import { getDatabase } from './database';
 import { enqueuePendingDelete } from './pendingDeletesDao';
 import { DEFAULT_TAGS } from './schema';
-import { wakeSync } from '../services/syncService';
+import { wakeSync } from '../services/sync';
 import type { Tag } from '../types/record';
 
 // 전체 태그 조회 (바다별)

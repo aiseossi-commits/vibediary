@@ -13,7 +13,7 @@ import {
   promoteLocalDataToFamily,
   type FamilyRoom,
 } from '../services/familyService';
-import { clearAllDownloadWatermarks, wakeSync } from '../services/syncService';
+import { clearAllDownloadWatermarks, wakeSync } from '../services/sync';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, type AppColors } from '../constants/theme';
 
 export default function FamilyShareScreen() {

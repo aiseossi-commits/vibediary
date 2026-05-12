@@ -10,7 +10,7 @@ function read(relativePath) {
 }
 
 test('syncService defines the full family sync table set', () => {
-  const source = read('src/services/syncService.ts');
+  const source = read('src/services/sync/syncService.ts');
   const expectedTables = [
     'children',
     'tags',
@@ -31,7 +31,7 @@ test('syncService defines the full family sync table set', () => {
 });
 
 test('syncService performs generic upload, download, and watermark reset', () => {
-  const source = read('src/services/syncService.ts');
+  const source = read('src/services/sync/syncService.ts');
 
   assert.match(source, /syncTableUpload/, 'syncService should have a generic upload path');
   assert.match(source, /syncTableDownload/, 'syncService should have a generic download path');
@@ -41,7 +41,7 @@ test('syncService performs generic upload, download, and watermark reset', () =>
 });
 
 test('syncService processes pending deletes before downloading remote rows', () => {
-  const source = read('src/services/syncService.ts');
+  const source = read('src/services/sync/syncService.ts');
   const pendingDeleteIndex = source.indexOf('await processPendingDeletes(readiness)');
   const downloadLoopIndex = source.indexOf('const result = await syncTableDownload');
 
@@ -54,7 +54,7 @@ test('syncService processes pending deletes before downloading remote rows', () 
 });
 
 test('wakeSync queues overlapping sync requests instead of ignoring them', () => {
-  const source = read('src/services/syncService.ts');
+  const source = read('src/services/sync/syncService.ts');
 
   assert.doesNotMatch(
     source,

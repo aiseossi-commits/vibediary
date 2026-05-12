@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { Session } from '@supabase/supabase-js';
-import { runInitialMigration, wakeSync } from '../../services/syncService';
+import { runInitialMigration, wakeSync } from '../../services/sync';
 
 export function useSyncTriggers(isLoaded: boolean, session: Session | null) {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
