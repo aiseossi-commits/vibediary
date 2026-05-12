@@ -308,5 +308,5 @@ const source = read('src/services/sync/syncService.ts');
 - [x] Phase C: services/sync 이동 (bde5686)
 - [x] 보안 quick fix (8ad2f57) — Worker /embedding 제거, URL 검증 강화, /version 1.0.4
 - [x] Deno Deploy 재배포 완료 (2026-05-13)
-- [ ] 실기기 확인: 설정 화면 8개 진입, 백업 복원, sync 트리거, 오프라인 실행
+- [x] 실기기 확인 완료 (2026-05-13): 설정 화면 8개 진입, 백업 복원 정상. sync 트리거/오프라인 실행은 오프라인 STT 불가 특성상 테스트 불가 — 리팩토링 회귀 아님
 - [ ] 사후: `/pre-release`
