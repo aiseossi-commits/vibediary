@@ -31,7 +31,11 @@
     - `npm audit fix --force` 금지 (expo 다운그레이드 등 예측 불가 부작용). 출시 후 expo 메이저 업그레이드 시 함께 해결.
 - [x] **Phase D 완료**: Settings 화면 8개 → `screens/settings/` 서브폴더. AppNavigator + 내부 import 경로 수정
 - [x] **Phase C 완료**: syncService + offlineQueue → `services/sync/` + `index.ts` re-export. 17개 파일 import 경로 수정. 계약 테스트 4개 통과. 원본 경로 git rm 정리 완료
-- [ ] **사후**: `/pre-release` 최종 검증
+- [x] **사후**: `/pre-release` 완료 — 차단 항목 없음, 릴리즈 가능
+  - app.json versionCode 22 → 48 (gradle과 일치)
+  - HQ.md 업데이트 완료
+  - ⚠️ Worker Deno Deploy 재배포 보류 중 (Phase D/C 완료 후 한꺼번에)
+  - ⚠️ 수동 확인 필요: 설정 화면 8개 진입, 백업 복원, sync 트리거, 오프라인 실행
 
 ## 다음 할 일
 

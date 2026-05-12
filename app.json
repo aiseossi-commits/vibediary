@@ -45,7 +45,7 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
         "android.permission.RECEIVE_BOOT_COMPLETED"
       ],
-      "versionCode": 22,
+      "versionCode": 48,
       "package": "com.aiseossi.vibediary",
       "intentFilters": [
         {
