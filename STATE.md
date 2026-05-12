@@ -24,6 +24,10 @@
 
 ## 최근 완료된 작업
 
+- [x] **백업 복원 버그 2건 수정 (2026-05-12)**:
+  - orphan child_id FK 위반: 백업에 없는 아이를 참조하는 태그/기록이 있을 때 `PRAGMA foreign_keys=ON` 환경에서 INSERT 실패. `restoreOverwrite`/`restoreMerge` 모두 orphan child_id → NULL 처리로 수정.
+  - 복원 후 오늘의 이슈 미표시: 복원 전 생성된 빈 `daily_ai_cache` 캐시가 남아 chip이 안 나오는 문제. 양 복원 함수 끝에 `DELETE FROM daily_ai_cache` 추가.
+
 - [x] **iOS 시뮬레이터 빌드 수정 + 설정탭 개발자모드 분리 (2026-05-12)**:
   - **SettingsHubScreen**: 동기화 진단·AI 태그 재분석을 데이터 카드에서 분리, 하단에 "개발자 모드" 섹션 신설
   - **Podfile (Xcode 26 대응)**:

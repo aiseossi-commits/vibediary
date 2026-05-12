@@ -157,6 +157,7 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
   await db.execAsync('DELETE FROM records');
   await db.execAsync('DELETE FROM tags');
   await db.execAsync('DELETE FROM children');
+  await db.execAsync('DELETE FROM daily_ai_cache');
 
   for (const c of data.children) {
     await db.runAsync(
@@ -165,19 +166,23 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
     );
   }
 
+  const validChildIds = new Set(data.children.map(c => c.id));
+
   for (const t of data.tags) {
+    const childId = t.child_id && validChildIds.has(t.child_id) ? t.child_id : null;
     await db.runAsync(
       'INSERT OR IGNORE INTO tags (id, name, child_id) VALUES (?, ?, ?)',
-      t.id, t.name, t.child_id ?? null
+      t.id, t.name, childId
     );
   }
 
   for (const r of data.records) {
+    const childId = r.child_id && validChildIds.has(r.child_id) ? r.child_id : null;
     await db.runAsync(
       `INSERT INTO records (id, created_at, updated_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, ?)`,
       r.id, r.created_at, r.created_at, r.audio_path, r.raw_text, r.summary,
-      r.structured_data, r.child_id
+      r.structured_data, childId
     );
   }
 
@@ -263,7 +268,7 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   const tagIdMap = new Map<string, string>(); // 백업 tag id → 실제 tag id
 
   for (const t of data.tags) {
-    const mappedChildId = t.child_id ? (childIdMap.get(t.child_id) ?? t.child_id) : null;
+    const mappedChildId = t.child_id ? (childIdMap.get(t.child_id) ?? null) : null;
     const key = `${t.name}|${mappedChildId ?? ''}`;
     if (existingTagKey.has(key)) {
       tagIdMap.set(t.id, existingTagKey.get(key)!);
@@ -285,7 +290,7 @@ export async function restoreMerge(data: BackupData): Promise<void> {
 
   // records 삽입 (중복 id 건너뜀, child_id 매핑 적용)
   for (const r of data.records) {
-    const mappedChildId = r.child_id ? (childIdMap.get(r.child_id) ?? r.child_id) : null;
+    const mappedChildId = r.child_id ? (childIdMap.get(r.child_id) ?? null) : null;
     await db.runAsync(
       `INSERT OR IGNORE INTO records (id, created_at, updated_at, audio_path, raw_text, summary, structured_data, embedding, is_synced, ai_pending, child_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, ?)`,
@@ -335,6 +340,8 @@ export async function restoreMerge(data: BackupData): Promise<void> {
 
   // 태그 없는 기록 AI 재처리 큐 등록
   await _requeueUntaggedRecords(db);
+  // 복원 후 오늘의 이슈 캐시 무효화 (복원 전 빈 payload가 캐시되어 있을 수 있음)
+  await db.execAsync('DELETE FROM daily_ai_cache');
   // 복원된 기록 전체를 가족 피드에 동기화
   void wakeSync('manual_retry');
 }
