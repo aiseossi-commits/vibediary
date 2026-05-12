@@ -10,6 +10,7 @@ import { ChildProvider, useChild } from './src/context/ChildContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { initializeDatabase } from './src/db';
 import SplashOverlay from './src/components/SplashOverlay';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -64,13 +65,15 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <ThemeProvider>
-          <ChildProvider>
-            <AppContent />
-          </ChildProvider>
-        </ThemeProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ThemeProvider>
+            <ChildProvider>
+              <AppContent />
+            </ChildProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

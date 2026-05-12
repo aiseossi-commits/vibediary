@@ -39,7 +39,7 @@
   - 데드코드: knip 결과 punycode 1건(false positive — metro.config.js polyfill). 실 데드코드 없음
   - 하드코딩/TODO: 없음 ✓
   - console.log: syncService.ts 4건 유지 (Sentry 없으므로 필요)
-  - ErrorBoundary: 미존재 → Phase 3에서 추가 예정
+  - ErrorBoundary: `src/components/ErrorBoundary.tsx` 신설, App.tsx SafeAreaProvider 바로 안에 위치
   - iOS 권한 수정: `NSCameraUsageDescription` 누락 추가 + `NSPhotoLibraryUsageDescription` 텍스트 수정 ("백업 파일" → "사진 첨부")
 
 ## 다음 할 일
