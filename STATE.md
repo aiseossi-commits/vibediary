@@ -8,21 +8,16 @@
 
 **마지막 커밋**: `chore: iOS build 6 버전 정보 업데이트` (main, 2026-05-12)
 
+**배포 상태**: Android versionCode 48 → Play Console 내부 테스트 업로드 완료 (2026-05-12) / iOS build 6 → TestFlight 업로드 완료 (2026-05-12)
+
 **현재 브랜치**: main
 
 **DB 현재 버전**: v29 (wiki_pages/synthesis_articles 비-UUID id 정리)
 
 ## 다음 할 일
 
-1. **Android Play Store 제출** — versionCode 48 AAB 준비 완료
-   - AAB 위치: `/Users/jhouse/Documents/newbada/vibediary05121336.aab` (71MB)
-   - Play Console 웹에서 직접 업로드: 내부 테스트 → 새 버전 만들기
-   - Play Store 등록 시 Google App Signing 키의 SHA-1을 Google Cloud → vibediary-android Client ID에 추가 등록 필요
-
-2. **iOS TestFlight 빌드 6** — Xcode GUI에서 archive 후 업로드
-   - Xcode → Product → Archive → Distribute App → App Store Connect → Upload
-
-2. **iOS TestFlight 빌드 6** — 동일 변경사항(설정탭 개편·홈화면 구성 분리·audio 폐기·DB v29·BriefingChip dismiss 제거) 포함하여 Xcode Archive → Transporter 업로드
+- [ ] **보안 2차 점검 B·C·D**: 의존성/클라/운영
+- [ ] 등대 뉴스레터 첫 호 발행 준비
 
 ---
 
