@@ -14,6 +14,10 @@
 
 **DB 현재 버전**: v29 (wiki_pages/synthesis_articles 비-UUID id 정리)
 
+## 현재 진행 중
+
+- [ ] **출시 전 리팩토링** (docs/refactor-pre-launch.md 참조): 순환 참조 제거(Phase A) → AppNavigator hook 추출(Phase B) → screens/settings 정리(Phase D) → services/sync 이동(Phase C)
+
 ## 다음 할 일
 
 - [ ] **보안 2차 점검 B·C·D**: 의존성/클라/운영
