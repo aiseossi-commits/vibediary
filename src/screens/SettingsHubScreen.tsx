@@ -50,6 +50,7 @@ function createStyles(colors: AppColors) {
     slogan: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, fontStyle: 'italic', marginBottom: SPACING.xs },
     version: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     processButtonText: { color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium, fontSize: FONT_SIZE.sm },
+    devSectionLabel: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: SPACING.xs, paddingHorizontal: SPACING.xs },
   });
 }
 
@@ -145,20 +146,12 @@ export default function SettingsHubScreen() {
           </SettingsCard>
         </View>
 
-        {/* 그룹 2 — 데이터 / 동기화 */}
+        {/* 그룹 2 — 데이터 */}
         <View style={styles.section}>
           <SettingsCard>
             <SettingsRow
-              label="동기화 진단"
-              onPress={() => (navigation as any).navigate('SettingsSyncDiagnostics')}
-            />
-            <SettingsRow
               label="백업 / 복원"
               onPress={() => (navigation as any).navigate('SettingsBackup')}
-            />
-            <SettingsRow
-              label="AI 태그 재분석"
-              onPress={() => (navigation as any).navigate('SettingsAiTag')}
             />
             <SettingsRow
               label="프라이버시"
@@ -238,6 +231,21 @@ export default function SettingsHubScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+
+        {/* 개발자 모드 */}
+        <View style={styles.section}>
+          <Text style={styles.devSectionLabel}>개발자 모드</Text>
+          <SettingsCard>
+            <SettingsRow
+              label="동기화 진단"
+              onPress={() => (navigation as any).navigate('SettingsSyncDiagnostics')}
+            />
+            <SettingsRow
+              label="AI 태그 재분석"
+              onPress={() => (navigation as any).navigate('SettingsAiTag')}
+            />
+          </SettingsCard>
         </View>
 
         {/* 앱 정보 (인라인) */}

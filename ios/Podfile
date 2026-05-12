@@ -67,6 +67,41 @@ target 'VibeDiary' do
       end
     end
 
+    # SwiftUICore 직접 링크 금지 — 시뮬레이터에서 __preview.dylib 링커 오류 방지
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_PREVIEWS'] = 'NO'
+      end
+    end
+    installer.pods_project.save
+
+    # 메인 앱 프로젝트: ENABLE_PREVIEWS = NO + ld_classic (Xcode 17 SwiftUICore 제한 우회)
+    # Xcode 17 신규 링커는 weak_framework도 allowable-clients 검사를 적용하므로
+    # 클래식 링커(-ld_classic)를 사용해야 RCTSwiftUI/ExpoModulesCore의 암시적 SwiftUICore 링크가 허용됨
+    require 'xcodeproj'
+    main_project_path = File.join(File.dirname(__FILE__), 'VibeDiary.xcodeproj')
+    main_project = Xcodeproj::Project.open(main_project_path)
+    main_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_PREVIEWS'] = 'NO'
+        existing = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+        flags = Array(existing)
+        flags.delete('-weak_framework')
+        flags.delete('SwiftUICore')
+        flags.delete('-ld_classic')
+        flags.delete('-framework')
+        flags.delete('SwiftUI')
+        config.build_settings['OTHER_LDFLAGS'] = flags
+        # SwiftUICore 스텁 경로를 시스템 SDK보다 먼저 참조 (Xcode 26 allowable-clients 우회)
+        fsp = config.build_settings['FRAMEWORK_SEARCH_PATHS'] || ['$(inherited)']
+        fsp = Array(fsp)
+        stub_path = '"$(SRCROOT)/Stubs"'
+        fsp.unshift(stub_path) unless fsp.include?(stub_path)
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] = fsp
+      end
+    end
+    main_project.save
+
     # ExpoModulesCore SDK 55에서 헤더가 하위 폴더로 이동 또는 삭제됨
     # expo-av가 <ExpoModulesCore/EX*.h> 경로로 참조하므로 상위 폴더로 복사 + 삭제된 헤더 shim 생성
     parent_dir = File.join(installer.sandbox.root, 'Headers', 'Public', 'ExpoModulesCore')

@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `docs: versionCode 48 실기기 테스트 검증 완료 반영` (main, 2026-05-09)
+**마지막 커밋**: `fix: iOS 시뮬레이터 빌드 — 설정탭 개발자모드 분리 + Xcode 26 빌드 수정` (main, 2026-05-12)
 
 **현재 브랜치**: main
 
@@ -23,6 +23,16 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **iOS 시뮬레이터 빌드 수정 + 설정탭 개발자모드 분리 (2026-05-12)**:
+  - **SettingsHubScreen**: 동기화 진단·AI 태그 재분석을 데이터 카드에서 분리, 하단에 "개발자 모드" 섹션 신설
+  - **Podfile (Xcode 26 대응)**:
+    - `REACT_NATIVE_PRODUCTION=1` 제거 — 프리빌드 Debug xcframework와 pods의 `REACT_NATIVE_DEBUG` ABI 불일치 해결 (이 매크로가 VTT 오프셋 오류 → EXC_BAD_ACCESS 유발했음)
+    - `ios/Stubs/SwiftUICore.framework/SwiftUICore.tbd` 신설 — `allowable-clients` 제거한 stub TBD로 Xcode 26의 SwiftUICore 직접 링크 제한 우회
+    - pods 프로젝트 전체: `ENABLE_PREVIEWS=NO` 설정 — `__preview.dylib` 링커 오류 방지
+    - 메인 앱 프로젝트: `ENABLE_PREVIEWS=NO` + `OTHER_LDFLAGS`에서 `-weak_framework SwiftUICore` 제거 + `FRAMEWORK_SEARCH_PATHS`에 `$(SRCROOT)/Stubs` 우선 추가
+  - **React-Core-prebuilt**: debug tarball 수동 추출 완료, `.last_build_configuration=Debug` 기록
+  - **시뮬레이터 검증**: iPhone 16e (iOS 26 Xcode 26) 빌드 성공·정상 실행 확인
 
 - [x] **versionCode 48 실기기 테스트 검증 완료 (2026-05-09)** — 설정탭 그룹화·홈화면 구성 기본/확장 분리·STT 후 audio 폐기·DB v29 마이그레이션·BriefingChip dismiss 제거 모두 정상 동작 확인. Android Play Store 제출 가능 상태.
 
