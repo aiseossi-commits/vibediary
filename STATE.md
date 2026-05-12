@@ -29,7 +29,8 @@
     - HIGH: `@xmldom/xmldom`(XML 인젝션), `lodash`(런타임 경로 포함), `node-forge`, `picomatch` — 모두 간접 의존성, fix는 semver-major
     - moderate: `react-native-markdown-display`(직접, fix 없음), `expo`, `brace-expansion` 등
     - `npm audit fix --force` 금지 (expo 다운그레이드 등 예측 불가 부작용). 출시 후 expo 메이저 업그레이드 시 함께 해결.
-- [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase D(screens/settings) → Phase C(services/sync)
+- [x] **Phase D 완료**: Settings 화면 8개 → `screens/settings/` 서브폴더. AppNavigator + 내부 import 경로 수정
+- [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase C(services/sync 서브폴더)
 
 ## 다음 할 일
 
