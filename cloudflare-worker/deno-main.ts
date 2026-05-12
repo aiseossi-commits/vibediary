@@ -1,5 +1,5 @@
 // v6.4: /version 엔드포인트 추가 (인앱 업데이트 체크)
-const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1', 'text-embedding-004'];
+const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
 
@@ -55,8 +55,8 @@ Deno.serve(async (request: Request) => {
 
   if (request.method === 'GET' && url.pathname === '/version') {
     return new Response(JSON.stringify({
-      ios: '1.0.1',
-      android: '1.0.1',
+      ios: '1.0.4',
+      android: '1.0.4',
       force: false,
     }), {
       status: 200,
@@ -72,8 +72,8 @@ Deno.serve(async (request: Request) => {
     return handleAI(request, url);
   }
 
-  if (request.method === 'POST' && url.pathname === '/embedding') {
-    return handleEmbedding(request);
+  if (url.pathname === '/embedding') {
+    return new Response('Gone', { status: 410 });
   }
 
   return new Response('Not Found', { status: 404 });
@@ -105,40 +105,6 @@ async function handleSTT(request: Request) {
 
   const body = await upstreamResponse.text();
   return new Response(body, {
-    status: upstreamResponse.status,
-    headers: {
-      'Content-Type': upstreamResponse.headers.get('Content-Type') || 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-  });
-}
-
-async function handleEmbedding(request: Request) {
-  const body = await request.text();
-  if (body.length > MAX_AI_BODY_LENGTH) {
-    return new Response('Request body too large', { status: 413 });
-  }
-
-  let parsed: { model?: string; content?: unknown };
-  try {
-    parsed = JSON.parse(body);
-  } catch {
-    return new Response('Invalid JSON', { status: 400 });
-  }
-
-  const modelName = (parsed.model ?? 'models/text-embedding-004').replace(/^models\//, '');
-  const googleKey = Deno.env.get('GOOGLE_AI_API_KEY');
-  const upstreamResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:embedContent?key=${googleKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: parsed.content }),
-    }
-  );
-
-  const responseBody = await upstreamResponse.text();
-  return new Response(responseBody, {
     status: upstreamResponse.status,
     headers: {
       'Content-Type': upstreamResponse.headers.get('Content-Type') || 'application/json',

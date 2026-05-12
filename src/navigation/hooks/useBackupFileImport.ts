@@ -6,10 +6,12 @@ export function useBackupFileImport(isLoaded: boolean, refreshChildren: () => Pr
   const pendingFileUrl = useRef<string | null>(null);
 
   const handleIncomingFile = useCallback(async (url: string) => {
-    // content:// URI (카카오톡 등)는 파일명 없이 올 수 있으므로 scheme 기준으로도 허용
-    const isContentUri = url.startsWith('content://');
-    const isJsonUri = url.includes('.json') || url.includes('json');
-    if (!isContentUri && !isJsonUri) return;
+    // content:// — Android 파일 공유 (카카오톡 등), 파일명 없이 올 수 있으므로 scheme만으로 허용
+    // file:// — query/hash 제거 후 .json 확장자만 허용
+    // 그 외 scheme은 거부
+    const isAllowed = url.startsWith('content://')
+      || (url.startsWith('file://') && url.split('?')[0].split('#')[0].toLowerCase().endsWith('.json'));
+    if (!isAllowed) return;
     try {
       const data = await parseBackupFromUri(url);
       Alert.alert(

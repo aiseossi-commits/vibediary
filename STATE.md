@@ -17,7 +17,18 @@
 ## 현재 진행 중
 
 - [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
+- [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
 - [x] **Phase B 완료**: AppNavigator 437줄 → 273줄. side effect 4개 → `navigation/hooks/` 분리 (useUpdateCheck, useBackupFileImport, useNotificationBootstrap, useSyncTriggers)
+- [x] **보안 quick fix 완료 (2026-05-13)**:
+  - Worker `/embedding` 라우트 → 410 Gone (모델 인젝션 취약점 + 미사용 엔드포인트 차단)
+  - `ALLOWED_MODELS`에서 `text-embedding-004` 제거 (deno-main.ts)
+  - `/version` min_version 1.0.1 → 1.0.4 (1.0.3 이하 사용자 업데이트 안내 활성화)
+  - `useBackupFileImport` URL 검증: scheme 기반으로 강화 (content:// 허용, file:// .json만 허용, 나머지 거부)
+  - `.env.save` 로컬 파일 삭제 (git 이력 없음, 키 회전 불필요)
+  - **npm audit 보류 항목** (출시 후 대응):
+    - HIGH: `@xmldom/xmldom`(XML 인젝션), `lodash`(런타임 경로 포함), `node-forge`, `picomatch` — 모두 간접 의존성, fix는 semver-major
+    - moderate: `react-native-markdown-display`(직접, fix 없음), `expo`, `brace-expansion` 등
+    - `npm audit fix --force` 금지 (expo 다운그레이드 등 예측 불가 부작용). 출시 후 expo 메이저 업그레이드 시 함께 해결.
 - [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase D(screens/settings) → Phase C(services/sync)
 
 ## 다음 할 일
