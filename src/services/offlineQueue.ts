@@ -5,7 +5,7 @@ import { updateRecord, getRecordById } from '../db/recordsDao';
 import { setTagsForRecord, getAllTags } from '../db/tagsDao';
 import { getNetworkState } from '../utils/network';
 import { markRecordDirty, wakeSync } from './syncService';
-import { validateAndCleanStructuredData } from './recordPipeline';
+import { validateAndCleanStructuredData } from './recordValidation';
 
 // 오프라인 큐에 추가
 export async function addToOfflineQueue(recordId: string, rawText: string): Promise<void> {

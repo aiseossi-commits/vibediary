@@ -16,7 +16,8 @@
 
 ## 현재 진행 중
 
-- [ ] **출시 전 리팩토링** (docs/refactor-pre-launch.md 참조): 순환 참조 제거(Phase A) → AppNavigator hook 추출(Phase B) → screens/settings 정리(Phase D) → services/sync 이동(Phase C)
+- [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
+- [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase B(AppNavigator hook 추출) → Phase D(screens/settings) → Phase C(services/sync)
 
 ## 다음 할 일
 
