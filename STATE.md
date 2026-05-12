@@ -17,7 +17,8 @@
 ## 현재 진행 중
 
 - [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
-- [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase B(AppNavigator hook 추출) → Phase D(screens/settings) → Phase C(services/sync)
+- [x] **Phase B 완료**: AppNavigator 437줄 → 273줄. side effect 4개 → `navigation/hooks/` 분리 (useUpdateCheck, useBackupFileImport, useNotificationBootstrap, useSyncTriggers)
+- [ ] **출시 전 리팩토링 진행 중** (docs/refactor-pre-launch.md): Phase D(screens/settings) → Phase C(services/sync)
 
 ## 다음 할 일
 
