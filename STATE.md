@@ -35,6 +35,12 @@
   - HQ.md 업데이트 완료
   - ⚠️ Worker Deno Deploy 재배포 보류 중 (Phase D/C 완료 후 한꺼번에)
   - 실기기 확인 완료 (2026-05-13): 설정 화면 8개, 백업 복원 정상
+- [x] **출시 전 코드 점검 (2026-05-13)**:
+  - 데드코드: knip 결과 punycode 1건(false positive — metro.config.js polyfill). 실 데드코드 없음
+  - 하드코딩/TODO: 없음 ✓
+  - console.log: syncService.ts 4건 유지 (Sentry 없으므로 필요)
+  - ErrorBoundary: 미존재 → Phase 3에서 추가 예정
+  - iOS 권한 수정: `NSCameraUsageDescription` 누락 추가 + `NSPhotoLibraryUsageDescription` 텍스트 수정 ("백업 파일" → "사진 첨부")
 
 ## 다음 할 일
 
