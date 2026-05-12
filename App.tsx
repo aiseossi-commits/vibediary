@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
-import { ChildProvider } from './src/context/ChildContext';
+import { ChildProvider, useChild } from './src/context/ChildContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { initializeDatabase } from './src/db';
 import SplashOverlay from './src/components/SplashOverlay';
@@ -17,6 +17,7 @@ const MIN_SPLASH_MS = 1200;
 
 function AppContent() {
   const { isDark } = useTheme();
+  const { isLoaded: childLoaded } = useChild();
   const [dbReady, setDbReady] = useState(false);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [overlayHidden, setOverlayHidden] = useState(false);
@@ -35,7 +36,8 @@ function AppContent() {
     return () => clearTimeout(t);
   }, []);
 
-  const showOverlay = !(dbReady && minTimePassed);
+  // children 로딩까지 포함해야 SplashOverlay 페이드아웃 후 AppNavigator 로딩 뷰가 드러나지 않음
+  const showOverlay = !(dbReady && minTimePassed && childLoaded);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#070D1A' }}>

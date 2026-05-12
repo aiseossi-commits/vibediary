@@ -64,7 +64,7 @@ export default function BriefingChip({ childId }: Props) {
           <TouchableOpacity activeOpacity={1} style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>오늘의 이슈</Text>
-            <Text style={styles.modalDesc}>최근 14일 기록 기준</Text>
+            <Text style={styles.modalDesc}>최근 21일 기록 기준</Text>
             <ScrollView style={{ marginTop: SPACING.sm }}>
               {payload.issues.map((issue, idx) => (
                 <TouchableOpacity

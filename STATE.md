@@ -6,7 +6,7 @@
 
 ## 현재 위치
 
-**마지막 커밋**: `fix: iOS 시뮬레이터 빌드 — 설정탭 개발자모드 분리 + Xcode 26 빌드 수정` (main, 2026-05-12)
+**마지막 커밋**: `feat(briefing): 오늘의 이슈 알고리즘 개선 + 이중 로딩 화면 제거` (main, 2026-05-12)
 
 **현재 브랜치**: main
 
@@ -23,6 +23,11 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **오늘의 이슈 알고리즘 개선 + iOS 이중 로딩 화면 제거 (2026-05-12)**:
+  - **briefingService**: 조회 창 14→21일. 점수 공식 `기간×2+빈도` → `Change(recent7-prev7)×4 + RecentIntensity(최근3일)×5 + Sustained(21일 누적일수)`. 만성 이슈가 신규/급증 이슈를 가리던 문제 해결. LLM 프롬프트에 신호 유형(신규/급증/감소중/지속) + 등장 날짜 목록 포함. 이모지 허용 목록 11개로 제한.
+  - **backupService**: 복원 후 `home_briefing` 캐시도 삭제 (기존엔 `daily_ai_cache`만 삭제해서 stale 캐시 잔존).
+  - **App.tsx + AppNavigator**: SplashOverlay가 `ChildContext.isLoaded`까지 대기하도록 수정 → 페이드아웃 후 AppNavigator 로딩 뷰가 드러나는 이중 노출 제거.
 
 - [x] **백업 복원 버그 2건 수정 (2026-05-12)**:
   - orphan child_id FK 위반: 백업에 없는 아이를 참조하는 태그/기록이 있을 때 `PRAGMA foreign_keys=ON` 환경에서 INSERT 실패. `restoreOverwrite`/`restoreMerge` 모두 orphan child_id → NULL 처리로 수정.

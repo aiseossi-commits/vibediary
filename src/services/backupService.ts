@@ -158,6 +158,7 @@ export async function restoreOverwrite(data: BackupData): Promise<void> {
   await db.execAsync('DELETE FROM tags');
   await db.execAsync('DELETE FROM children');
   await db.execAsync('DELETE FROM daily_ai_cache');
+  await db.execAsync('DELETE FROM home_briefing');
 
   for (const c of data.children) {
     await db.runAsync(
@@ -342,6 +343,7 @@ export async function restoreMerge(data: BackupData): Promise<void> {
   await _requeueUntaggedRecords(db);
   // 복원 후 오늘의 이슈 캐시 무효화 (복원 전 빈 payload가 캐시되어 있을 수 있음)
   await db.execAsync('DELETE FROM daily_ai_cache');
+  await db.execAsync('DELETE FROM home_briefing');
   // 복원된 기록 전체를 가족 피드에 동기화
   void wakeSync('manual_retry');
 }

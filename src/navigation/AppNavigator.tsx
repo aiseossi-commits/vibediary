@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Alert, ActivityIndicator, View, Text, Linking, Platform, AppState, AppStateStatus } from 'react-native';
+import { Alert, View, Linking, Platform, AppState, AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -255,14 +255,7 @@ export default function AppNavigator() {
   }, [session]);
 
   if (!isLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 20 }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textSecondary, textAlign: 'center', lineHeight: 28, letterSpacing: -0.3 }}>
-          기록에 치이지 말고,{'\n'}그냥 말하세요
-        </Text>
-      </View>
-    );
+    return <View style={{ flex: 1, backgroundColor: '#070D1A' }} />;
   }
 
   const hasChildren = childList.length > 0;
