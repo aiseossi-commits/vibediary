@@ -301,9 +301,12 @@ const source = read('src/services/sync/syncService.ts');
 
 ## 진행 추적
 
-- [ ] 사전: `/check-dead-code`
-- [ ] Phase A: 순환 참조 제거
-- [ ] Phase B: AppNavigator hook 추출
-- [ ] Phase D: screens/settings 정리
-- [ ] Phase C: services/sync 이동
+- [x] 사전: `/check-dead-code` — punycode 1개, 제거 보류 판단
+- [x] Phase A: 순환 참조 제거 (7ba0a59)
+- [x] Phase B: AppNavigator hook 추출 (7743cec)
+- [x] Phase D: screens/settings 정리 (4dc183d)
+- [x] Phase C: services/sync 이동 (bde5686)
+- [x] 보안 quick fix (8ad2f57) — Worker /embedding 제거, URL 검증 강화, /version 1.0.4
+- [x] Deno Deploy 재배포 완료 (2026-05-13)
+- [ ] 실기기 확인: 설정 화면 8개 진입, 백업 복원, sync 트리거, 오프라인 실행
 - [ ] 사후: `/pre-release`

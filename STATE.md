@@ -17,7 +17,6 @@
 ## 현재 진행 중
 
 - [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
-- [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
 - [x] **Phase B 완료**: AppNavigator 437줄 → 273줄. side effect 4개 → `navigation/hooks/` 분리 (useUpdateCheck, useBackupFileImport, useNotificationBootstrap, useSyncTriggers)
 - [x] **보안 quick fix 완료 (2026-05-13)**:
   - Worker `/embedding` 라우트 → 410 Gone (모델 인젝션 취약점 + 미사용 엔드포인트 차단)
