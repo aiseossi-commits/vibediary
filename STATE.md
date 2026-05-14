@@ -12,9 +12,11 @@
 
 **현재 브랜치**: main
 
-**DB 현재 버전**: v29 (wiki_pages/synthesis_articles 비-UUID id 정리)
+**DB 현재 버전**: v30 (daily_summary_cache 테이블 추가)
 
 ## 현재 진행 중
+
+없음
 
 - [x] **Phase A 완료**: `validateAndCleanStructuredData` + `PARENT_TAG_MAP` → `recordValidation.ts` 분리. recordPipeline ↔ offlineQueue 순환 참조 제거
 - [x] **Phase B 완료**: AppNavigator 437줄 → 273줄. side effect 4개 → `navigation/hooks/` 분리 (useUpdateCheck, useBackupFileImport, useNotificationBootstrap, useSyncTriggers)
@@ -50,6 +52,13 @@
 ---
 
 ## 최근 완료된 작업
+
+- [x] **태그탭 UX 개선 + 캘린더 과거 기록 AI 요약 (2026-05-14)**:
+  - **TagsScreen**: 카테고리 헤더 탭으로 접기/펴기(▸/▾, 기본 전체 접힘), 화살표 2배 크기(tagChevron 22px / sectionHeaderChevron 30px), 태그 탭 시 기록이 태그 바로 아래 인라인 펼침(FlatList→ScrollView 전환, expandingTagIdRef 경쟁 조건 방지), BriefingChip에서 특정 태그로 이동 시 해당 카테고리만 펼침
+  - **RecordCard**: 날짜 기반 회색 오버레이(`showAgeOverlay`) 완전 제거
+  - **CalendarScreen**: 오늘 날짜는 개별 카드 그대로, 과거 날짜는 요약 카드 1장 → 길게 누르면 개별 카드 펼침 / "접기 ▴" 버튼으로 요약으로 복귀. 날짜 탭 시 Gemini로 당일 AI 요약 생성 후 `daily_summary_cache` SQLite 테이블에 영구 캐싱 (재방문 시 재생성 없음)
+  - **DB v30**: `daily_summary_cache` 테이블 + UNIQUE INDEX on (child_id, date) 추가
+  - **dailySummaryDao.ts**: `getDailySummaryCache` / `saveDailySummaryCache` 신규
 
 - [x] **오늘의 이슈 알고리즘 개선 + iOS 이중 로딩 화면 제거 (2026-05-12)**:
   - **briefingService**: 조회 창 14→21일. 점수 공식 `기간×2+빈도` → `Change(recent7-prev7)×4 + RecentIntensity(최근3일)×5 + Sustained(21일 누적일수)`. 만성 이슈가 신규/급증 이슈를 가리던 문제 해결. LLM 프롬프트에 신호 유형(신규/급증/감소중/지속) + 등장 날짜 목록 포함. 이모지 허용 목록 11개로 제한.

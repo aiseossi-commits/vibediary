@@ -622,6 +622,22 @@ export async function initializeDatabase(): Promise<void> {
       await database.execAsync('PRAGMA user_version = 29');
     }
 
+    if (currentVersion < 30) {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS daily_summary_cache (
+          id TEXT PRIMARY KEY,
+          child_id TEXT,
+          date TEXT NOT NULL,
+          summary TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )
+      `);
+      await database.execAsync(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_summary_cache ON daily_summary_cache(child_id, date)'
+      );
+      await database.execAsync('PRAGMA user_version = 30');
+    }
+
     dbInitialized = true;
   })();
 

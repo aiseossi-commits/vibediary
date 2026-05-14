@@ -16,25 +16,8 @@ import TagChip from './TagChip';
 interface RecordCardProps {
   record: RecordWithTags;
   onPress: () => void;
-  showAgeOverlay?: boolean;
   timeOnly?: boolean;
   customLabel?: string;
-}
-
-// 회색 오버레이 불투명도: dark/light 양쪽에서 명확히 보이는 "바랜" 효과
-// 캘린더 날짜 기준(자정 경계)으로 오늘/어제 명확히 구분
-function getAgeOverlayOpacity(timestamp: number): number {
-  const now = new Date();
-  const then = new Date(timestamp);
-  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const thenMidnight = new Date(then.getFullYear(), then.getMonth(), then.getDate()).getTime();
-  const ageDays = Math.round((nowMidnight - thenMidnight) / (1000 * 60 * 60 * 24));
-  if (ageDays === 0) return 0;       // 오늘
-  if (ageDays === 1) return 0.18;    // 어제 (명확히 구분)
-  if (ageDays <= 3) return 0.28;     // 2-3일
-  if (ageDays <= 7) return 0.38;     // 4-7일
-  if (ageDays <= 14) return 0.48;    // 8-14일
-  return 0.58;                       // 15일+
 }
 
 function formatDateTime(timestamp: number): string {
@@ -121,10 +104,9 @@ function createStyles(colors: AppColors) {
   });
 }
 
-function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, customLabel }: RecordCardProps) {
+function RecordCard({ record, onPress, timeOnly = false, customLabel }: RecordCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const overlayOpacity = showAgeOverlay ? getAgeOverlayOpacity(record.createdAt) : 0;
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   useEffect(() => {
     if (record.photoUrl) {
@@ -167,12 +149,6 @@ function RecordCard({ record, onPress, showAgeOverlay = true, timeOnly = false, 
         </View>
       )}
 
-      {overlayOpacity > 0 && (
-        <View style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: `rgba(128,128,128,${overlayOpacity})`, borderRadius: 20 },
-        ]} pointerEvents="none" />
-      )}
     </TouchableOpacity>
   );
 }

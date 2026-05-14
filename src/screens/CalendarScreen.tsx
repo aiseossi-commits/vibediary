@@ -20,7 +20,7 @@ import { Calendar } from 'react-native-calendars';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
 import TimePickerModal from '../components/TimePickerModal';
-import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady, getEventsByDateRange, deleteEvent, getDailyLogsForEvents, type ActiveEvent, type EventSeverity } from '../db';
+import { getDailyRecordSummaries, getRecordsByDate, isDatabaseReady, getEventsByDateRange, deleteEvent, getDailyLogsForEvents, getDailySummaryCache, saveDailySummaryCache, type ActiveEvent, type EventSeverity } from '../db';
 import { Ionicons } from '@expo/vector-icons';
 import { formatEventDuration } from '../constants/events';
 import { processTextRecord } from '../services/recordPipeline';
@@ -41,6 +41,36 @@ import type { RecordWithTags, DailyRecordSummary } from '../types/record';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.82;
+
+async function generateDaySummary(records: RecordWithTags[], date: string): Promise<string> {
+  const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
+  const workerSecret = process.env.EXPO_PUBLIC_WORKER_SECRET;
+  if (!workerUrl || !workerSecret) throw new Error('NO_WORKER');
+
+  const d = new Date(date + 'T00:00:00');
+  const formatted = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+  const recordsText = records.map((r, i) => `[${i + 1}] ${r.summary}`).join('\n');
+  const prompt = `다음은 ${formatted}의 기록 ${records.length}건입니다. 보호자 시점에서 그날의 주요 상황을 2~3문장으로 자연스럽게 요약해주세요. 번호나 목록 형식 없이 서술하세요.\n\n${recordsText}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(`${workerUrl}/ai?model=gemini-2.5-flash-lite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 200, temperature: 0.3 },
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    return (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 function formatTimeHM(h: number, m: number): string {
   const period = h < 12 ? '오전' : '오후';
@@ -173,6 +203,22 @@ function createStyles(colors: AppColors) {
     sheetDeleteText: { fontSize: FONT_SIZE.md, color: colors.error, fontWeight: FONT_WEIGHT.medium },
     sheetCancelBtn: { paddingVertical: SPACING.md, alignItems: 'center' },
     sheetCancelText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
+    daySummaryCard: {
+      backgroundColor: colors.surface, borderRadius: BORDER_RADIUS.md,
+      padding: 14, marginHorizontal: SPACING.md, marginBottom: SPACING.sm,
+    },
+    daySummaryHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginBottom: SPACING.sm,
+    },
+    daySummaryCount: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary },
+    daySummaryHint: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
+    daySummaryPreview: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACING.sm },
+    daySummaryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+    daySummaryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 1, borderRadius: BORDER_RADIUS.full },
+    daySummaryTagMore: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, alignSelf: 'center' },
+    collapseRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: SPACING.md, marginBottom: SPACING.xs },
+    collapseBtn: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
   });
 }
 
@@ -208,6 +254,9 @@ export default function CalendarScreen() {
   const [calendarCurrent, setCalendarCurrent] = useState<string | undefined>(undefined);
   const [selectedEventForSheet, setSelectedEventForSheet] = useState<{ id: string; name: string } | null>(null);
   const [photoModal, setPhotoModal] = useState<{ uri: string; base64?: string } | null>(null);
+  const [isExpandedRecords, setIsExpandedRecords] = useState(false);
+  const [daySummaryText, setDaySummaryText] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
   const contentSlideAnim = useRef(new Animated.Value(0)).current;
@@ -224,6 +273,9 @@ export default function CalendarScreen() {
     const now = new Date();
     setInputHour(now.getHours());
     setInputMinute(Math.round(now.getMinutes() / 5) * 5 % 60);
+    setIsExpandedRecords(false);
+    setDaySummaryText(null);
+    setIsSummarizing(false);
   }, [selectedDate]);
 
   useEffect(() => {
@@ -273,13 +325,34 @@ export default function CalendarScreen() {
     setIsLoadingRecords(true);
     try {
       const records = await getRecordsByDate(date, activeChild?.id);
-setDayRecords(records);
+      setDayRecords(records);
       return records;
     } catch {
       setDayRecords([]);
       return [];
     } finally {
       setIsLoadingRecords(false);
+    }
+  }, [activeChild?.id]);
+
+  const loadOrGenerateSummary = useCallback(async (date: string, records: RecordWithTags[]) => {
+    if (records.length === 0) return;
+    try {
+      const cached = await getDailySummaryCache(date, activeChild?.id);
+      if (cached) { setDaySummaryText(cached); return; }
+    } catch { /* DB 미준비 시 무시 */ }
+
+    setIsSummarizing(true);
+    try {
+      const text = await generateDaySummary(records, date);
+      if (text) {
+        setDaySummaryText(text);
+        await saveDailySummaryCache(date, activeChild?.id, text).catch(() => {});
+      }
+    } catch {
+      // 실패 시 요약 없이 유지
+    } finally {
+      setIsSummarizing(false);
     }
   }, [activeChild?.id]);
 
@@ -315,9 +388,15 @@ setDayRecords(records);
   const handleDayPress = useCallback(async (day: { dateString: string }) => {
     const date = day.dateString;
     setSelectedDate(date);
-    await loadDayRecords(date);
+    const records = await loadDayRecords(date) ?? [];
     openSheet();
-  }, [loadDayRecords, openSheet]);
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (date !== todayStr && records.length > 0) {
+      loadOrGenerateSummary(date, records);
+    }
+  }, [loadDayRecords, openSheet, loadOrGenerateSummary]);
 
   const handleMonthChange = useCallback((month: { year: number; month: number }) => {
     const yearMonth = `${month.year}-${String(month.month).padStart(2, '0')}`;
@@ -481,6 +560,24 @@ setDayRecords(records);
     }
     return map;
   }, [monthEvents]);
+
+  const isToday = useMemo(() => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return selectedDate === todayStr;
+  }, [selectedDate]);
+
+  const daySummaryData = useMemo(() => {
+    if (dayRecords.length === 0) return null;
+    const tagCounts = new Map<string, number>();
+    for (const r of dayRecords) {
+      for (const t of r.tags) tagCounts.set(t.name, (tagCounts.get(t.name) ?? 0) + 1);
+    }
+    const sortedTags = Array.from(tagCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(e => e[0]);
+    return { count: dayRecords.length, preview: dayRecords[0].summary, tags: sortedTags };
+  }, [dayRecords]);
 
   const CustomDay = useCallback(({ date, state }: any) => {
     const dateStr = date?.dateString ?? '';
@@ -692,16 +789,60 @@ setDayRecords(records);
               </View>
             ) : (
               <>
-                {dayRecords.map((item) => (
-                  <RecordCard
-                    key={item.id}
-                    record={item}
-                    onPress={() => handleRecordPress(item.id)}
-                    showAgeOverlay={false}
-                    customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${(item.audioPath || item.source === 'voice') ? '음성 기록' : '직접 입력'}`}
-                    timeOnly={true}
-                  />
-                ))}
+                {isToday || isExpandedRecords ? (
+                  <>
+                    {isExpandedRecords && !isToday && (
+                      <View style={styles.collapseRow}>
+                        <TouchableOpacity onPress={() => setIsExpandedRecords(false)}>
+                          <Text style={styles.collapseBtn}>접기 ▴</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {dayRecords.map((item) => (
+                      <RecordCard
+                        key={item.id}
+                        record={item}
+                        onPress={() => handleRecordPress(item.id)}
+                        customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${(item.audioPath || item.source === 'voice') ? '음성 기록' : '직접 입력'}`}
+                        timeOnly={true}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  daySummaryData && (
+                    <TouchableOpacity
+                      onLongPress={() => setIsExpandedRecords(true)}
+                      delayLongPress={400}
+                      activeOpacity={0.85}
+                      style={styles.daySummaryCard}
+                    >
+                      <View style={styles.daySummaryHeader}>
+                        <Text style={styles.daySummaryCount}>기록 {daySummaryData.count}건</Text>
+                        <Text style={styles.daySummaryHint}>길게 눌러 펼치기</Text>
+                      </View>
+                      {isSummarizing ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.sm }}>
+                          <ActivityIndicator size="small" color={colors.textTertiary} />
+                          <Text style={styles.daySummaryPreview}>요약 중...</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.daySummaryPreview} numberOfLines={4}>
+                          {daySummaryText ?? daySummaryData.preview}
+                        </Text>
+                      )}
+                      {daySummaryData.tags.length > 0 && (
+                        <View style={styles.daySummaryTags}>
+                          {daySummaryData.tags.slice(0, 4).map(tag => (
+                            <Text key={tag} style={styles.daySummaryTag}>{tag}</Text>
+                          ))}
+                          {daySummaryData.tags.length > 4 && (
+                            <Text style={styles.daySummaryTagMore}>+{daySummaryData.tags.length - 4}</Text>
+                          )}
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  )
+                )}
                 <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm }}>
                   <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { flex: 1 }]}>
                     <Text style={styles.recordButtonText}>녹음 추가하기</Text>
