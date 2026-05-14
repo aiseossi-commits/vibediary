@@ -51,7 +51,7 @@ async function generateDaySummary(records: RecordWithTags[], date: string): Prom
   const d = new Date(date + 'T00:00:00');
   const formatted = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
   const recordsText = records.map((r, i) => `[${i + 1}] ${r.summary}`).join('\n');
-  const prompt = `다음은 ${formatted}의 기록 ${records.length}건입니다. 보호자 시점에서 그날의 주요 상황을 2~3문장으로 자연스럽게 요약해주세요. 번호나 목록 형식 없이 서술하세요.\n\n${recordsText}`;
+  const prompt = `다음은 ${formatted}의 기록 ${records.length}건입니다. 보호자 시점에서 그날의 주요 상황을 5~7문장으로 자연스럽게 요약해주세요. 중요한 사건, 아이의 상태 변화, 보호자의 대응을 빠짐없이 담되 번호나 목록 형식 없이 서술하세요.\n\n${recordsText}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -61,7 +61,7 @@ async function generateDaySummary(records: RecordWithTags[], date: string): Prom
       headers: { 'Content-Type': 'application/json', 'X-App-Secret': workerSecret },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 200, temperature: 0.3 },
+        generationConfig: { maxOutputTokens: 400, temperature: 0.3 },
       }),
       signal: controller.signal,
     });
@@ -823,7 +823,7 @@ export default function CalendarScreen() {
                   >
                     <View style={styles.daySummaryHeader}>
                       <Text style={styles.daySummaryCount}>기록 {daySummaryData.count}건</Text>
-                      <Text style={styles.daySummaryHint}>길게 눌러 펼치기</Text>
+                      <Text style={styles.daySummaryHint}>길게 눌러 기록보기</Text>
                     </View>
                     {isSummarizing ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.sm }}>
@@ -831,7 +831,7 @@ export default function CalendarScreen() {
                         <Text style={styles.daySummaryPreview}>요약 중...</Text>
                       </View>
                     ) : (
-                      <Text style={styles.daySummaryPreview} numberOfLines={4}>
+                      <Text style={styles.daySummaryPreview} numberOfLines={10}>
                         {daySummaryText ?? daySummaryData.preview}
                       </Text>
                     )}

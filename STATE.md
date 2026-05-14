@@ -53,6 +53,8 @@
 
 ## 최근 완료된 작업
 
+- [x] **캘린더 일별 요약 확장 (2026-05-15)**: 요약 numberOfLines 4→10, 힌트 "길게 눌러 펼치기"→"기록보기", 프롬프트 2~3문장→5~7문장, maxOutputTokens 200→400
+
 - [x] **캘린더 바텀시트 UX 리디자인 + 태그 색상 수정 (2026-05-14)**:
   - **CalendarScreen**: 시트 높이를 `onLayout` + `useSafeAreaInsets` 동적 계산으로 캘린더 하단에 정확히 맞춤. 녹음/사진/텍스트를 하단 3-아이콘 액션 바로 통합. 텍스트 아이콘 탭 시 시트 내부 텍스트 패널 슬라이드업 (시간 pill 버튼 포함). openSheet spring 애니메이션 + 즉시 실행(DB 쿼리 병렬).
   - **태그 색상**: CalendarScreen daySummaryTag + TagsScreen inlineEntryTag/timelineEntryTag `primaryLight`(#2DD4CF) → `primary + '1A'`(10% 알파)로 교체 (같은 계열 색상 충돌 해결)
