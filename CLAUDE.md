@@ -66,13 +66,7 @@
 
 ## 코딩 규칙
 
-### 커밋 전 필수 절차 (이 순서대로)
-1. `STATE.md` 업데이트 — 완료된 작업, 진행 중인 작업, 다음 계획 반영
-2. `git add STATE.md` — STATE.md를 반드시 같은 커밋에 포함
-3. 커밋 — pre-commit hook이 STATE.md 포함 여부 + 타입 체크 자동 검증
-
 ### 반드시 지킬 것
-- 커밋 시 STATE.md를 항상 함께 업데이트하고 같은 커밋에 포함 (hook이 강제함)
 - 코드 수정 후 `npx tsc --noEmit` 통과 확인 (pre-commit hook이 자동 실행)
 - API 직접 호출 금지 — 모든 Gemini/Whisper 호출은 Worker 프록시 경유
 - 환경변수는 `EXPO_PUBLIC_` 접두어 사용 (클라이언트 번들 포함)
@@ -81,7 +75,6 @@
 
 ### 절대 하지 말 것
 - 코드 제거 요청 시 주석 처리나 덮어씌우기 금지 — **완전 삭제**
-- 삭제 후 반드시 `npx tsc --noEmit`으로 영향받는 파일 확인
 - 다른 곳에서 참조하는 코드 삭제 시 참조하는 쪽도 함께 처리 (또는 명시적으로 보고)
 - `EXPO_PUBLIC_` 환경변수를 직접 API 키로 사용 금지 (Worker secret은 허용)
 
@@ -98,7 +91,7 @@
 - `OnboardingScreen` — 최초 실행, 아이 프로필 없을 때
 - `HomeScreen` — 메인 (녹음 버튼, 최근 기록)
 - `CalendarScreen` — 월별 기록 + AI 일별 분석
-- `SearchScreen` — 벡터 유사도 검색
+- `SearchScreen` — AI 전문 검색 (full-context, 등대)
 - `TagsScreen` — 태그별 기록 조회
 - `RecordDetailScreen` — 기록 상세/편집
 - `SettingsScreen` — 아이 프로필 관리, 테마
@@ -113,10 +106,10 @@
 ## 변경 관리 (OpenSpec)
 
 새 기능은 OpenSpec 워크플로우로 관리:
-1. `/openspec-ff-change` — 설계 아티팩트 생성
-2. `/openspec-apply-change` — 코드 구현
-3. `/openspec-verify-change` — 검증
-4. `/openspec-archive-change` — 완료
+1. `/opsx:ff` — 설계 아티팩트 생성
+2. `/opsx:apply` — 코드 구현
+3. `/opsx:verify` — 검증
+4. `/opsx:archive` — 완료
 
 
 ---
