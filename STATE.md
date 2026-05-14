@@ -53,6 +53,8 @@
 
 ## 최근 완료된 작업
 
+- [x] **앱 아이콘 교체 (2026-05-15)**: 새 로고(음성파형+말풍선) 적용. iOS 1024px, Android adaptive foreground/monochrome 전 밀도 webp 재생성. colors.xml #070D1A→#0EA5A0. ic_launcher XML에 monochrome 레이어 추가(Android 13+). app.json monochromeImage 등록. sharp 의존성 추가 + generate-icons.js 신규.
+
 - [x] **캘린더 일별 요약 확장 (2026-05-15)**: 요약 numberOfLines 4→10, 힌트 "길게 눌러 펼치기"→"기록보기", 프롬프트 2~3문장→5~7문장, maxOutputTokens 200→400
 
 - [x] **캘린더 바텀시트 UX 리디자인 + 태그 색상 수정 (2026-05-14)**:

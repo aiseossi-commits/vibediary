@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const sharp = require('/Users/jhouse/.npm-global/lib/node_modules/openclaw/node_modules/sharp');
+const sharp = require('sharp');
 
 const ASSETS = path.join(__dirname, '..', 'assets');
 
@@ -14,15 +14,15 @@ const svgMono   = fs.readFileSync(path.join(ASSETS, 'logo-monochrome.svg'));
 
 async function generate() {
   // icon.png — 1024x1024
-  await sharp(svgMain).resize(1024, 1024).png().toFile(path.join(ASSETS, 'icon.png'));
+  await sharp(svgMain).resize(1024, 1024).flatten({ background: '#0EA5A0' }).png().toFile(path.join(ASSETS, 'icon.png'));
   console.log('✓ icon.png');
 
   // splash-icon.png — 1024x1024 (same design, splash bg set in app.json)
-  await sharp(svgMain).resize(1024, 1024).png().toFile(path.join(ASSETS, 'splash-icon.png'));
+  await sharp(svgMain).resize(1024, 1024).flatten({ background: '#0EA5A0' }).png().toFile(path.join(ASSETS, 'splash-icon.png'));
   console.log('✓ splash-icon.png');
 
   // favicon.png — 48x48
-  await sharp(svgMain).resize(48, 48).png().toFile(path.join(ASSETS, 'favicon.png'));
+  await sharp(svgMain).resize(48, 48).flatten({ background: '#0EA5A0' }).png().toFile(path.join(ASSETS, 'favicon.png'));
   console.log('✓ favicon.png');
 
   // android-icon-foreground.png — 1024x1024 (transparent bg)

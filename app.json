@@ -32,10 +32,11 @@
       }
     },
     "android": {
-      "backgroundColor": "#070D1A",
+      "backgroundColor": "#0EA5A0",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#070D1A"
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#0EA5A0"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -91,7 +92,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#070D1A"
+          "backgroundColor": "#0EA5A0"
         }
       ],
       "expo-secure-store",
