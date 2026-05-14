@@ -291,11 +291,9 @@ const source = read('src/services/sync/syncService.ts');
 
 ---
 
-## CLAUDE.md 필수 절차 (매 커밋 전)
+## 커밋 전 필수
 
-1. `STATE.md` 업데이트 (완료 작업 반영)
-2. `git add STATE.md` — 같은 커밋에 포함
-3. `npx tsc --noEmit` — pre-commit hook이 자동 실행
+- `npx tsc --noEmit` — pre-commit hook이 자동 실행
 
 ---
 

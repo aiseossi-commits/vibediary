@@ -12,8 +12,7 @@ iOS/Android 빌드 전 종합 점검을 수행한다. 아래 항목을 순서대
 - `app.json`의 version, ios.buildNumber, android.versionCode 확인
 - 마지막 커밋 이후 버전이 변경됐는지 확인
 
-### 3. STATE.md & HQ.md 동기화
-- `STATE.md` 마지막 업데이트가 최근 커밋과 일치하는가?
+### 3. HQ.md 동기화
 - `~/Documents/Obsidian Vault/바다 세계관/00_HQ.md`의 서비스 현황 테이블이 최신인가?
 
 ### 4. 환경변수

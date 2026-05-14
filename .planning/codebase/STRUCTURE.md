@@ -33,7 +33,6 @@ vibediary/
 ├── babel.config.js          # Babel config (module-resolver)
 ├── metro.config.js          # Metro bundler config
 ├── tsconfig.json            # TypeScript config
-├── STATE.md                 # Required in every commit (pre-commit hook)
 ├── CLAUDE.md                # Claude agent instructions
 └── CHANGELOG.md             # Release history
 ```

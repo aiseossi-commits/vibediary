@@ -489,7 +489,7 @@ CREATE TABLE children_archive_20260427 AS
 ### Phase 3 — 빌드 + 검증
 1. versionCode 28 (Phase 1-2) → 29 (Phase 2.5)
 2. 시나리오 1~10 실기기 검증 (iOS + Android 양쪽)
-3. 통과 후 commit + STATE.md 갱신
+3. 통과 후 commit
 
 ### Phase 4 (미래, 별건)
 - user_id 컬럼 DROP
