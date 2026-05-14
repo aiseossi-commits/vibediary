@@ -53,6 +53,10 @@
 
 ## 최근 완료된 작업
 
+- [x] **캘린더 바텀시트 UX 리디자인 + 태그 색상 수정 (2026-05-14)**:
+  - **CalendarScreen**: 시트 높이를 `onLayout` + `useSafeAreaInsets` 동적 계산으로 캘린더 하단에 정확히 맞춤. 녹음/사진/텍스트를 하단 3-아이콘 액션 바로 통합. 텍스트 아이콘 탭 시 시트 내부 텍스트 패널 슬라이드업 (시간 pill 버튼 포함). openSheet spring 애니메이션 + 즉시 실행(DB 쿼리 병렬).
+  - **태그 색상**: CalendarScreen daySummaryTag + TagsScreen inlineEntryTag/timelineEntryTag `primaryLight`(#2DD4CF) → `primary + '1A'`(10% 알파)로 교체 (같은 계열 색상 충돌 해결)
+
 - [x] **태그탭 UX 개선 + 캘린더 과거 기록 AI 요약 (2026-05-14)**:
   - **TagsScreen**: 카테고리 헤더 탭으로 접기/펴기(▸/▾, 기본 전체 접힘), 화살표 2배 크기(tagChevron 22px / sectionHeaderChevron 30px), 태그 탭 시 기록이 태그 바로 아래 인라인 펼침(FlatList→ScrollView 전환, expandingTagIdRef 경쟁 조건 방지), BriefingChip에서 특정 태그로 이동 시 해당 카테고리만 펼침
   - **RecordCard**: 날짜 기반 회색 오버레이(`showAgeOverlay`) 완전 제거

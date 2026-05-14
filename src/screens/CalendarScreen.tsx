@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
+  Easing,
   Dimensions,
   ActivityIndicator,
   TextInput,
@@ -15,7 +16,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import RecordCard from '../components/RecordCard';
@@ -40,7 +41,7 @@ import {
 import type { RecordWithTags, DailyRecordSummary } from '../types/record';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.82;
+const FALLBACK_SHEET_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 async function generateDaySummary(records: RecordWithTags[], date: string): Promise<string> {
   const workerUrl = process.env.EXPO_PUBLIC_WORKER_URL;
@@ -114,7 +115,7 @@ function createStyles(colors: AppColors) {
     dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10 },
     dimTouchable: { flex: 1 },
     sheet: {
-      position: 'absolute', bottom: 0, left: 0, right: 0, height: SHEET_HEIGHT,
+      position: 'absolute', bottom: 0, left: 0, right: 0,
       backgroundColor: colors.background,
       borderTopLeftRadius: BORDER_RADIUS.xl, borderTopRightRadius: BORDER_RADIUS.xl,
       zIndex: 20, ...SHADOW.lg,
@@ -124,31 +125,33 @@ function createStyles(colors: AppColors) {
     sheetCloseText: { fontSize: FONT_SIZE.md, color: colors.textTertiary },
     sheetDate: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary, paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
     sheetScroll: { flex: 1 },
-    sheetContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xxl },
-    emptyDay: { alignItems: 'center', paddingVertical: SPACING.xxl, gap: SPACING.md },
+    sheetContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.lg },
+    emptyDay: { alignItems: 'center', paddingVertical: SPACING.xxl, gap: SPACING.sm },
     emptyText: { fontSize: FONT_SIZE.md, color: colors.textSecondary },
-    recordButton: {
-      paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md,
-      borderWidth: 1.5, borderColor: colors.primary,
-      alignItems: 'center',
-    },
-    recordButtonText: { fontSize: FONT_SIZE.md, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
-    cameraButton: {
-      paddingVertical: SPACING.md, paddingHorizontal: SPACING.md,
-      borderRadius: BORDER_RADIUS.md, borderWidth: 1.5, borderColor: colors.primary,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    textInputContainer: { marginTop: SPACING.md, gap: SPACING.sm },
     textInput: {
       borderWidth: 1, borderColor: colors.border, borderRadius: BORDER_RADIUS.md,
       padding: SPACING.md, fontSize: FONT_SIZE.md, color: colors.textPrimary,
-      backgroundColor: colors.surfaceSecondary, minHeight: 80, textAlignVertical: 'top',
+      backgroundColor: colors.surfaceSecondary, minHeight: 72, textAlignVertical: 'top',
     },
-    saveButton: { paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.md, backgroundColor: colors.primary, alignItems: 'center' },
+    saveButton: { paddingVertical: SPACING.sm, borderRadius: BORDER_RADIUS.md, backgroundColor: colors.primary, alignItems: 'center' },
     saveButtonText: { fontSize: FONT_SIZE.md, color: colors.textOnPrimary, fontWeight: FONT_WEIGHT.medium },
-    inputDivider: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.sm },
-    inputDividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-    inputDividerText: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
+    textPanel: {
+      paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
+      gap: SPACING.sm, borderTopWidth: 1, borderTopColor: colors.border,
+    },
+    textPanelTimeRow: { flexDirection: 'row' },
+    timePillBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: SPACING.sm, paddingVertical: 4,
+      backgroundColor: colors.primary + '15', borderRadius: BORDER_RADIUS.full,
+    },
+    timePillText: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.medium },
+    actionBar: {
+      flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border,
+      paddingVertical: SPACING.sm,
+    },
+    actionBtn: { flex: 1, alignItems: 'center', gap: 3, paddingVertical: SPACING.xs },
+    actionLabel: { fontSize: 11, color: colors.primary },
     calendarMonthBtn: { paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, alignSelf: 'center' },
     calendarMonthText: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.semibold, color: colors.textPrimary },
     pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
@@ -215,7 +218,7 @@ function createStyles(colors: AppColors) {
     daySummaryHint: { fontSize: FONT_SIZE.xs, color: colors.textTertiary },
     daySummaryPreview: { fontSize: FONT_SIZE.sm, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACING.sm },
     daySummaryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-    daySummaryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 1, borderRadius: BORDER_RADIUS.full },
+    daySummaryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primary + '1A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
     daySummaryTagMore: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, alignSelf: 'center' },
     collapseRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: SPACING.md, marginBottom: SPACING.xs },
     collapseBtn: { fontSize: FONT_SIZE.sm, color: colors.textTertiary },
@@ -226,6 +229,7 @@ export default function CalendarScreen() {
   const navigation = useNavigation<any>();
   const { colors, densityColors, isDark } = useTheme();
   const { activeChild } = useChild();
+  const { top: safeAreaTop } = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -257,7 +261,10 @@ export default function CalendarScreen() {
   const [isExpandedRecords, setIsExpandedRecords] = useState(false);
   const [daySummaryText, setDaySummaryText] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const sheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [sheetHeight, setSheetHeight] = useState(FALLBACK_SHEET_HEIGHT);
+  const sheetHeightRef = useRef(FALLBACK_SHEET_HEIGHT);
+  const sheetAnim = useRef(new Animated.Value(FALLBACK_SHEET_HEIGHT)).current;
   const dimAnim = useRef(new Animated.Value(0)).current;
   const contentSlideAnim = useRef(new Animated.Value(0)).current;
   const [kbHeight, setKbHeight] = useState(0);
@@ -276,6 +283,8 @@ export default function CalendarScreen() {
     setIsExpandedRecords(false);
     setDaySummaryText(null);
     setIsSummarizing(false);
+    setShowTextInput(false);
+    setTextInput('');
   }, [selectedDate]);
 
   useEffect(() => {
@@ -286,18 +295,51 @@ export default function CalendarScreen() {
     return () => { show.remove(); hide.remove(); };
   }, []);
 
+  const handleCalendarAreaLayout = useCallback((e: any) => {
+    const { height } = e.nativeEvent.layout;
+    const newHeight = Math.max(SCREEN_HEIGHT - safeAreaTop - height, 200);
+    sheetHeightRef.current = newHeight;
+    setSheetHeight(newHeight);
+  }, [safeAreaTop]);
+
   const openSheet = useCallback(() => {
-    setIsSheetOpen(true);
+    if (!isSheetOpenRef.current) {
+      sheetAnim.setValue(sheetHeightRef.current);
+      setIsSheetOpen(true);
+    }
     Animated.parallel([
-      Animated.timing(sheetAnim, { toValue: 0, duration: 320, useNativeDriver: true }),
-      Animated.timing(dimAnim, { toValue: 1, duration: 320, useNativeDriver: true }),
+      Animated.spring(sheetAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 22,
+        stiffness: 220,
+        mass: 0.9,
+        overshootClamping: true,
+      }),
+      Animated.timing(dimAnim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }),
     ]).start();
   }, [sheetAnim, dimAnim]);
 
   const closeSheet = useCallback(() => {
+    setShowTextInput(false);
     Animated.parallel([
-      Animated.timing(sheetAnim, { toValue: SHEET_HEIGHT, duration: 280, useNativeDriver: true }),
-      Animated.timing(dimAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
+      Animated.timing(sheetAnim, {
+        toValue: sheetHeightRef.current,
+        duration: 260,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.ease),
+      }),
+      Animated.timing(dimAnim, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }),
     ]).start(() => setIsSheetOpen(false));
   }, [sheetAnim, dimAnim]);
 
@@ -388,8 +430,8 @@ export default function CalendarScreen() {
   const handleDayPress = useCallback(async (day: { dateString: string }) => {
     const date = day.dateString;
     setSelectedDate(date);
-    const records = await loadDayRecords(date) ?? [];
     openSheet();
+    const records = await loadDayRecords(date) ?? [];
 
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -627,58 +669,60 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>캘린더</Text>
-      </View>
+      <View onLayout={handleCalendarAreaLayout}>
+        <View style={styles.header}>
+          <Text style={styles.title}>캘린더</Text>
+        </View>
 
-      <Calendar
-        key={`${calendarKey}-${isDark ? 'dark' : 'light'}`}
-        current={calendarCurrent}
-        dayComponent={CustomDay}
-        onMonthChange={handleMonthChange}
-        renderHeader={() => (
-          <TouchableOpacity
-            onPress={() => {
-              const [y, m] = currentMonth.split('-');
-              setPickerYear(parseInt(y));
-              setPickerMonth(parseInt(m));
-              setShowDatePicker(true);
-            }}
-            style={styles.calendarMonthBtn}
-          >
-            <Text style={styles.calendarMonthText}>
-              {currentMonth.split('-')[0]}년 {parseInt(currentMonth.split('-')[1])}월 ▾
-            </Text>
-          </TouchableOpacity>
-        )}
-        theme={{
-          backgroundColor: colors.background,
-          calendarBackground: colors.background,
-          textSectionTitleColor: colors.textTertiary,
-          arrowColor: colors.primary,
-          monthTextColor: colors.textPrimary,
-          dayTextColor: colors.textPrimary,
-          todayTextColor: colors.primary,
-          textDisabledColor: colors.textTertiary,
-          textMonthFontWeight: FONT_WEIGHT.semibold,
-          textDayHeaderFontWeight: FONT_WEIGHT.medium,
-          textMonthFontSize: FONT_SIZE.lg,
-          textDayHeaderFontSize: FONT_SIZE.sm,
-        }}
-        style={styles.calendar}
-      />
+        <Calendar
+          key={`${calendarKey}-${isDark ? 'dark' : 'light'}`}
+          current={calendarCurrent}
+          dayComponent={CustomDay}
+          onMonthChange={handleMonthChange}
+          renderHeader={() => (
+            <TouchableOpacity
+              onPress={() => {
+                const [y, m] = currentMonth.split('-');
+                setPickerYear(parseInt(y));
+                setPickerMonth(parseInt(m));
+                setShowDatePicker(true);
+              }}
+              style={styles.calendarMonthBtn}
+            >
+              <Text style={styles.calendarMonthText}>
+                {currentMonth.split('-')[0]}년 {parseInt(currentMonth.split('-')[1])}월 ▾
+              </Text>
+            </TouchableOpacity>
+          )}
+          theme={{
+            backgroundColor: colors.background,
+            calendarBackground: colors.background,
+            textSectionTitleColor: colors.textTertiary,
+            arrowColor: colors.primary,
+            monthTextColor: colors.textPrimary,
+            dayTextColor: colors.textPrimary,
+            todayTextColor: colors.primary,
+            textDisabledColor: colors.textTertiary,
+            textMonthFontWeight: FONT_WEIGHT.semibold,
+            textDayHeaderFontWeight: FONT_WEIGHT.medium,
+            textMonthFontSize: FONT_SIZE.lg,
+            textDayHeaderFontSize: FONT_SIZE.sm,
+          }}
+          style={styles.calendar}
+        />
 
-      <View style={styles.legend}>
-        <Text style={styles.legendLabel}>기록 적음</Text>
-        {densityColors.slice(1).map((color, i) => (
-          <View key={i} style={[styles.legendDot, { backgroundColor: color }]} />
-        ))}
-        <Text style={styles.legendLabel}>많음</Text>
-        <View style={styles.legendSpacer} />
-        <View style={styles.pearlDotSmall} />
-        <Text style={styles.legendLabel}>의료 기록</Text>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: EVENT_DOT_COLORS[0] }} />
-        <Text style={styles.legendLabel}>증상 추적</Text>
+        <View style={styles.legend}>
+          <Text style={styles.legendLabel}>기록 적음</Text>
+          {densityColors.slice(1).map((color, i) => (
+            <View key={i} style={[styles.legendDot, { backgroundColor: color }]} />
+          ))}
+          <Text style={styles.legendLabel}>많음</Text>
+          <View style={styles.legendSpacer} />
+          <View style={styles.pearlDotSmall} />
+          <Text style={styles.legendLabel}>의료 기록</Text>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: EVENT_DOT_COLORS[0] }} />
+          <Text style={styles.legendLabel}>증상 추적</Text>
+        </View>
       </View>
 
       {isSheetOpen && (
@@ -689,200 +733,173 @@ export default function CalendarScreen() {
 
       {isSheetOpen && (
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: sheetAnim }], bottom: kbHeight }]}
+          style={[styles.sheet, { height: sheetHeight, transform: [{ translateY: sheetAnim }], bottom: kbHeight }]}
           {...swipePan.panHandlers}
         >
           <View style={styles.sheetHandle} />
 
           <Animated.View style={{ flex: 1, transform: [{ translateX: contentSlideAnim }] }}>
-          <Text style={styles.sheetDate}>{formattedDate}</Text>
+            <Text style={styles.sheetDate}>{formattedDate}</Text>
 
-          <ScrollView
-            ref={sheetScrollRef}
-            style={styles.sheetScroll}
-            contentContainerStyle={styles.sheetContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* 이 날 활성 증상 */}
-            {dayEvents.length > 0 && (
-              <View style={styles.dayEventSection}>
-                <Text style={styles.dayEventSectionTitle}>이 날의 증상</Text>
-                {dayEvents.map((ev) => {
-                  const dotColor = EVENT_DOT_COLORS[monthEvents.indexOf(ev) % EVENT_DOT_COLORS.length];
-                  const ended = ev.endedAt !== null && ev.endedAt <= new Date(selectedDate + 'T23:59:59').getTime();
-                  const severity = dayEventLogs[ev.id] ?? null;
-                  const SEVERITY_LABELS: Record<string, { label: string; color: string }> = {
-                    high:   { label: '심함', color: colors.error },
-                    medium: { label: '보통', color: '#f59e0b' },
-                    low:    { label: '약함', color: '#22c55e' },
-                    none:   { label: '없음', color: colors.textTertiary },
-                  };
-                  const severityInfo = severity ? SEVERITY_LABELS[severity] : null;
-                  return (
-                    <TouchableOpacity
-                      key={ev.id}
-                      style={styles.dayEventRow}
-                      onLongPress={() => setSelectedEventForSheet({ id: ev.id, name: ev.name })}
-                      delayLongPress={400}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.dayEventDot, { backgroundColor: dotColor }]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.dayEventName}>{ev.name}</Text>
-                        <Text style={styles.dayEventPeriod}>{formatEventDuration(ev.startedAt)}</Text>
-                      </View>
-                      {severityInfo && (
-                        <Text style={[styles.dayEventBadge, { color: severityInfo.color, borderColor: severityInfo.color + '44', backgroundColor: severityInfo.color + '15' }]}>
-                          {severityInfo.label}
-                        </Text>
-                      )}
-                      {ended && !severityInfo && <Text style={styles.dayEventBadge}>종료</Text>}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+            <ScrollView
+              ref={sheetScrollRef}
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {dayEvents.length > 0 && (
+                <View style={styles.dayEventSection}>
+                  <Text style={styles.dayEventSectionTitle}>이 날의 증상</Text>
+                  {dayEvents.map((ev) => {
+                    const dotColor = EVENT_DOT_COLORS[monthEvents.indexOf(ev) % EVENT_DOT_COLORS.length];
+                    const ended = ev.endedAt !== null && ev.endedAt <= new Date(selectedDate + 'T23:59:59').getTime();
+                    const severity = dayEventLogs[ev.id] ?? null;
+                    const SEVERITY_LABELS: Record<string, { label: string; color: string }> = {
+                      high:   { label: '심함', color: colors.error },
+                      medium: { label: '보통', color: '#f59e0b' },
+                      low:    { label: '약함', color: '#22c55e' },
+                      none:   { label: '없음', color: colors.textTertiary },
+                    };
+                    const severityInfo = severity ? SEVERITY_LABELS[severity] : null;
+                    return (
+                      <TouchableOpacity
+                        key={ev.id}
+                        style={styles.dayEventRow}
+                        onLongPress={() => setSelectedEventForSheet({ id: ev.id, name: ev.name })}
+                        delayLongPress={400}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.dayEventDot, { backgroundColor: dotColor }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.dayEventName}>{ev.name}</Text>
+                          <Text style={styles.dayEventPeriod}>{formatEventDuration(ev.startedAt)}</Text>
+                        </View>
+                        {severityInfo && (
+                          <Text style={[styles.dayEventBadge, { color: severityInfo.color, backgroundColor: severityInfo.color + '15' }]}>
+                            {severityInfo.label}
+                          </Text>
+                        )}
+                        {ended && !severityInfo && <Text style={styles.dayEventBadge}>종료</Text>}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
 
-            {isLoadingRecords ? (
-              <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
-            ) : dayRecords.length === 0 ? (
-              <View style={styles.emptyDay}>
-                <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
-                <View style={{ flexDirection: 'row', gap: SPACING.sm, alignSelf: 'stretch' }}>
-                  <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { flex: 1 }]}>
-                    <Text style={styles.recordButtonText}>녹음 시작하기</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleCameraPress} style={styles.cameraButton}>
-                    <Ionicons name="camera-outline" size={20} color={colors.primary} />
-                  </TouchableOpacity>
+              {isLoadingRecords ? (
+                <ActivityIndicator color={colors.primary} style={{ marginTop: SPACING.lg }} />
+              ) : dayRecords.length === 0 ? (
+                <View style={styles.emptyDay}>
+                  <Ionicons name="calendar-outline" size={36} color={colors.textTertiary} />
+                  <Text style={styles.emptyText}>이 날은 기록이 없어요</Text>
                 </View>
-                <View style={[styles.inputDivider, { alignSelf: 'stretch' }]}>
-                  <View style={styles.inputDividerLine} />
-                  <Text style={styles.inputDividerText}>또는</Text>
-                  <View style={styles.inputDividerLine} />
-                </View>
-                <View style={[styles.textInputContainer, { alignSelf: 'stretch' }]}>
-                  <View style={styles.timeRow}>
-                    <Text style={styles.timeLabel}>시간 설정</Text>
-                    <TouchableOpacity style={styles.timeButton} onPress={() => setShowTimePicker(true)}>
-                      <Text style={styles.timeButtonText}>{formatTimeHM(inputHour, inputMinute)}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="텍스트로 기록하기..."
-                    placeholderTextColor={colors.textTertiary}
-                    value={textInput}
-                    onChangeText={setTextInput}
-                    multiline
-                    onFocus={() => setTimeout(() => sheetScrollRef.current?.scrollToEnd({ animated: true }), 150)}
-                  />
+              ) : isToday || isExpandedRecords ? (
+                <>
+                  {isExpandedRecords && !isToday && (
+                    <View style={styles.collapseRow}>
+                      <TouchableOpacity onPress={() => setIsExpandedRecords(false)}>
+                        <Text style={styles.collapseBtn}>접기 ▴</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {dayRecords.map((item) => (
+                    <RecordCard
+                      key={item.id}
+                      record={item}
+                      onPress={() => handleRecordPress(item.id)}
+                      customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${(item.audioPath || item.source === 'voice') ? '음성 기록' : '직접 입력'}`}
+                      timeOnly={true}
+                    />
+                  ))}
+                </>
+              ) : (
+                daySummaryData && (
                   <TouchableOpacity
-                    onPress={handleSaveText}
-                    style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
-                    disabled={!textInput.trim() || isSaving}
+                    onLongPress={() => setIsExpandedRecords(true)}
+                    delayLongPress={400}
+                    activeOpacity={0.85}
+                    style={styles.daySummaryCard}
                   >
-                    <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <>
-                {isToday || isExpandedRecords ? (
-                  <>
-                    {isExpandedRecords && !isToday && (
-                      <View style={styles.collapseRow}>
-                        <TouchableOpacity onPress={() => setIsExpandedRecords(false)}>
-                          <Text style={styles.collapseBtn}>접기 ▴</Text>
-                        </TouchableOpacity>
+                    <View style={styles.daySummaryHeader}>
+                      <Text style={styles.daySummaryCount}>기록 {daySummaryData.count}건</Text>
+                      <Text style={styles.daySummaryHint}>길게 눌러 펼치기</Text>
+                    </View>
+                    {isSummarizing ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.sm }}>
+                        <ActivityIndicator size="small" color={colors.textTertiary} />
+                        <Text style={styles.daySummaryPreview}>요약 중...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.daySummaryPreview} numberOfLines={4}>
+                        {daySummaryText ?? daySummaryData.preview}
+                      </Text>
+                    )}
+                    {daySummaryData.tags.length > 0 && (
+                      <View style={styles.daySummaryTags}>
+                        {daySummaryData.tags.slice(0, 4).map(tag => (
+                          <Text key={tag} style={styles.daySummaryTag}>{tag}</Text>
+                        ))}
+                        {daySummaryData.tags.length > 4 && (
+                          <Text style={styles.daySummaryTagMore}>+{daySummaryData.tags.length - 4}</Text>
+                        )}
                       </View>
                     )}
-                    {dayRecords.map((item) => (
-                      <RecordCard
-                        key={item.id}
-                        record={item}
-                        onPress={() => handleRecordPress(item.id)}
-                        customLabel={`${new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true })} · ${(item.audioPath || item.source === 'voice') ? '음성 기록' : '직접 입력'}`}
-                        timeOnly={true}
-                      />
-                    ))}
-                  </>
-                ) : (
-                  daySummaryData && (
-                    <TouchableOpacity
-                      onLongPress={() => setIsExpandedRecords(true)}
-                      delayLongPress={400}
-                      activeOpacity={0.85}
-                      style={styles.daySummaryCard}
-                    >
-                      <View style={styles.daySummaryHeader}>
-                        <Text style={styles.daySummaryCount}>기록 {daySummaryData.count}건</Text>
-                        <Text style={styles.daySummaryHint}>길게 눌러 펼치기</Text>
-                      </View>
-                      {isSummarizing ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.sm }}>
-                          <ActivityIndicator size="small" color={colors.textTertiary} />
-                          <Text style={styles.daySummaryPreview}>요약 중...</Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.daySummaryPreview} numberOfLines={4}>
-                          {daySummaryText ?? daySummaryData.preview}
-                        </Text>
-                      )}
-                      {daySummaryData.tags.length > 0 && (
-                        <View style={styles.daySummaryTags}>
-                          {daySummaryData.tags.slice(0, 4).map(tag => (
-                            <Text key={tag} style={styles.daySummaryTag}>{tag}</Text>
-                          ))}
-                          {daySummaryData.tags.length > 4 && (
-                            <Text style={styles.daySummaryTagMore}>+{daySummaryData.tags.length - 4}</Text>
-                          )}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  )
-                )}
-                <View style={{ flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm }}>
-                  <TouchableOpacity onPress={handleStartRecording} style={[styles.recordButton, { flex: 1 }]}>
-                    <Text style={styles.recordButtonText}>녹음 추가하기</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleCameraPress} style={styles.cameraButton}>
-                    <Ionicons name="camera-outline" size={20} color={colors.primary} />
+                )
+              )}
+            </ScrollView>
+
+            {showTextInput && (
+              <View style={styles.textPanel}>
+                <View style={styles.textPanelTimeRow}>
+                  <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.timePillBtn}>
+                    <Ionicons name="time-outline" size={13} color={colors.primary} />
+                    <Text style={styles.timePillText}>{formatTimeHM(inputHour, inputMinute)}</Text>
                   </TouchableOpacity>
                 </View>
-                <View style={styles.inputDivider}>
-                  <View style={styles.inputDividerLine} />
-                  <Text style={styles.inputDividerText}>또는</Text>
-                  <View style={styles.inputDividerLine} />
-                </View>
-                <View style={styles.textInputContainer}>
-                  <View style={styles.timeRow}>
-                    <Text style={styles.timeLabel}>시간 설정</Text>
-                    <TouchableOpacity style={styles.timeButton} onPress={() => setShowTimePicker(true)}>
-                      <Text style={styles.timeButtonText}>{formatTimeHM(inputHour, inputMinute)}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="텍스트로 추가 기록하기..."
-                    placeholderTextColor={colors.textTertiary}
-                    value={textInput}
-                    onChangeText={setTextInput}
-                    multiline
-                    onFocus={() => setTimeout(() => sheetScrollRef.current?.scrollToEnd({ animated: true }), 150)}
-                  />
-                  <TouchableOpacity
-                    onPress={handleSaveText}
-                    style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.5 }]}
-                    disabled={!textInput.trim() || isSaving}
-                  >
-                    <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="텍스트로 기록하기..."
+                  placeholderTextColor={colors.textTertiary}
+                  value={textInput}
+                  onChangeText={setTextInput}
+                  multiline
+                  autoFocus
+                />
+                <TouchableOpacity
+                  onPress={handleSaveText}
+                  style={[styles.saveButton, { opacity: textInput.trim() ? 1 : 0.4 }]}
+                  disabled={!textInput.trim() || isSaving}
+                >
+                  <Text style={styles.saveButtonText}>{isSaving ? '저장 중...' : '저장'}</Text>
+                </TouchableOpacity>
+              </View>
             )}
-          </ScrollView>
+
+            <View style={styles.actionBar}>
+              <TouchableOpacity style={styles.actionBtn} onPress={handleStartRecording}>
+                <Ionicons name="mic-outline" size={24} color={colors.primary} />
+                <Text style={styles.actionLabel}>녹음</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtn} onPress={handleCameraPress}>
+                <Ionicons name="camera-outline" size={24} color={colors.primary} />
+                <Text style={styles.actionLabel}>사진</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => setShowTextInput(v => !v)}
+              >
+                <Ionicons
+                  name="pencil-outline"
+                  size={24}
+                  color={showTextInput ? colors.primary : colors.textSecondary}
+                />
+                <Text style={[styles.actionLabel, { color: showTextInput ? colors.primary : colors.textSecondary }]}>
+                  텍스트
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
 
           <TouchableOpacity onPress={closeSheet} style={styles.sheetClose}>

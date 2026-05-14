@@ -147,7 +147,7 @@ function createStyles(colors: AppColors) {
     inlineEntryDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginBottom: 2 },
     inlineEntrySummary: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, lineHeight: 20 },
     inlineEntryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-    inlineEntryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 1, borderRadius: BORDER_RADIUS.full },
+    inlineEntryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primary + '1A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
     inlineEntryMore: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, alignSelf: 'center' },
     inlineLoading: { paddingVertical: SPACING.md, alignItems: 'center' },
     inlineEmpty: { paddingVertical: SPACING.md, alignItems: 'center' },
@@ -162,7 +162,7 @@ function createStyles(colors: AppColors) {
     timelineEntryDate: { fontSize: FONT_SIZE.xs, color: colors.textTertiary, marginBottom: 2 },
     timelineEntrySummary: { fontSize: FONT_SIZE.sm, color: colors.textPrimary, lineHeight: 20 },
     timelineEntryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
-    timelineEntryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 1, borderRadius: BORDER_RADIUS.full },
+    timelineEntryTag: { fontSize: FONT_SIZE.xs, color: colors.primary, backgroundColor: colors.primary + '1A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: BORDER_RADIUS.full },
     timelineBadge: { fontSize: FONT_SIZE.xs, color: colors.primary, fontWeight: FONT_WEIGHT.semibold },
   });
 }
