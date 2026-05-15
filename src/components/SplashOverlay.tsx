@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
-const BG = '#070D1A';
+const BG = '#0EA5A0';
 const TEXT = '#F1F5F9';
 
 type Props = {
