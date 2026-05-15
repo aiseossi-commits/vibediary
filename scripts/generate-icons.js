@@ -38,6 +38,21 @@ async function generate() {
   await sharp(svgMono).resize(432, 432).png().toFile(path.join(ASSETS, 'android-icon-monochrome.png'));
   console.log('✓ android-icon-monochrome.png');
 
+  // Android res mipmap foreground webp — Gradle이 직접 사용하는 파일
+  const ANDROID_RES = path.join(__dirname, '..', 'android', 'app', 'src', 'main', 'res');
+  const densities = [
+    { dir: 'mipmap-mdpi',    size: 108 },
+    { dir: 'mipmap-hdpi',    size: 162 },
+    { dir: 'mipmap-xhdpi',   size: 216 },
+    { dir: 'mipmap-xxhdpi',  size: 324 },
+    { dir: 'mipmap-xxxhdpi', size: 432 },
+  ];
+  const fgPng = path.join(ASSETS, 'android-icon-foreground.png');
+  for (const { dir, size } of densities) {
+    await sharp(fgPng).resize(size, size).webp().toFile(path.join(ANDROID_RES, dir, 'ic_launcher_foreground.webp'));
+    console.log(`✓ ${dir}/ic_launcher_foreground.webp`);
+  }
+
   console.log('\nDone! All icons generated.');
 }
 
