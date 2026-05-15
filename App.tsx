@@ -41,7 +41,7 @@ function AppContent() {
   const showOverlay = !(dbReady && minTimePassed && childLoaded);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#070D1A' }}>
+    <View style={{ flex: 1, backgroundColor: '#0EA5A0' }}>
       {dbReady && (
         <>
           <StatusBar style={isDark ? 'light' : 'dark'} />

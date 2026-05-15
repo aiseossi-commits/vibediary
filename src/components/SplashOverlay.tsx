@@ -10,16 +10,7 @@ type Props = {
 };
 
 export default function SplashOverlay({ visible, onFadeOutEnd }: Props) {
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    // 마운트 시 페이드인
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [opacity]);
+  const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!visible) {
