@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { Alert, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
@@ -91,13 +91,26 @@ export default function AppNavigator() {
   useSyncTriggers(isLoaded, session);
 
   if (!isLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#070D1A' }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
   const hasChildren = childList.length > 0;
 
+  const navTheme = {
+    ...DefaultTheme,
+    dark: false,
+    colors: {
+      ...DefaultTheme.colors,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.textPrimary,
+      border: colors.tabBorder,
+      primary: colors.primary,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!hasChildren ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
