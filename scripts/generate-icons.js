@@ -13,25 +13,21 @@ const svgFg     = fs.readFileSync(path.join(ASSETS, 'logo-android-fg.svg'));
 const svgMono   = fs.readFileSync(path.join(ASSETS, 'logo-monochrome.svg'));
 
 async function generate() {
-  // icon.png — 1024x1024
-  await sharp(svgMain).resize(1024, 1024).flatten({ background: '#0EA5A0' }).png().toFile(path.join(ASSETS, 'icon.png'));
+  // icon.png — 1024x1024 (SVG 자체 배경 포함)
+  await sharp(svgMain).resize(1024, 1024).png().toFile(path.join(ASSETS, 'icon.png'));
   console.log('✓ icon.png');
 
-  // splash-icon.png — 1024x1024 (same design, splash bg set in app.json)
-  await sharp(svgMain).resize(1024, 1024).flatten({ background: '#0EA5A0' }).png().toFile(path.join(ASSETS, 'splash-icon.png'));
+  // splash-icon.png — 1024x1024
+  await sharp(svgMain).resize(1024, 1024).png().toFile(path.join(ASSETS, 'splash-icon.png'));
   console.log('✓ splash-icon.png');
 
   // favicon.png — 48x48
-  await sharp(svgMain).resize(48, 48).flatten({ background: '#0EA5A0' }).png().toFile(path.join(ASSETS, 'favicon.png'));
+  await sharp(svgMain).resize(48, 48).png().toFile(path.join(ASSETS, 'favicon.png'));
   console.log('✓ favicon.png');
 
   // android-icon-foreground.png — 1024x1024 (transparent bg)
-  // 로고를 640px로 축소 후 192px 여백 → 62.5% safe zone (Android adaptive icon 클리핑 방지)
-  await sharp(svgFg)
-    .resize(640, 640)
-    .extend({ top: 192, bottom: 192, left: 192, right: 192, background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toFile(path.join(ASSETS, 'android-icon-foreground.png'));
+  // 새 SVG는 scale(0.78)로 safe zone 내장됨 — 추가 패딩 불필요
+  await sharp(svgFg).resize(1024, 1024).png().toFile(path.join(ASSETS, 'android-icon-foreground.png'));
   console.log('✓ android-icon-foreground.png');
 
   // android-icon-monochrome.png — 432x432

@@ -1,34 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <g fill="none" stroke="#F9FAFB" stroke-linecap="round" stroke-linejoin="round">
-    <path
-      d="M265 324
-         H750
-         C830 324 895 389 895 469
-         C895 549 830 614 750 614
-         H478
-         C454 614 431 622 412 637
-         L350 685
-         C331 700 304 683 310 660
-         L322 614
-         H265
-         C185 614 120 549 120 469
-         C120 389 185 324 265 324Z"
-      stroke-width="42"/>
-
-    <g stroke-width="38">
-      <line x1="255" y1="460" x2="255" y2="512"/>
-      <line x1="326" y1="416" x2="326" y2="556"/>
-      <line x1="397" y1="368" x2="397" y2="584"/>
-      <line x1="468" y1="416" x2="468" y2="556"/>
-      <line x1="539" y1="460" x2="539" y2="512"/>
-    </g>
-
-    <g stroke-width="30">
-      <line x1="628" y1="416" x2="790" y2="416"/>
-      <line x1="628" y1="498" x2="828" y2="498"/>
-      <line x1="628" y1="574" x2="750" y2="574"/>
-    </g>
+  <g transform="translate(512 512) scale(0.78) translate(-512 -537)">
+    <path d="M 372 360 C 460 420, 564 604, 656 664" stroke="#ffffff" stroke-opacity="0.55" stroke-width="8" stroke-linecap="round" fill="none"></path>
+    <path d="M 372 250&#xA;  C 462 250, 524 312, 524 388&#xA;  C 524 444, 488 484, 440 502&#xA;  C 416 510, 396 524, 384 538&#xA;  C 374 550, 360 538, 350 522&#xA;  C 320 484, 232 470, 232 380&#xA;  C 232 308, 292 250, 372 250 Z" fill="#ffffff"></path>
+    <path d="M 656 560&#xA;  C 736 560, 792 614, 792 682&#xA;  C 792 730, 762 766, 720 782&#xA;  C 700 790, 684 802, 674 814&#xA;  C 666 824, 654 814, 646 800&#xA;  C 622 768, 542 758, 542 678&#xA;  C 542 614, 588 560, 656 560 Z" fill="#ffffff" opacity="0.82"></path>
   </g>
-
-  <circle cx="827" cy="574" r="20" fill="#F9FAFB"/>
 </svg>
