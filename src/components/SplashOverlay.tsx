@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text } from 'react-native';
 
 const BG = '#0EA5A0';
 const TEXT = '#F1F5F9';
@@ -11,6 +11,15 @@ type Props = {
 
 export default function SplashOverlay({ visible, onFadeOutEnd }: Props) {
   const opacity = useRef(new Animated.Value(1)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(textOpacity, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [textOpacity]);
 
   useEffect(() => {
     if (!visible) {
@@ -24,10 +33,10 @@ export default function SplashOverlay({ visible, onFadeOutEnd }: Props) {
 
   return (
     <Animated.View pointerEvents={visible ? 'auto' : 'none'} style={[StyleSheet.absoluteFill, styles.container, { opacity }]}>
-      <View style={styles.textBlock}>
+      <Animated.View style={[styles.textBlock, { opacity: textOpacity }]}>
         <Text style={styles.line}>기록에 치이지 말고,</Text>
         <Text style={styles.line}>그냥 말하세요</Text>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }
