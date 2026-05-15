@@ -26,7 +26,12 @@ async function generate() {
   console.log('✓ favicon.png');
 
   // android-icon-foreground.png — 1024x1024 (transparent bg)
-  await sharp(svgFg).resize(1024, 1024).png().toFile(path.join(ASSETS, 'android-icon-foreground.png'));
+  // 로고를 640px로 축소 후 192px 여백 → 62.5% safe zone (Android adaptive icon 클리핑 방지)
+  await sharp(svgFg)
+    .resize(640, 640)
+    .extend({ top: 192, bottom: 192, left: 192, right: 192, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toFile(path.join(ASSETS, 'android-icon-foreground.png'));
   console.log('✓ android-icon-foreground.png');
 
   // android-icon-monochrome.png — 432x432
