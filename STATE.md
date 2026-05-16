@@ -350,6 +350,10 @@
 - [x] Android AI 등대 입력창 키보드 위치 버그 수정: adjustNothing + behavior='height' + keyboardVerticalOffset=0 (adjustResize 타이밍 불일치 근본 수정)
 - [x] 사진 첨부 기능 백로그 등록 (999.1): 해비유저 페르소나 니즈, 핵심 플로우 안정화 후 재검토
 
+## 최근 완료된 작업 (2026-05-16 — 마케팅)
+
+- [x] content-queue/2026-05-16.md 생성: 블로그 초안 1편, 인스타 캡션 3개, 커뮤니티 게시물 1개, 치료사 DM 3개 (소프트 런치 첫 주 콘텐츠 큐)
+
 ## 진행 중인 작업
 
 (없음)
