@@ -123,7 +123,7 @@ All external API calls are routed through a single Deno Deploy proxy at `https:/
 - URL: `https://vibediary.aiseossi-commits.deno.net`
 
 **CI Pipeline:**
-- Pre-commit hook: validates `STATE.md` inclusion + `npx tsc --noEmit` type check
+- Pre-commit hook: `npx tsc --noEmit` type check
 - No CI/CD pipeline detected (no GitHub Actions, CircleCI, etc.)
 
 ## Environment Configuration

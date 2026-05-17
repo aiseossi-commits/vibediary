@@ -38,11 +38,7 @@ npx tsc --noEmit
 - Additional strictness: `noUnusedLocals: true`, `noUnusedParameters: true`
 - Blocks commit if any type errors exist
 
-**2. STATE.md Inclusion Check:**
-- Every commit must include `STATE.md` updates
-- Blocks commit if `STATE.md` is not staged
-
-**3. Ontology Reminder (non-blocking):**
+**2. Ontology Reminder (non-blocking):**
 - If staged files match `aiProcessor|tags|prompt|stt`, prints a warning to verify consistency with `../aiseossi-knowledge/ontology.md`
 - Advisory only; does not block the commit
 
