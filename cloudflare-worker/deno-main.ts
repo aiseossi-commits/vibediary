@@ -1,4 +1,4 @@
-// v6.4: /version 엔드포인트 추가 (인앱 업데이트 체크)
+// v6.5: /stats 엔드포인트 추가 (일별 API 호출 카운터)
 const ALLOWED_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'whisper-1'];
 const MAX_STT_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_AI_BODY_LENGTH = 100000; // 100KB
@@ -6,6 +6,19 @@ const MAX_AI_BODY_LENGTH = 100000; // 100KB
 // Rate limiting: IP당 분당 최대 요청 수
 const RATE_LIMIT_PER_MINUTE = 30;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+// Deno KV 일별 API 호출 카운터
+const kv = await Deno.openKv();
+
+function todayKST(): string {
+  return new Date(Date.now() + 9 * 3600_000).toISOString().split('T')[0];
+}
+
+async function incrementStat(endpoint: 'stt' | 'ai'): Promise<void> {
+  const key = ['stats', todayKST(), endpoint];
+  const current = await kv.get<number>(key);
+  await kv.set(key, (current.value ?? 0) + 1, { expireIn: 30 * 24 * 3600_000 }); // 30일 보존
+}
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -72,6 +85,10 @@ Deno.serve(async (request: Request) => {
     return handleAI(request, url);
   }
 
+  if (request.method === 'GET' && url.pathname === '/stats') {
+    return handleStats();
+  }
+
   if (url.pathname === '/embedding') {
     return new Response('Gone', { status: 410 });
   }
@@ -104,6 +121,9 @@ async function handleSTT(request: Request) {
   });
 
   const body = await upstreamResponse.text();
+  if (upstreamResponse.ok) {
+    incrementStat('stt').catch(() => {});
+  }
   return new Response(body, {
     status: upstreamResponse.status,
     headers: {
@@ -136,11 +156,35 @@ async function handleAI(request: Request, url: URL) {
   );
 
   const responseBody = await upstreamResponse.text();
+  if (upstreamResponse.ok) {
+    incrementStat('ai').catch(() => {});
+  }
   return new Response(responseBody, {
     status: upstreamResponse.status,
     headers: {
       'Content-Type': upstreamResponse.headers.get('Content-Type') || 'application/json',
       'Access-Control-Allow-Origin': '*',
     },
+  });
+}
+
+async function handleStats(): Promise<Response> {
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    days.push(new Date(Date.now() + 9 * 3600_000 - i * 86400_000).toISOString().split('T')[0]);
+  }
+
+  const result: Record<string, { stt: number; ai: number }> = {};
+  for (const day of days) {
+    const [sttRes, aiRes] = await Promise.all([
+      kv.get<number>(['stats', day, 'stt']),
+      kv.get<number>(['stats', day, 'ai']),
+    ]);
+    result[day] = { stt: sttRes.value ?? 0, ai: aiRes.value ?? 0 };
+  }
+
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
   });
 }
