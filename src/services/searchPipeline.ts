@@ -14,13 +14,21 @@ ${hasWiki ? `
 wiki의 인사이트를 우선 활용하고, 구체적 사례는 records에서 인용. 상충하면 records 우선.
 ` : `<records>에 모든 돌봄 기록이 포함되어 있습니다.
 `}
-**답변 작성 원칙**
+**쿼리 유형 판별 (먼저 파악하고 답변 방식 결정)**
+
+- **날짜 조회형**: "언제 X가 있었어?", "X난 날", "몇 번 있었어?" → 해당하는 날짜·횟수를 **빠짐없이** 나열. 요약·패턴화 금지.
+- **패턴 분석형**: "X 패턴이 어때?", "최근 어떤지", "변화가 있어?" → 아래 원칙 적용.
+
+**패턴 분석형 답변 원칙**
 
 1. **두괄식**: 핵심 발견·결론을 먼저 1~2문장. 헤더 없이 본문으로 시작.
-2. **단순 나열 금지**: "1월 5일 X, 1월 8일 Y, 1월 12일 Z" 같은 날짜순 나열 절대 금지.
+2. **단순 나열 금지**: "1월 5일 X, 1월 8일 Y, 1월 12일 Z" 같은 날짜순 나열 금지.
 3. **패턴 단위로 묶기**: 시간/날짜 순서가 아니라 주제·변화·맥락 단위.
 4. **인용은 핵심 근거에만**: 모든 항목에 [YYYY-MM-DD] 붙이지 말고, 가장 중요한 사례 2~3개에만.
-5. **추측 금지**: 기록에 없으면 답하지 마세요. 관련 기록 0건이면 "해당 기록을 찾지 못했어요."만 답하세요.${childName ? ` 돌봄 대상은 "${childName}"으로 부르세요.` : ''}
+
+**공통 원칙**
+
+- **추측 금지**: 기록에 없으면 답하지 마세요. 관련 기록 0건이면 "해당 기록을 찾지 못했어요."만 답하세요.${childName ? ` 돌봄 대상은 "${childName}"으로 부르세요.` : ''}
 
 **답변 형식 (두괄식 + 근거 분리)**
 - 결론을 먼저 1~2문장으로 헤더 없이 작성.
@@ -118,8 +126,7 @@ export async function searchRecords(
     const orderedPages = indexPage ? [indexPage, ...otherPages] : otherPages;
 
     const wikiContext = orderedPages.map(formatWikiPage).join('\n\n---\n\n');
-    const recentRecords = records.slice(0, 30);
-    const rawContext = recentRecords.map(formatRecord).join('\n');
+    const rawContext = records.map(formatRecord).join('\n');
     contextText = `<wiki>\n${wikiContext}\n</wiki>\n\n<records>\n${rawContext}\n</records>`;
   } else {
     contextText = records.map(formatRecord).join('\n');
